@@ -1,0 +1,46 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "command": "sh",
+    "args": ["-c"],
+    "options": {
+        "cwd": "${workspaceRoot}/build"
+    },
+    "tasks": [
+        {
+            "label": "cmake debug",
+            "args": [
+                "cmake -DCMAKE_BUILD_TYPE=Debug .."
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "cmake release",
+            "args": [
+                "cmake -DCMAKE_BUILD_TYPE=Release .."
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "Make",
+            "args": [
+                "make -j 2"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "Make Debug",
+            "dependsOn":["cmake debug","Make"]
+        },
+    ]
+}
