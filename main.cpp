@@ -363,13 +363,35 @@ void testpublicfun()
     std::cout << public_align32pow2(5) << std::endl;
 }
 
+#include "tools/register.hpp"
+void testregister()
+{
+    FunctionsManager::GetInstance()->register_handler("test", [](TTT a){std::cout << a.a << std::endl;return std::string("aa");});
+    FunctionsManager::GetInstance()->register_handler("test", [](TTT a){std::cout << a.a << std::endl;return std::string("aa");});
+    FunctionsManager::GetInstance()->register_handler("test2", [](std::string a){std::cout << a << std::endl;});
+    // auto r = FunctionsManager::GetInstance()->call<std::string>("test", TTT());
+    // std::cout << r << std::endl;
+    // FunctionsManager::GetInstance()->call<std::string>("test2", std::string("ss"));
+
+    TTT t;
+    FunctionsManager::GetInstance()->register_handler("test3", &TTT::htest, &t);
+    FunctionsManager::GetInstance()->register_handler("test4", &TTT::test, &t);
+    // auto r2 = FunctionsManager::GetInstance()->call<int>("test3", 10, 5);
+    // std::cout << r2 << std::endl;
+    FunctionsManager::GetInstance()->call<void>("test4", 10);
+    FunctionsManager::GetInstance()->call<std::string>("test5", 10);
+
+    std::cout << "end" << std::endl;
+}
+
 int main()
 {
+    testregister();
     // testtimermanager();
     // testDealCommandCenter();
     // ThreadSafePriorityQueueTest();
     // testfreelock();
     // testKafkaCinatra();
     // testmemorypool();
-    testpublicfun();
+    // testpublicfun();
 }
