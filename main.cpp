@@ -1,6 +1,7 @@
 #include <iostream>
 #include "queue/rte_ring.h"
 #include "queue/threadsafecontainer.hpp"
+#include "queue/ringqueue.hpp"
 #include "tools/timermanager.hpp"
 #include "tools/commandcenter.hpp"
 #include <tuple>
@@ -384,9 +385,85 @@ void testregister()
 
     std::cout << "end" << std::endl;
 }
+////////need c++20 /////////////////
+/*
+void testRingFreeLockQueue()
+{
+    //少分支预测，for循环展开，结构对齐
+    RingFreeLockQueue<int,100> q;
+    int n = 100000;
+    int vc1[100000] = {0};
+    int n1 = 0;
+    int vc2[100000] = {0};
+    int n2 = 0;
+    int vc3[100000] = {0};
+    bool run = true;
+    std::cout<<"numeric_limits<unsigned int>::max()= "<< std::numeric_limits<unsigned int>::max()<< std::endl;
+    
+    auto p = [&q,n]()
+    {
+        for(int i=0;i<n;i++)
+            while(!q.Add(std::move(i))) {}
+    };
+    auto fc1 = [&run, &q, &vc1, &n1]()
+    {
+        while(run)
+        {
+            auto [flag, e] = q.Get();
+            if(flag)
+            {
+                // std::cout << std::this_thread::get_id() << " cnum:"<< e << std::endl;
+                vc1[e]++;
+                n1++;
+            }
+        }
+        std::cout << "stop thread" << std::endl;
+    };
+    auto fc2 = [&run, &q, &vc2, &n2]()
+    {
+        while(run)
+        {
+            auto [flag, e] = q.Get();
+            if(flag)
+            {
+                // std::cout << std::this_thread::get_id() << " cnum:"<< e << std::endl;
+                vc2[e]++;
+                n2++;
+            }
+        }
+        std::cout << "stop thread" << std::endl;
+    };
+    std::thread p1(p);
+    p1.detach();
+    std::thread p2(p);
+    p2.detach();
+    std::thread c1(fc1);
+    c1.detach();
+    std::thread c2(fc2);
+    c2.detach();
+    std::this_thread::sleep_for(std::chrono::seconds(15));
+
+    std::thread m([&q,&vc1,&vc2,&vc3,n]()
+    {
+        for(int i=0;i<n;i++)
+        {
+            vc3[i] = vc1[i] + vc2[i];
+            if(vc3[i] != 2)
+                std::cout << "num:" << i << " vc1:" << vc1[i] << " vc2:" << vc2[i] << std::endl;
+        }
+    });
+    m.join();
+    run = false;
+    std::cout << "n1:" << n1 << " n2:" << n2 << std::endl;
+    std::cout << "Hello, world!" << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+}
+*/
+////////need c++20 //////////////////
 
 int main()
 {
+    // testRingFreeLockQueue();
     // testregister();
     testtimermanager();
     // testDealCommandCenter();
