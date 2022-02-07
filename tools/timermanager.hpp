@@ -21,6 +21,17 @@ public:
         __cv.notify_one();
     }
 
+    void AddAlarmInterval(std::chrono::system_clock::time_point alarm, T t, std::function<void()> fun, std::chrono::seconds interval)
+    {
+        std::function<void()> intervalfun = [=]()
+        {
+            fun();
+            AddAlarmInterval(alarm+interval, t, fun, interval);
+        };
+        __timerqueue.AddObj({alarm, intervalfun, t});
+        __cv.notify_one();
+    }
+
     void DeleteAlarm(std::function<bool(T)> comparefun)
     {
         __timerqueue.DeleteObj([comparefun](const auto& obj){return comparefun(obj.key);});
