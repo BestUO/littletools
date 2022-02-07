@@ -1,4 +1,3 @@
-/*
 #pragma once
 
 #include<iostream>
@@ -102,13 +101,13 @@ public:
     ////////////////////任意类型/////////////////////////
 
 private:
+    struct RingHeadTail 
+    {
+        std::atomic<unsigned int> head;
+        std::atomic<unsigned int> tail;
+    };
     struct RingInfo
     {
-        struct RingHeadTail 
-        {
-            std::atomic<unsigned int> head;
-            std::atomic<unsigned int> tail;
-        };
         bool single;
         unsigned int size;
         unsigned int mask;
@@ -256,7 +255,7 @@ private:
         return v;
     }
 
-    void UpdateTail(RingInfo::RingHeadTail &ht, unsigned int old_val, unsigned int new_val)
+    void UpdateTail(RingHeadTail &ht, unsigned int old_val, unsigned int new_val)
     {
         ///////error////////////////
         // while(!ht.tail.compare_exchange_weak(old_val, new_val,std::memory_order_consume))
@@ -272,4 +271,3 @@ private:
         ////err//////////////////////
     }
 };
-*/

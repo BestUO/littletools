@@ -385,11 +385,10 @@ void testregister()
 
     std::cout << "end" << std::endl;
 }
-////////need c++20 /////////////////
-/*
+
 void testRingFreeLockQueue()
 {
-    //少分支预测，for循环展开，结构对齐
+    //少分支预测，for循环展开，cacheline对齐
     RingFreeLockQueue<int,100> q;
     int n = 100000;
     int vc1[100000] = {0};
@@ -405,7 +404,7 @@ void testRingFreeLockQueue()
         for(int i=0;i<n;i++)
             while(!q.Add(std::move(i))) {}
     };
-    auto fc1 = [&run, &q, &vc1, &n1]()
+    auto c = [&run, &q](int *vc, int *n)
     {
         while(run)
         {
@@ -413,22 +412,8 @@ void testRingFreeLockQueue()
             if(flag)
             {
                 // std::cout << std::this_thread::get_id() << " cnum:"<< e << std::endl;
-                vc1[e]++;
-                n1++;
-            }
-        }
-        std::cout << "stop thread" << std::endl;
-    };
-    auto fc2 = [&run, &q, &vc2, &n2]()
-    {
-        while(run)
-        {
-            auto [flag, e] = q.Get();
-            if(flag)
-            {
-                // std::cout << std::this_thread::get_id() << " cnum:"<< e << std::endl;
-                vc2[e]++;
-                n2++;
+                vc[e]++;
+                (*n)++;
             }
         }
         std::cout << "stop thread" << std::endl;
@@ -437,9 +422,9 @@ void testRingFreeLockQueue()
     p1.detach();
     std::thread p2(p);
     p2.detach();
-    std::thread c1(fc1);
+    std::thread c1(c,vc1,&n1);
     c1.detach();
-    std::thread c2(fc2);
+    std::thread c2(c,vc2,&n2);
     c2.detach();
     std::this_thread::sleep_for(std::chrono::seconds(15));
 
@@ -458,14 +443,12 @@ void testRingFreeLockQueue()
     std::cout << "Hello, world!" << std::endl;
     std::this_thread::sleep_for(std::chrono::seconds(2));
 }
-*/
-////////need c++20 //////////////////
 
 int main()
 {
-    // testRingFreeLockQueue();
+    testRingFreeLockQueue();
     // testregister();
-    testtimermanager();
+    // testtimermanager();
     // testDealCommandCenter();
     // ThreadSafePriorityQueueTest();
     // testfreelock();
