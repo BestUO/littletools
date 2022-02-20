@@ -8,61 +8,31 @@
 #include<tuple>
 #include<algorithm>
 #include<queue>
-#include <type_traits> 
-
-template<unsigned int SIZE>
-struct PublicAlign32pow2
-{
-    enum
-    {
-        first = SIZE | SIZE >> 1,
-        second = first | first >> 2,
-        third = second | second >> 4,
-        value = third | third >> 8
-    };
-};
-
-template<unsigned int SIZE, class type = void>
-struct CheckSize
-{
-    enum{value = -1};
-};
-
-template<unsigned int SIZE>
-struct CheckSize<SIZE, typename std::enable_if<(PublicAlign32pow2<SIZE>::value < 0x7fffffff)>::type>
-{
-    enum{value = PublicAlign32pow2<SIZE>::value+1};
-};
-
-template <typename T, template <typename...> class Template>
-struct is_specialization_of : std::false_type {};
-
-template <template <typename...> class Template, typename... Args>
-struct is_specialization_of<Template<Args...>, Template>
-  : std::true_type {};
+#include<type_traits>
+#include"../public/tsglobal.hpp"
 
 template<class T, unsigned int SIZE=2048>
-class RingFreeLockQueue
+class FreeLockRingQueue
 {
 public:
-    RingFreeLockQueue()
+    FreeLockRingQueue()
     {
         InitRingFreeLockQueue(CheckSize<SIZE>::value, false);
     };
 
-    RingFreeLockQueue& operator = (const RingFreeLockQueue& other) = delete;
+    FreeLockRingQueue& operator = (const FreeLockRingQueue& other) = delete;
 
-    virtual ~RingFreeLockQueue()=default;
+    virtual ~FreeLockRingQueue()=default;
 
-    bool Add(T &&t)
+    bool AddObj(T &&t)
     {
         std::vector<T> v;
         v.emplace_back(std::move(t));
-        return AddBulk(std::move(v));
+        return AddObjBulk(std::move(v));
     }
 
     template <template<class, class> class C, class A> 
-    bool AddBulk(C<T, A> &&v)
+    bool AddObjBulk(C<T, A> &&v)
     {
         auto [flag, old_head, new_head] = MoveProdHead(v.size());
         if(!flag)
@@ -75,9 +45,9 @@ public:
         }
     }
 
-    std::tuple<bool, T> Get()
+    std::tuple<bool, T> GetObj()
     {
-        auto [flag1, e1] = GetBulk<std::vector>(1);
+        auto [flag1, e1] = GetObjBulk<std::vector>(1);
         if(flag1)
             return std::tuple<bool, T>(true, std::move(e1.front()));
         else
@@ -87,16 +57,16 @@ public:
     ////////////////////任意类型/////////////////////////
     template <template<class, class> class C, class A=std::allocator<T>> 
     std::tuple<bool, typename std::enable_if<std::is_same<C<T, A>,std::vector<T>>::value, C<T,A>>::type>
-    GetBulk(unsigned int n)
+    GetObjBulk(unsigned int n)
     {
-        return GetBulk<C<T, A>>(n);
+        return GetObjBulk<C<T, A>>(n);
     }
     
     template <template<class> class C> 
     std::tuple<bool, typename std::enable_if<std::is_same<C<T>,std::queue<T>>::value, C<T>>::type>
-    GetBulk(unsigned int n)
+    GetObjBulk(unsigned int n)
     {
-        return GetBulk<C<T>>(n);
+        return GetObjBulk<C<T>>(n);
     }
     ////////////////////任意类型/////////////////////////
 
@@ -197,7 +167,7 @@ private:
     }
 
     template <class C> 
-    std::tuple<bool, C> GetBulk(unsigned int n)
+    std::tuple<bool, C> GetObjBulk(unsigned int n)
     {
         C t;
         auto [flag, old_head, new_head] = MoveConsHead(n);

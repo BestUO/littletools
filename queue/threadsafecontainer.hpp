@@ -129,3 +129,78 @@ private:
     uint16_t __capacity;
     std::condition_variable_any __notempty;
 };
+
+template<class T, unsigned int SIZE=2048>
+class LockQueue
+{
+public:
+    LockQueue()=default;
+
+    LockQueue& operator = (const LockQueue& other) = delete;
+
+    virtual ~LockQueue()=default;
+
+    bool AddObj(T &&t)
+    {
+        std::unique_lock<std::mutex> lck(__mutex);
+        if(__queue.size() < __capacity)
+        {
+            __queue.emplace(std::move(t));
+            return true;
+        }
+        else
+            return false;
+    }
+
+    template <class C> 
+    bool AddObjBulk(C &&v)
+    {
+        std::unique_lock<std::mutex> lck(__mutex);
+        if(v.size() + __queue.size() < __capacity)
+        {
+            for(auto &&element:v)
+                __queue.emplace(std::move(element));
+            return true;
+        }
+        else
+            return false;
+    }
+
+    std::tuple<bool, T> GetObj(std::function<bool(T)>comparefun=nullptr)
+    {
+        std::unique_lock<std::mutex> lck(__mutex);
+        if(!__queue.empty())
+        {
+            if(comparefun && !comparefun(__queue.front()))
+                return std::tuple<bool, T>(false, T());
+            else
+            {
+                auto obj = std::move(__queue.front());
+                __queue.pop();
+                return std::tuple<bool, T>(true, std::move(obj));
+            }
+        }
+        else
+            return std::tuple<bool, T>(false, T());
+    }
+
+    std::tuple<bool, std::queue<T>> GetObjBulk(unsigned int n = 0)
+    {
+        std::unique_lock<std::mutex> lck(__mutex);
+        if(!__queue.empty())
+            return std::tuple<bool,std::queue<T>>(true, std::move(__queue));
+        else
+            return std::tuple<bool,std::queue<T>>(false, std::queue<T>());
+    }
+
+    bool IsEmpty()
+    {
+        std::unique_lock<std::mutex> lck(__mutex);
+        return __queue.empty();
+    }
+    
+private:
+    std::mutex __mutex;
+    std::queue<T> __queue;
+    uint16_t __capacity = SIZE;
+};

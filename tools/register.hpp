@@ -150,17 +150,3 @@ private:
 
 	std::map<std::string, std::function<void(void*, void*)>> invokers_;
 };
-
-class TTT
-{
-public:
-    void test(int a)
-    {
-        std::cout << a << std::endl;
-    }
-    int htest(int a,int b)
-    {
-        return a+b;
-    }
-    int a =11111;
-};

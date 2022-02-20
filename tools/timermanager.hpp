@@ -74,12 +74,14 @@ private:
     {
         while(!__stop)
         {
-            // std::this_thread::sleep_for(std::chrono::seconds(1));
-            std::unique_lock<std::mutex> lck(__cv_m);
-            if(__timerqueue.GetTopObj(__timerelement))
-                __cv.wait_until(lck, __timerelement.alarm);
-            else
-                __cv.wait_until(lck,  std::chrono::system_clock::now() + std::chrono::hours(1));
+            {
+                // std::this_thread::sleep_for(std::chrono::seconds(1));
+                std::unique_lock<std::mutex> lck(__cv_m);
+                if(__timerqueue.GetTopObj(__timerelement))
+                    __cv.wait_until(lck, __timerelement.alarm);
+                else
+                    __cv.wait_until(lck,  std::chrono::system_clock::now() + std::chrono::hours(1));
+            }
 
             while(bool c = __timerqueue.GetObj(__timerelement, [](const TimerElement &obj) -> bool
             {

@@ -4,6 +4,7 @@
 #include "queue/ringqueue.hpp"
 #include "tools/timermanager.hpp"
 #include "tools/commandcenter.hpp"
+#include "tools/threadpool.hpp"
 #include <tuple>
 #include <vector>
 #include <chrono>
@@ -15,7 +16,39 @@
 
 using namespace cinatra;
 
+struct point
+{
+    int *a = nullptr;
+    std::string s = "aaaa";
+    point()
+    {
+        std::cout << "普通构造函数" << std::endl;
+    }
 
+    point(const point&other):a(other.a),s(other.s)
+    {
+        std::cout << "拷贝构造函数" << std::endl;
+    }
+    point(point &&other):a(other.a),s(std::move(other.s))
+    {
+        std::cout << "移动构造函数" << std::endl;
+        other.a = nullptr;
+    }
+    point& operator = (const point& other)
+    {
+        std::cout << "赋值构造函数" << std::endl;
+        a = other.a;
+        s = other.s;
+        return *this;
+    }
+    point& operator = (const point&& other)
+    {
+        std::cout << "移动赋值构造函数" << std::endl;
+        a = other.a;
+        s = std::move(other.s);
+        return *this;
+    }
+};
 
 void testDealCommandCenter()
 {
@@ -368,6 +401,19 @@ void testpublicfun()
 #include "tools/register.hpp"
 void testregister()
 {
+    class TTT
+    {
+    public:
+        void test(int a)
+        {
+            std::cout << a << std::endl;
+        }
+        int htest(int a,int b)
+        {
+            return a+b;
+        }
+        int a =11111;
+    };
     FunctionsManager::GetInstance()->register_handler("test", [](TTT a){std::cout << a.a << std::endl;return std::string("aa");});
     FunctionsManager::GetInstance()->register_handler("test", [](TTT a){std::cout << a.a << std::endl;return std::string("aa");});
     FunctionsManager::GetInstance()->register_handler("test2", [](std::string a){std::cout << a << std::endl;});
@@ -389,7 +435,7 @@ void testregister()
 void testRingFreeLockQueue()
 {
     //少分支预测，for循环展开，cacheline对齐
-    RingFreeLockQueue<int,100> q;
+    FreeLockRingQueue<int,100> q;
     int n = 100000;
     int vc1[100000] = {0};
     int n1 = 0;
@@ -402,13 +448,13 @@ void testRingFreeLockQueue()
     auto p = [&q,n]()
     {
         for(int i=0;i<n;i++)
-            while(!q.Add(std::move(i))) {}
+            while(!q.AddObj(std::move(i))) {}
     };
     auto c = [&run, &q](int *vc, int *n)
     {
         while(run)
         {
-            auto [flag, e] = q.Get();
+            auto [flag, e] = q.GetObj();
             if(flag)
             {
                 // std::cout << std::this_thread::get_id() << " cnum:"<< e << std::endl;
@@ -444,9 +490,57 @@ void testRingFreeLockQueue()
     std::this_thread::sleep_for(std::chrono::seconds(2));
 }
 
+void testLockQueue()
+{
+    LockQueue<point,100> q;
+    auto p1 = point();
+    p1.s = "aaaaa";
+    auto p2 = point();
+    p2.s = "bbbbb";
+    q.AddObj(std::move(p1));
+    q.AddObj(std::move(p2));
+    auto p = q.GetObj();
+
+    p1.s = "aaaaa";
+    p2.s = "bbbbb";
+    std::vector<point> v;
+    v.push_back(p1);
+    v.push_back(p2);
+    q.AddObjBulk(std::move(v));
+    auto bulk = q.GetObjBulk();
+    q.AddObj(std::move(p1));
+    std::cout << "end" << std::endl;
+}
+
+void testThreadpool()
+{
+    ThreadPool pool(2);
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+    std::cout << "atart" << std::endl;
+    std::vector< std::future<int> > results;
+    for(int i = 0; i < 3; ++i) 
+    {
+        results.emplace_back(
+            pool.enqueue([i] {
+                std::cout << "hello " << i << std::endl;
+                std::this_thread::sleep_for(std::chrono::seconds(10));
+                std::cout << "world " << i << std::endl;
+                return i*i;
+            })
+        );
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+
+    for(auto && result: results)
+        std::cout << result.get() << ' ';
+    std::cout << std::endl;
+}
+
 int main()
 {
-    testRingFreeLockQueue();
+    testThreadpool();
+    // testLockQueue();
+    // testRingFreeLockQueue();
     // testregister();
     // testtimermanager();
     // testDealCommandCenter();
