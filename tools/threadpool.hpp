@@ -26,8 +26,8 @@ private:
     LockQueue<std::function<void()>,10240> __queuetask;
     
     // synchronization
-    std::mutex queue_mutex;
-    std::condition_variable condition;
+    // std::mutex queue_mutex;
+    // std::condition_variable condition;
 };
  
 // the constructor just launches some amount of workers
@@ -39,10 +39,10 @@ inline ThreadPool::ThreadPool(size_t threads)
             {
                 for(;;)
                 {
-                    {
-                        std::unique_lock<std::mutex> lock(this->queue_mutex);
-                        this->condition.wait(lock,[this]{ return !__queuetask.IsEmpty(); });
-                    }
+                    // {
+                    //     std::unique_lock<std::mutex> lock(this->queue_mutex);
+                    //     this->condition.wait(lock,[this]{ return !__queuetask.IsEmpty(); });
+                    // }
                     
                     auto [flag, e] = __queuetask.GetObjBulk();
                     if(flag)
@@ -53,8 +53,8 @@ inline ThreadPool::ThreadPool(size_t threads)
                             e.pop();
                         }
                     }
-                    // else
-                    //     std::this_thread::sleep_for(std::chrono::seconds(1));
+                    else
+                        std::this_thread::sleep_for(std::chrono::seconds(1));
                 }
             }
         );
@@ -72,18 +72,15 @@ auto ThreadPool::enqueue(F&& f, Args&&... args)
         );
         
     std::future<return_type> res = task->get_future();
-    {
-        std::unique_lock<std::mutex> lock(queue_mutex);
-        __queuetask.AddObj([task](){ (*task)(); });
-    }
-    condition.notify_one();
+    __queuetask.AddObj([task](){ (*task)(); });
+    // condition.notify_one();
     return res;
 }
 
 // the destructor joins all threads
 inline ThreadPool::~ThreadPool()
 {
-    condition.notify_all();
+    // condition.notify_all();
     for(std::thread &worker: workers)
         worker.join();
 }
