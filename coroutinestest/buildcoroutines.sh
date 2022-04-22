@@ -1,0 +1,1 @@
+g++ -O0 -ggdb3 -std=c++2b -o coroutinestest.out coroutinestest.cpp -pthread -fcoroutines
