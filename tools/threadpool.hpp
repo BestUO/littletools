@@ -10,6 +10,7 @@
 #include <functional>
 #include <stdexcept>
 #include "../queue/threadsafecontainer.hpp"
+#include "../queue/ringqueue.hpp"
 #include <atomic>
 
 class ThreadPool {
@@ -20,17 +21,15 @@ public:
         -> std::future<typename std::result_of<F(Args...)>::type>;
     ~ThreadPool();
 private:
+    using QueueType = std::conditional_t<false, LockQueue<std::function<void()>,2048>,  FreeLockRingQueue<std::function<void()>>>;
     size_t minsize;
     size_t maxsize;
     // need to keep track of threads so we can join them
     std::vector< std::thread > workers;
     // the task queue
-    // std::queue< std::function<void()> > tasks;
-    LockQueue<std::function<void()>,10240> __queuetask;
+    QueueType __queuetask;
     
     // synchronization
-    // std::mutex mtx;
-    // std::condition_variable cv;
     std::atomic<unsigned int> totalnum;
     std::thread CreateWorker(bool original);
 };
@@ -42,13 +41,13 @@ inline std::thread ThreadPool::CreateWorker(bool original)
         totalnum++;
         for(;;)
         {
-            auto [flag, e] = __queuetask.GetObjBulk();
-            if(flag)
+            auto e = __queuetask.GetObjBulk();
+            if(e)
             {
-                while(!e.empty())
+                while(!e->empty())
                 {
-                    e.front()();
-                    e.pop();
+                    e->front()();
+                    e->pop();
                 }
             }
             else

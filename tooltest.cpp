@@ -454,11 +454,11 @@ void testRingFreeLockQueue()
     {
         while(run)
         {
-            auto [flag, e] = q.GetObj();
-            if(flag)
+            auto e = q.GetObj();
+            if(e)
             {
                 // std::cout << std::this_thread::get_id() << " cnum:"<< e << std::endl;
-                vc[e]++;
+                vc[*e]++;
                 (*n)++;
             }
         }

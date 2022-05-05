@@ -3,7 +3,6 @@ project(UO_TOOLS)
 set(CMAKE_CXX_STANDARD 17)
 
 set(THIRD_PARTY_PATH ${PROJECT_SOURCE_DIR}/3rdparty)
-set(SOURCE main.cpp)
 
 add_definitions(-DASIO_STANDALONE)
 include_directories(${THIRD_PARTY_PATH}/include)
@@ -25,7 +24,15 @@ ADD_SUBDIRECTORY(kafka)
 #ADD_SUBDIRECTORY(net)
 ADD_SUBDIRECTORY(queue)
 
-add_executable(${PROJECT_NAME} ${SOURCE})
-# target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
-target_link_libraries(${PROJECT_NAME} uoqueue pthread uokafka rdkafka++ uuid jsoncpp atomic)
-# target_link_libraries(${PROJECT_NAME} glog pthread uokafka)
+set(TOOL_TEST tooltest)
+set(TOOL_TEST_SOURCE tooltest.cpp)
+add_executable(${TOOL_TEST} ${TOOL_TEST_SOURCE})
+# target_compile_features(${TOOL_TEST} PRIVATE cxx_std_17)
+target_link_libraries(${TOOL_TEST} uoqueue pthread uokafka rdkafka++ uuid jsoncpp atomic)
+# target_link_libraries(${TOOL_TEST} glog pthread uokafka)
+
+
+set(TOOL_COMPOSE toolcompose)
+set(TOOL_COMPOSE_SOURCE toolcompose.cpp)
+add_executable(${TOOL_COMPOSE} ${TOOL_COMPOSE_SOURCE})
+target_link_libraries(${TOOL_COMPOSE} pthread)

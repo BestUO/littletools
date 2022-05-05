@@ -3,6 +3,7 @@
 #include<mutex>
 #include<queue>
 #include<functional>
+#include <optional>
 
 template<typename T>
 class custom_priority_queue : public std::priority_queue<T> {
@@ -166,31 +167,31 @@ public:
             return false;
     }
 
-    std::tuple<bool, T> GetObj(std::function<bool(T)>comparefun=nullptr)
+    std::optional<T> GetObj(std::function<bool(T)>comparefun=nullptr)
     {
         std::unique_lock<std::mutex> lck(__mutex);
         if(!__queue.empty())
         {
             if(comparefun && !comparefun(__queue.front()))
-                return std::tuple<bool, T>(false, T());
+                return std::nullopt;
             else
             {
                 auto obj = std::move(__queue.front());
                 __queue.pop();
-                return std::tuple<bool, T>(true, std::move(obj));
+                return obj;
             }
         }
         else
-            return std::tuple<bool, T>(false, T());
+            return std::nullopt;
     }
 
-    std::tuple<bool, std::queue<T>> GetObjBulk(unsigned int n = 0)
+    std::optional<std::queue<T>> GetObjBulk(unsigned int n = 0)
     {
         std::unique_lock<std::mutex> lck(__mutex);
         if(!__queue.empty())
-            return std::tuple<bool,std::queue<T>>(true, std::move(__queue));
+            return __queue;
         else
-            return std::tuple<bool,std::queue<T>>(false, std::queue<T>());
+            return std::nullopt;
     }
 
     bool IsEmpty()

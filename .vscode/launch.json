@@ -5,10 +5,36 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "UO_TOOLS",
+            "name": "tooltest",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/UO_TOOLS",
+            "program": "${workspaceFolder}/build/tooltest",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                "name": "LD_LIBRARY_PATH",
+                "value": "${LD_LIBRARY_PATH}:${workspaceFolder}/3rdparty/lib/rdkafka"
+                }
+            ],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "Make Debug",
+            "miDebuggerPath": "/usr/bin/gdb"
+        },
+        {
+            "name": "toolcompose",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/toolcompose",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

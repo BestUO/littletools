@@ -9,6 +9,7 @@
 #include<algorithm>
 #include<queue>
 #include<type_traits>
+#include <optional>
 #include"../public/tsglobal.hpp"
 
 template<class T, unsigned int SIZE=2048>
@@ -45,25 +46,34 @@ public:
         }
     }
 
-    std::tuple<bool, T> GetObj()
+    std::optional<T> GetObj()
     {
-        auto [flag1, e1] = GetObjBulk<std::vector>(1);
-        if(flag1)
-            return std::tuple<bool, T>(true, std::move(e1.front()));
+        auto e1 = GetObjBulk<std::vector>(1);
+        if(e1)
+            return e1->front();
         else
-            return std::tuple<bool, T>(false, T());
+            return std::nullopt;
+    }
+
+    std::optional<std::queue<T>> GetObjBulk(unsigned int n = 10)
+    {
+        auto e1 = GetObjBulk<std::queue>(n);
+        if(e1)
+            return e1;
+        else
+            return std::nullopt;
     }
 
     ////////////////////任意类型/////////////////////////
     template <template<class, class> class C, class A=std::allocator<T>> 
-    std::tuple<bool, typename std::enable_if<std::is_same<C<T, A>,std::vector<T>>::value, C<T,A>>::type>
+    std::optional<typename std::enable_if<std::is_same<C<T, A>,std::vector<T>>::value, C<T,A>>::type>
     GetObjBulk(unsigned int n)
     {
         return GetObjBulk<C<T, A>>(n);
     }
     
     template <template<class> class C> 
-    std::tuple<bool, typename std::enable_if<std::is_same<C<T>,std::queue<T>>::value, C<T>>::type>
+    std::optional<typename std::enable_if<std::is_same<C<T>,std::queue<T>>::value, C<T>>::type>
     GetObjBulk(unsigned int n)
     {
         return GetObjBulk<C<T>>(n);
@@ -167,17 +177,17 @@ private:
     }
 
     template <class C> 
-    std::tuple<bool, C> GetObjBulk(unsigned int n)
+    std::optional<C> GetObjBulk(unsigned int n)
     {
         C t;
         auto [flag, old_head, new_head] = MoveConsHead(n);
         if(!flag)
-            return std::tuple<bool,C>(false, t);
+            return std::nullopt;
         else
         {
             t = std::move(GetItems<C>(old_head, n));
             UpdateTail(ringinfo.cons, old_head, new_head);
-            return std::tuple<bool,C>(true, std::move(t));
+            return t;
         }
     }
 

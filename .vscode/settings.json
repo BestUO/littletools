@@ -63,6 +63,14 @@
         "iomanip": "cpp",
         "valarray": "cpp",
         "set": "cpp",
-        "codecvt": "cpp"
+        "codecvt": "cpp",
+        "compare": "cpp",
+        "concepts": "cpp",
+        "coroutine": "cpp",
+        "numbers": "cpp",
+        "ranges": "cpp",
+        "stop_token": "cpp",
+        "cinttypes": "cpp",
+        "semaphore": "cpp"
     }
 }
