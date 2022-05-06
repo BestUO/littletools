@@ -19,32 +19,40 @@ class GetContainerType;
 template<typename T>
 struct GetContainerType<LockQueue<T>>
 {
-     typedef T Type;
+    typedef T Type;
 };
 
 template<typename T>
 struct GetContainerType<FreeLockRingQueue<T>>
 {
-     typedef T Type;
+    typedef T Type;
 };
 
 template<class T>
 class Worker
 {
 public:
-    using ContainerType = typename GetContainerType<T>::Type;
+    using ContainerType = typename T::Type;
+    // using ContainerType = typename GetContainerType<T>::Type;
     Worker(std::shared_ptr<T> queue):_queue(queue) {}
     void CreateWorker(bool original)
     {
+        WorkerRun(original);
+    }
+
+protected:
+    std::shared_ptr<T> _queue;
+    bool _stop = false;
+    virtual void WorkerRun(bool original)
+    {
         while(!_stop)
         {
-            // Run(original);
             auto e = _queue->GetObjBulk();
             if(e)
             {
                 while(!e->empty())
                 {
-                    Run(std::move(e->front()));
+                    DealElement(std::move(e->front()));
                     e->pop();
                 }
             }
@@ -55,13 +63,9 @@ public:
                 std::this_thread::sleep_for(std::chrono::seconds(1));
             }
         }
-    }
 
-protected:
-    std::shared_ptr<T> _queue;
-    bool _stop = false;
-    
-    virtual void Run(ContainerType &&p) = 0;
+    }
+    virtual void DealElement(ContainerType &&p) = 0;
 };
 
 
@@ -143,7 +147,7 @@ private:
         WorkerDefault(std::shared_ptr<QueueType> queue):Worker<QueueType>(queue){};
 
     protected:
-        virtual void Run(std::function<void()> &&p) final
+        virtual void DealElement(std::function<void()> &&p) final
         {
             p();
         }

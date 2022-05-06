@@ -16,6 +16,7 @@ template<class T, unsigned int SIZE=2048>
 class FreeLockRingQueue
 {
 public:
+    using Type=T;
     FreeLockRingQueue()
     {
         InitRingFreeLockQueue(CheckSize<SIZE>::value, false);

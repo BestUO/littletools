@@ -563,8 +563,32 @@ public:
     Worker2(std::shared_ptr<T> queue):Worker<T>(queue){};
 
 protected:
-    typename std::enable_if<std::is_same<typename GetContainerType<T>::Type, Worker2Params>::value>::type
-    Run(Worker2Params &&worker2params)
+    virtual void WorkerRun(bool original)
+    {
+        while(!Worker<T>::_stop)
+        {
+            auto e = Worker<T>::_queue->GetObjBulk();
+            if(e)
+            {
+                while(!e->empty())
+                {
+                    DealElement(std::move(e->front()));
+                    e->pop();
+                }
+            }
+            else
+            {
+                if(!original)
+                    break;
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+            }
+        }
+
+    }
+
+    virtual typename std::enable_if<std::is_same<typename T::Type, Worker2Params>::value>::type
+    // typename std::enable_if<std::is_same<typename GetContainerType<T>::Type, Worker2Params>::value>::type
+    DealElement(Worker2Params &&worker2params)
     {
         std::cout << worker2params.worker2paramsa << std::endl;
     }
@@ -584,8 +608,8 @@ void testPThreadPool()
 
 int main()
 {
-    // testPThreadPool();
-    testFThreadPool();
+    testPThreadPool();
+    // testFThreadPool();
     // testLockQueue();
     // testRingFreeLockQueue();
     // testregister();

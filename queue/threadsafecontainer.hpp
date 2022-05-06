@@ -135,6 +135,7 @@ template<class T, unsigned int SIZE=2048>
 class LockQueue
 {
 public:
+    using Type=T;
     LockQueue()=default;
 
     LockQueue& operator = (const LockQueue& other) = delete;
