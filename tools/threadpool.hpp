@@ -13,40 +13,38 @@
 #include "../queue/ringqueue.hpp"
 #include <atomic>
 
-class ThreadPool {
-public:
-    ThreadPool(size_t minsize, size_t maxsize=32);
-    template<class F, class... Args>
-    auto enqueue(F&& f, Args&&... args) 
-        -> std::future<typename std::result_of<F(Args...)>::type>;
-    ~ThreadPool();
-private:
-    using QueueType = std::conditional_t<false, LockQueue<std::function<void()>,2048>,  FreeLockRingQueue<std::function<void()>>>;
-    size_t minsize;
-    size_t maxsize;
-    // need to keep track of threads so we can join them
-    std::vector< std::thread > workers;
-    // the task queue
-    QueueType __queuetask;
-    
-    // synchronization
-    std::atomic<unsigned int> totalnum;
-    std::thread CreateWorker(bool original);
+template<typename T>
+class GetContainerType;
+
+template<typename T>
+struct GetContainerType<LockQueue<T>>
+{
+     typedef T Type;
 };
 
-inline std::thread ThreadPool::CreateWorker(bool original)
+template<typename T>
+struct GetContainerType<FreeLockRingQueue<T>>
 {
-    std::thread t( [this,original]
+     typedef T Type;
+};
+
+template<class T>
+class Worker
+{
+public:
+    using ContainerType = typename GetContainerType<T>::Type;
+    Worker(std::shared_ptr<T> queue):_queue(queue) {}
+    void CreateWorker(bool original)
     {
-        totalnum++;
-        for(;;)
+        while(!_stop)
         {
-            auto e = __queuetask.GetObjBulk();
+            // Run(original);
+            auto e = _queue->GetObjBulk();
             if(e)
             {
                 while(!e->empty())
                 {
-                    e->front()();
+                    Run(std::move(e->front()));
                     e->pop();
                 }
             }
@@ -57,50 +55,109 @@ inline std::thread ThreadPool::CreateWorker(bool original)
                 std::this_thread::sleep_for(std::chrono::seconds(1));
             }
         }
-        totalnum--;
-    });
-    
-    return t;
-}
- 
-// the constructor just launches some amount of workers
-inline ThreadPool::ThreadPool(size_t minsize, size_t maxsize):minsize(minsize),maxsize(maxsize)
-{
-    for(size_t i = 0;i<minsize;++i)
-        workers.emplace_back(std::move(CreateWorker(true)));
-}
-
-// add new work item to the pool
-template<class F, class... Args>
-auto ThreadPool::enqueue(F&& f, Args&&... args) 
-    -> std::future<typename std::result_of<F(Args...)>::type>
-{
-    using return_type = typename std::result_of<F(Args...)>::type;
-
-    // with -std=c++2b you can also code as:
-    // auto task = std::packaged_task<return_type()>(std::bind(std::forward<F>(f), std::forward<Args>(args)...));
-    // while(!__queuetask.AddObj([task=std::move(task)]()mutable{ (*task)(); }))
-    // {...}
-    
-    auto task = std::make_shared< std::packaged_task<return_type()> >(
-            std::bind(std::forward<F>(f), std::forward<Args>(args)...)
-        );
-    
-    std::future<return_type> res = task->get_future();
-    while(!__queuetask.AddObj([task](){ (*task)(); }))
-    {
-        if(totalnum < maxsize)
-            CreateWorker(false).detach();
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-    // condition.notify_one();
-    return res;
-}
 
-// the destructor joins all threads
-inline ThreadPool::~ThreadPool()
+protected:
+    std::shared_ptr<T> _queue;
+    bool _stop = false;
+    
+    virtual void Run(ContainerType &&p) = 0;
+};
+
+
+template<class QueueType = std::conditional_t<false, LockQueue<std::function<void()>>,  FreeLockRingQueue<std::function<void()>>>>
+class ThreadPool 
 {
-    // condition.notify_all();
-    for(std::thread &worker: workers)
-        worker.join();
-}
+public:
+    ThreadPool(size_t minsize, size_t maxsize=10):__minsize(minsize),__maxsize(maxsize)
+    {
+        if(!__queuetask)
+            __queuetask = std::shared_ptr<QueueType>(new QueueType);
+            
+        if(!__worker)
+            __worker = std::make_shared<WorkerDefault>(__queuetask);
+
+        for(size_t i = 0;i<__minsize;++i)
+            __workerthreads.emplace_back(std::move(CreateWorker(true)));
+    }
+
+    ThreadPool(std::shared_ptr<QueueType> queuetask, std::shared_ptr<Worker<QueueType>> worker, size_t minsize, size_t maxsize=10):
+                __queuetask(queuetask),__worker(worker),__minsize(minsize),__maxsize(maxsize)
+    {
+        for(size_t i = 0;i<__minsize;++i)
+            __workerthreads.emplace_back(std::move(CreateWorker(true)));
+    }
+
+    template<class F, class... Args>
+    auto EnqueueFun(F&& f, Args&&... args) -> std::future<typename std::result_of<F(Args...)>::type>
+    {
+        using return_type = typename std::result_of<F(Args...)>::type;
+
+        // with -std=c++2b you can also code as:
+        // auto task = std::packaged_task<return_type()>(std::bind(std::forward<F>(f), std::forward<Args>(args)...));
+        // while(!__queuetask.AddObj([task=std::move(task)]()mutable{ (*task)(); }))
+        // {...}
+        
+        auto task = std::make_shared< std::packaged_task<return_type()> >(
+                std::bind(std::forward<F>(f), std::forward<Args>(args)...)
+            );
+        
+        std::future<return_type> res = task->get_future();
+        while(!__queuetask->AddObj([task](){ (*task)(); }))
+        {
+            if(__totalnum < __maxsize)
+                CreateWorker(false).detach();
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+        return res;
+    }
+
+    template<class T>
+    void EnqueueStr(T&& t)
+    {
+        while(!__queuetask->AddObj(std::move(t)))
+        {
+            if(__totalnum < __maxsize)
+                CreateWorker(false).detach();
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+    }
+
+    ~ThreadPool()
+    {
+        for(std::thread &worker: __workerthreads)
+            worker.join();
+    }
+
+private:
+    size_t __minsize;
+    size_t __maxsize;
+    std::atomic<unsigned int> __totalnum;
+    std::vector< std::thread > __workerthreads;
+    std::shared_ptr<Worker<QueueType>> __worker;
+    std::shared_ptr<QueueType> __queuetask;
+
+    class WorkerDefault:public Worker<QueueType>
+    {
+    public:
+        WorkerDefault(std::shared_ptr<QueueType> queue):Worker<QueueType>(queue){};
+
+    protected:
+        virtual void Run(std::function<void()> &&p) final
+        {
+            p();
+        }
+    };
+
+    std::thread CreateWorker(bool original)
+    {
+        std::thread t( [this,original]
+        {
+            __totalnum++;
+            __worker->CreateWorker(original);
+            __totalnum--;
+        });
+        
+        return t;
+    }
+};

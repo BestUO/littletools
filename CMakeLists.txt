@@ -21,18 +21,15 @@ link_directories(${THIRD_PARTY_PATH}/lib/rdkafka)
 
 
 ADD_SUBDIRECTORY(kafka)
-#ADD_SUBDIRECTORY(net)
 ADD_SUBDIRECTORY(queue)
 
 set(TOOL_TEST tooltest)
 set(TOOL_TEST_SOURCE tooltest.cpp)
 add_executable(${TOOL_TEST} ${TOOL_TEST_SOURCE})
-# target_compile_features(${TOOL_TEST} PRIVATE cxx_std_17)
 target_link_libraries(${TOOL_TEST} uoqueue pthread uokafka rdkafka++ uuid jsoncpp atomic)
-# target_link_libraries(${TOOL_TEST} glog pthread uokafka)
 
 
-set(TOOL_COMPOSE toolcompose)
-set(TOOL_COMPOSE_SOURCE toolcompose.cpp)
-add_executable(${TOOL_COMPOSE} ${TOOL_COMPOSE_SOURCE})
-target_link_libraries(${TOOL_COMPOSE} pthread)
+# set(TOOL_COMPOSE toolcompose)
+# set(TOOL_COMPOSE_SOURCE toolcompose.cpp)
+# add_executable(${TOOL_COMPOSE} ${TOOL_COMPOSE_SOURCE})
+# target_link_libraries(${TOOL_COMPOSE} pthread)

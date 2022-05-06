@@ -13,6 +13,7 @@
 #include <simplewrapkafka.h>
 #include "RWSeparate.hpp"
 #include <json/json.h>
+#include <type_traits>
 
 using namespace cinatra;
 
@@ -512,18 +513,17 @@ void testLockQueue()
     std::cout << "end" << std::endl;
 }
 
-void testThreadpool()
+void testFThreadPool()
 {
     ThreadPool pool(2);
-    std::this_thread::sleep_for(std::chrono::seconds(10));
     std::cout << "atart" << std::endl;
     std::vector< std::future<int> > results;
     for(int i = 0; i < 3; ++i) 
     {
         results.emplace_back(
-            pool.enqueue([i] {
+            pool.EnqueueFun([i] {
                 std::cout << "hello " << i << std::endl;
-                std::this_thread::sleep_for(std::chrono::seconds(10));
+                std::this_thread::sleep_for(std::chrono::seconds(1));
                 std::cout << "world " << i << std::endl;
                 return i*i;
             })
@@ -536,9 +536,56 @@ void testThreadpool()
     std::cout << std::endl;
 }
 
+
+struct Worker2Params
+{
+    Worker2Params() = default;
+    Worker2Params(int a):worker2paramsa(a){};
+    Worker2Params(Worker2Params &&other):worker2paramsa(other.worker2paramsa){};
+    Worker2Params(const Worker2Params &other):worker2paramsa(other.worker2paramsa) {};
+    Worker2Params& operator = (const Worker2Params&& other)
+    {
+        worker2paramsa = other.worker2paramsa;
+        return *this;
+    }
+    Worker2Params& operator = (const Worker2Params& other)
+    {
+        worker2paramsa = other.worker2paramsa;
+        return *this;
+    }
+    int worker2paramsa;
+};
+
+template<class T>
+class Worker2:public Worker<T>
+{
+public:
+    Worker2(std::shared_ptr<T> queue):Worker<T>(queue){};
+
+protected:
+    typename std::enable_if<std::is_same<typename GetContainerType<T>::Type, Worker2Params>::value>::type
+    Run(Worker2Params &&worker2params)
+    {
+        std::cout << worker2params.worker2paramsa << std::endl;
+    }
+};
+
+void testPThreadPool()
+{
+    using QueueType = std::conditional_t<false, LockQueue<Worker2Params>,  FreeLockRingQueue<Worker2Params>>;
+    auto queuetask = std::shared_ptr<QueueType>(new QueueType);
+    std::shared_ptr<Worker<QueueType>> worker = std::make_shared<Worker2<QueueType>>(queuetask);
+
+    ThreadPool pool(queuetask,worker,2);
+    for(int i=0;i<10;i++)
+        pool.EnqueueStr(Worker2Params(i));
+}
+
+
 int main()
 {
-    testThreadpool();
+    // testPThreadPool();
+    testFThreadPool();
     // testLockQueue();
     // testRingFreeLockQueue();
     // testregister();
