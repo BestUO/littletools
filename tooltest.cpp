@@ -515,13 +515,15 @@ void testLockQueue()
 
 void testFThreadPool()
 {
-    ThreadPool pool(2);
+    using QueueType = std::conditional_t<true, LockQueue<std::function<void()>>,  FreeLockRingQueue<std::function<void()>>>;
+    ThreadPool<QueueType> pool(2);
     std::cout << "atart" << std::endl;
     std::vector< std::future<int> > results;
     for(int i = 0; i < 3; ++i) 
     {
         results.emplace_back(
-            pool.EnqueueFun([i] {
+            pool.EnqueueFun([i] ()
+            {
                 std::cout << "hello " << i << std::endl;
                 std::this_thread::sleep_for(std::chrono::seconds(1));
                 std::cout << "world " << i << std::endl;
@@ -605,11 +607,10 @@ void testPThreadPool()
         pool.EnqueueStr(Worker2Params(i));
 }
 
-
 int main()
 {
-    testPThreadPool();
-    // testFThreadPool();
+    // testPThreadPool();
+    testFThreadPool();
     // testLockQueue();
     // testRingFreeLockQueue();
     // testregister();

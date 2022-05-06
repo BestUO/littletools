@@ -69,7 +69,7 @@ protected:
 };
 
 
-template<class QueueType = std::conditional_t<false, LockQueue<std::function<void()>>,  FreeLockRingQueue<std::function<void()>>>>
+template<class QueueType>
 class ThreadPool 
 {
 public:

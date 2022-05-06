@@ -29,7 +29,7 @@ add_executable(${TOOL_TEST} ${TOOL_TEST_SOURCE})
 target_link_libraries(${TOOL_TEST} uoqueue pthread uokafka rdkafka++ uuid jsoncpp atomic)
 
 
-# set(TOOL_COMPOSE toolcompose)
-# set(TOOL_COMPOSE_SOURCE toolcompose.cpp)
-# add_executable(${TOOL_COMPOSE} ${TOOL_COMPOSE_SOURCE})
-# target_link_libraries(${TOOL_COMPOSE} pthread)
+set(TOOL_COMPOSE toolcompose)
+set(TOOL_COMPOSE_SOURCE toolcompose.cpp)
+add_executable(${TOOL_COMPOSE} ${TOOL_COMPOSE_SOURCE})
+target_link_libraries(${TOOL_COMPOSE} pthread)

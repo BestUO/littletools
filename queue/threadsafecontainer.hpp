@@ -80,7 +80,7 @@ public:
 };
 
 template <typename T>
-class ThreadSafeQueue
+class [[deprecated]] ThreadSafeQueue
 {
 public:
     explicit ThreadSafeQueue(uint16_t capacity=2048):__capacity(capacity){}
@@ -190,7 +190,11 @@ public:
     {
         std::unique_lock<std::mutex> lck(__mutex);
         if(!__queue.empty())
-            return __queue;
+        {
+            std::queue<T> q;
+            swap(q,__queue);
+            return q;
+        }
         else
             return std::nullopt;
     }
