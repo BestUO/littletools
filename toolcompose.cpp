@@ -27,7 +27,7 @@ protected:
     virtual void WorkerRun(bool original)
     {
         ormpp::dbng<ormpp::mysql> mysqlclient;
-	    mysqlclient.connect("rm-2ze4h4gd92r731iapeo.mysql.rds.aliyuncs.com", "emi_ai", "Sinicnet123456", "ai");
+	    mysqlclient.connect("127.0.0.1", "db", "123", "ai");
         while(!Worker<T>::_stop)
         {
             auto e = Worker<T>::_queue->GetObjBulk();
@@ -54,9 +54,8 @@ protected:
     DealElement(ormpp::dbng<ormpp::mysql> &mysql, std::string &&s)
     {
         auto res = mysql.query<aicall_tts_file_cache>("id = 5622");
-        for(auto& file : res){
+        for(auto& file : res)
             std::cout<<file.id<<" "<<file.TTS_text<<" "<<file.TTS_version_code<<std::endl;
-        }
     }
 
     virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
@@ -82,7 +81,7 @@ int main()
 	cinatra::http_server server(max_thread_num);
     server.listen("0.0.0.0", "8080");
     
-    using QueueType = std::conditional_t<false, LockQueue<std::string>,  FreeLockRingQueue<std::string>>;
+    using QueueType = std::conditional_t<true, LockQueue<std::string>,  FreeLockRingQueue<std::string>>;
     auto queuetask = std::shared_ptr<QueueType>(new QueueType);
     std::shared_ptr<Worker<QueueType>> worker = std::make_shared<WorkerForHttp<QueueType>>(queuetask);
     std::shared_ptr<ThreadPool<QueueType>> threadpool(new ThreadPool(queuetask,worker,2));

@@ -626,7 +626,7 @@ REFLECTION(aicall_tts_file_cache, id, TTS_text, TTS_version_code, tts_src, tts_d
 void testormpp()
 {
 	ormpp::dbng<ormpp::mysql> mysql;
-	mysql.connect("rm-2ze4h4gd92r731iapeo.mysql.rds.aliyuncs.com", "emi_ai", "Sinicnet123456", "ai");
+	mysql.connect("127.0.0.1", "db", "123", "ai");
 
     auto res = mysql.query<aicall_tts_file_cache>("id = 5622");
 	for(auto& file : res){
