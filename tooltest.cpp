@@ -607,10 +607,38 @@ void testPThreadPool()
         pool.EnqueueStr(Worker2Params(i));
 }
 
+#include "dbng.hpp"
+#include "mysql.hpp"
+
+struct aicall_tts_file_cache
+{
+	int id;
+	std::string TTS_text;
+	int TTS_version_code;
+    std::string tts_src;
+    int tts_duration;
+    int create_time;
+    int access_time;
+    int extension;
+};
+REFLECTION(aicall_tts_file_cache, id, TTS_text, TTS_version_code, tts_src, tts_duration, create_time, access_time, extension)
+
+void testormpp()
+{
+	ormpp::dbng<ormpp::mysql> mysql;
+	mysql.connect("rm-2ze4h4gd92r731iapeo.mysql.rds.aliyuncs.com", "emi_ai", "Sinicnet123456", "ai");
+
+    auto res = mysql.query<aicall_tts_file_cache>("id = 5622");
+	for(auto& file : res){
+		std::cout<<file.id<<" "<<file.TTS_text<<" "<<file.TTS_version_code<<std::endl;
+	}
+}
+
 int main()
 {
+    testormpp();
     // testPThreadPool();
-    testFThreadPool();
+    // testFThreadPool();
     // testLockQueue();
     // testRingFreeLockQueue();
     // testregister();

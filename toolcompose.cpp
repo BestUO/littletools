@@ -1,16 +1,21 @@
 #include "cinatra.hpp"
 #include "queue/ringqueue.hpp"
 #include "tools/threadpool.hpp"
+#include "ormpp/dbng.hpp"
+#include "ormpp/mysql.hpp"
 
-template<class T>
-void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
+struct aicall_tts_file_cache
 {
-	server.set_http_handler<cinatra::GET, cinatra::POST>("/", [threadpool=threadpool](cinatra::request& req, cinatra::response& res) {
-        std::cout << req.body() << std::endl;
-        threadpool->EnqueueStr(std::string(req.body()));
-		res.set_status_and_content(cinatra::status_type::ok, "hello world");
-	});
-}
+	int id;
+	std::string TTS_text;
+	int TTS_version_code;
+    std::string tts_src;
+    int tts_duration;
+    int create_time;
+    int access_time;
+    int extension;
+};
+REFLECTION(aicall_tts_file_cache, id, TTS_text, TTS_version_code, tts_src, tts_duration, create_time, access_time, extension)
 
 template<class T>
 class WorkerForHttp:public Worker<T>
@@ -21,6 +26,8 @@ public:
 protected:
     virtual void WorkerRun(bool original)
     {
+        ormpp::dbng<ormpp::mysql> mysqlclient;
+	    mysqlclient.connect("rm-2ze4h4gd92r731iapeo.mysql.rds.aliyuncs.com", "emi_ai", "Sinicnet123456", "ai");
         while(!Worker<T>::_stop)
         {
             auto e = Worker<T>::_queue->GetObjBulk();
@@ -28,7 +35,7 @@ protected:
             {
                 while(!e->empty())
                 {
-                    DealElement(std::move(e->front()));
+                    DealElement(mysqlclient, std::move(e->front()));
                     e->pop();
                 }
             }
@@ -44,11 +51,30 @@ protected:
 
     virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
     // typename std::enable_if<std::is_same<typename GetContainerType<T>::Type, Worker2Params>::value>::type
+    DealElement(ormpp::dbng<ormpp::mysql> &mysql, std::string &&s)
+    {
+        auto res = mysql.query<aicall_tts_file_cache>("id = 5622");
+        for(auto& file : res){
+            std::cout<<file.id<<" "<<file.TTS_text<<" "<<file.TTS_version_code<<std::endl;
+        }
+    }
+
+    virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
     DealElement(std::string &&s)
     {
-        std::cout << s << std::endl;
+        return;
     }
 };
+
+template<class T>
+void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
+{
+	server.set_http_handler<cinatra::GET, cinatra::POST>("/", [threadpool=threadpool](cinatra::request& req, cinatra::response& res) {
+        std::cout << req.body() << std::endl;
+        threadpool->EnqueueStr(std::string(req.body()));
+		res.set_status_and_content(cinatra::status_type::ok, "hello world");
+	});
+}
 
 int main()
 {
@@ -59,9 +85,7 @@ int main()
     using QueueType = std::conditional_t<false, LockQueue<std::string>,  FreeLockRingQueue<std::string>>;
     auto queuetask = std::shared_ptr<QueueType>(new QueueType);
     std::shared_ptr<Worker<QueueType>> worker = std::make_shared<WorkerForHttp<QueueType>>(queuetask);
-
     std::shared_ptr<ThreadPool<QueueType>> threadpool(new ThreadPool(queuetask,worker,2));
-    // std::shared_ptr<ThreadPool<LockQueue<std::function<void()>>>> threadpool(new ThreadPool<LockQueue<std::function<void()>>>(2));
 
     SetApiCallBackHandler(server, threadpool);
 
