@@ -24,6 +24,7 @@ link_directories(${THIRD_PARTY_PATH}/lib/rdkafka)
 
 ADD_SUBDIRECTORY(kafka)
 ADD_SUBDIRECTORY(queue)
+ADD_SUBDIRECTORY(settingParser)
 
 set(TOOL_TEST tooltest)
 set(TOOL_TEST_SOURCE tooltest.cpp)
@@ -34,4 +35,4 @@ target_link_libraries(${TOOL_TEST} uoqueue pthread uokafka rdkafka++ uuid jsoncp
 set(TOOL_COMPOSE toolcompose)
 set(TOOL_COMPOSE_SOURCE toolcompose.cpp)
 add_executable(${TOOL_COMPOSE} ${TOOL_COMPOSE_SOURCE})
-target_link_libraries(${TOOL_COMPOSE} pthread mysqlclient)
+target_link_libraries(${TOOL_COMPOSE} pthread mysqlclient  jsoncpp  settingParser)
