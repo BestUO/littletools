@@ -3,7 +3,7 @@
 #include "tools/threadpool.hpp"
 #include "ormpp/dbng.hpp"
 #include "ormpp/mysql.hpp"
-
+#include "settingParser/settingParser.h"
 struct aicall_tts_file_cache
 {
 	int id;
@@ -77,17 +77,19 @@ void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
 
 int main()
 {
-    int max_thread_num = 1;
-	cinatra::http_server server(max_thread_num);
-    server.listen("0.0.0.0", "8080");
+    // int max_thread_num = 1;
+	// cinatra::http_server server(max_thread_num);
+    // server.listen("0.0.0.0", "8080");
     
-    using QueueType = std::conditional_t<true, LockQueue<std::string>,  FreeLockRingQueue<std::string>>;
-    auto queuetask = std::shared_ptr<QueueType>(new QueueType);
-    std::shared_ptr<Worker<QueueType>> worker = std::make_shared<WorkerForHttp<QueueType>>(queuetask);
-    std::shared_ptr<ThreadPool<QueueType>> threadpool(new ThreadPool(queuetask,worker,2));
+    // using QueueType = std::conditional_t<true, LockQueue<std::string>,  FreeLockRingQueue<std::string>>;
+    // auto queuetask = std::shared_ptr<QueueType>(new QueueType);
+    // std::shared_ptr<Worker<QueueType>> worker = std::make_shared<WorkerForHttp<QueueType>>(queuetask);
+    // std::shared_ptr<ThreadPool<QueueType>> threadpool(new ThreadPool(queuetask,worker,2));
 
-    SetApiCallBackHandler(server, threadpool);
+    // SetApiCallBackHandler(server, threadpool);
 
-	server.run();
+	// server.run();
+    settingParser pa;
+    cout<<pa.GetMysqlPassord();
 	return 0;
 }
