@@ -634,9 +634,37 @@ void testormpp()
 	}
 }
 
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/rotating_file_sink.h"
+#define SPDLOG_FILENAME "TrimuleLogger.log"
+#define SPDLOGGERNAME "TrimuleLogger"
+#define LOGGER spdlog::get(SPDLOGGERNAME)
+
+void setspdlog()
+{
+    auto file_logger = spdlog::rotating_logger_mt(SPDLOGGERNAME, SPDLOG_FILENAME, 1024 * 1024 * 200, 5);
+    LOGGER->set_level(spdlog::level::info); // Set global log level to info
+    LOGGER->set_pattern("[%H:%M:%S:%e %z %^%L%$ %t] [%@,%!] %v");
+    // file_logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e][thread %t][%@,%!][%l] : %v");
+}
+
+void testspdlog()
+{
+    setspdlog();
+    int i = 0;
+    while (i < 10)
+    {
+        SPDLOG_LOGGER_INFO(LOGGER, "test3 {}", i);
+        LOGGER->info("Async message #{}", i);
+        i++;
+    }
+    spdlog::shutdown();
+}
+
 int main()
 {
-    testormpp();
+    testspdlog();
+    // testormpp();
     // testPThreadPool();
     // testFThreadPool();
     // testLockQueue();
