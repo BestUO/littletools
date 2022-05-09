@@ -33,13 +33,23 @@ std::string settingParser::GetSettinghParser(std::string target)
 // int a = 1;
 // std::cout << "aaa" << std::endl;
 // };
-std::string settingParser::GetMysqlAccount()
+std::string settingParser::GetMysqlUser()
 {
 
-    return GetSettinghParser("mysql_account");
+    return GetSettinghParser("mysql_user");
 }
 std::string settingParser::GetMysqlPassord()
 {
 
     return GetSettinghParser("mysql_password");
+}
+std::string settingParser::GetMysqlHost()
+{
+
+    return GetSettinghParser("mysql_host");
+}
+std::string settingParser::GetMysqlDb()
+{
+
+    return GetSettinghParser("mysql_db");
 }

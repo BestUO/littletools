@@ -1,20 +1,22 @@
 #ifndef _TEST_H_
 #define _TEST_H_
 
-
 #include <iostream>
 #include <json/json.h>
 
 using namespace std;
 class settingParser
 {
-    public:
+public:
     std::string GetSettinghParser(std::string target);
 
-    std::string GetMysqlAccount();
-    
+    std::string GetMysqlUser();
+
     std::string GetMysqlPassord();
-    
+
+    std::string GetMysqlHost();
+
+    std::string GetMysqlDb();
 };
 
 //。。。
