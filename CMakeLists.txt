@@ -11,7 +11,6 @@ include_directories(${THIRD_PARTY_PATH}/include)
 include_directories(${PROJECT_SOURCE_DIR}/kafka)
 include_directories(${PROJECT_SOURCE_DIR}/net/include)
 include_directories(${PROJECT_SOURCE_DIR}/tools)
-include_directories(${PROJECT_SOURCE_DIR}/ormpp)
 
 link_directories(${THIRD_PARTY_PATH}/lib)
 link_directories(${THIRD_PARTY_PATH}/lib/json)

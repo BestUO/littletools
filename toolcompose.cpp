@@ -3,6 +3,21 @@
 #include "tools/threadpool.hpp"
 #include "ormpp/dbng.hpp"
 #include "ormpp/mysql.hpp"
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/rotating_file_sink.h"
+#include "spdlog/async.h"
+
+#define SPDLOG_FILENAME "log/TrimuleLogger.log"
+#define SPDLOGGERNAME "TrimuleLogger"
+#define LOGGER spdlog::get(SPDLOGGERNAME)
+
+void initspdlog()
+{
+    spdlog::flush_every(std::chrono::seconds(5));
+    auto file_logger = spdlog::rotating_logger_mt<spdlog::async_factory>(SPDLOGGERNAME, SPDLOG_FILENAME, 1024 * 1024 * 200, 5);
+    LOGGER->set_level(spdlog::level::info); // Set global log level to info
+    LOGGER->set_pattern("[%H:%M:%S:%e %z %^%L%$ %t] %v");
+}
 
 struct aicall_tts_file_cache
 {
@@ -53,6 +68,7 @@ protected:
     // typename std::enable_if<std::is_same<typename GetContainerType<T>::Type, Worker2Params>::value>::type
     DealElement(ormpp::dbng<ormpp::mysql> &mysql, std::string &&s)
     {
+        LOGGER->info("message #{}", s);
         auto res = mysql.query<aicall_tts_file_cache>("id = 5622");
         for(auto& file : res)
             std::cout<<file.id<<" "<<file.TTS_text<<" "<<file.TTS_version_code<<std::endl;
@@ -77,6 +93,7 @@ void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
 
 int main()
 {
+    initspdlog();
     int max_thread_num = 1;
 	cinatra::http_server server(max_thread_num);
     server.listen("0.0.0.0", "8080");
