@@ -11,7 +11,6 @@ include_directories(${THIRD_PARTY_PATH}/include)
 include_directories(${PROJECT_SOURCE_DIR}/kafka)
 include_directories(${PROJECT_SOURCE_DIR}/net/include)
 include_directories(${PROJECT_SOURCE_DIR}/tools)
-include_directories(${PROJECT_SOURCE_DIR}/ormpp)
 
 link_directories(${THIRD_PARTY_PATH}/lib)
 link_directories(${THIRD_PARTY_PATH}/lib/json)
@@ -36,4 +35,4 @@ target_link_libraries(${TOOL_TEST} uoqueue pthread uokafka rdkafka++ uuid jsoncp
 set(TOOL_COMPOSE toolcompose)
 set(TOOL_COMPOSE_SOURCE toolcompose.cpp)
 add_executable(${TOOL_COMPOSE} ${TOOL_COMPOSE_SOURCE})
-target_link_libraries(${TOOL_COMPOSE} pthread mysqlclient  jsoncpp  settingParser GetCallRecord) 
+target_link_libraries(${TOOL_COMPOSE} pthread mysqlclient jsoncpp settingParser GetCallRecord)

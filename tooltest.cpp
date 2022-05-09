@@ -607,8 +607,8 @@ void testPThreadPool()
         pool.EnqueueStr(Worker2Params(i));
 }
 
-#include "dbng.hpp"
-#include "mysql.hpp"
+#include "ormpp/dbng.hpp"
+#include "ormpp/mysql.hpp"
 
 struct aicall_tts_file_cache
 {
@@ -634,9 +634,38 @@ void testormpp()
 	}
 }
 
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/rotating_file_sink.h"
+#include "spdlog/async.h"
+#define SPDLOG_FILENAME "log/TrimuleLogger.log"
+#define SPDLOGGERNAME "TrimuleLogger"
+#define LOGGER spdlog::get(SPDLOGGERNAME)
+
+void initspdlog()
+{
+    spdlog::flush_every(std::chrono::seconds(5));
+    auto file_logger = spdlog::rotating_logger_mt<spdlog::async_factory>(SPDLOGGERNAME, SPDLOG_FILENAME, 1024 * 1024 * 200, 5);
+    LOGGER->set_level(spdlog::level::info); // Set global log level to info
+    LOGGER->set_pattern("[%H:%M:%S:%e %z %^%L%$ %t] %v");
+}
+
+void testspdlog()
+{
+    initspdlog();
+    int i = 0;
+    while (i < 10)
+    {
+        SPDLOG_LOGGER_INFO(LOGGER, "test3 {}", i);
+        LOGGER->info("Async message #{} {} {}", i, i*5, "aa");
+        i++;
+    }
+    spdlog::shutdown();
+}
+
 int main()
 {
-    testormpp();
+    testspdlog();
+    // testormpp();
     // testPThreadPool();
     // testFThreadPool();
     // testLockQueue();
