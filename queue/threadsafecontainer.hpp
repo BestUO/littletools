@@ -142,12 +142,18 @@ public:
 
     virtual ~LockQueue()=default;
 
+    unsigned int GetElementNums()
+    {
+        return __queue.size();
+    }
+
     bool AddObj(T &&t)
     {
         std::unique_lock<std::mutex> lck(__mutex);
         if(__queue.size() < __capacity)
         {
             __queue.emplace(std::move(t));
+            __consumer.notify_one();
             return true;
         }
         else
@@ -162,6 +168,7 @@ public:
         {
             for(auto &&element:v)
                 __queue.emplace(std::move(element));
+            __consumer.notify_one();
             return true;
         }
         else
@@ -171,6 +178,7 @@ public:
     std::optional<T> GetObj(std::function<bool(T)>comparefun=nullptr)
     {
         std::unique_lock<std::mutex> lck(__mutex);
+        __consumer.wait(lck,[this](){return GetElementNums();});
         if(!__queue.empty())
         {
             if(comparefun && !comparefun(__queue.front()))
@@ -189,6 +197,7 @@ public:
     std::optional<std::queue<T>> GetObjBulk(unsigned int n = 0)
     {
         std::unique_lock<std::mutex> lck(__mutex);
+        __consumer.wait(lck,[this](){return GetElementNums();});
         if(!__queue.empty())
         {
             std::queue<T> q;
@@ -207,6 +216,7 @@ public:
     
 private:
     std::mutex __mutex;
+    std::condition_variable __consumer;
     std::queue<T> __queue;
     uint16_t __capacity = SIZE;
 };

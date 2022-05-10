@@ -669,7 +669,7 @@ void testrapidjson()
     JsonSimpleWrap::GetPaser("conf/setting.conf");
 
         // 1. Parse a JSON string into DOM.
-    const char* json = "{\"mysql_setting\":{\"mysql_user\":\"emi_ai\",\"mysql_password\":\"Sinicnet123456\",\"mysql_db\":\"ai.calllog\",\"mysql_host\":\"rm-2ze4h4gd92r731iapeo.mysql.rds.aliyuncs.com\"}}";
+    const char* json = "{\"mysql_setting\":{\"mysql_user\":\"user\",\"mysql_password\":\"123\",\"mysql_db\":\"db\",\"mysql_host\":\"127.0.0.1\"}}";
     rapidjson::Document d;
     if (d.Parse(json).HasParseError())
         return;
@@ -683,9 +683,79 @@ void testrapidjson()
     printf("mysql_setting[%s] = %s\n", "mysql_user", (*config)["mysql_setting"]["mysql_user"].GetString());
 }
 
+std::atomic<unsigned int> sum;
+
+template<class T>
+class Worker3:public Worker<T>
+{
+public:
+    Worker3(std::shared_ptr<T> queue):Worker<T>(queue){};
+
+protected:
+    virtual void WorkerRun(bool original)
+    {
+        while(!Worker<T>::_stop)
+        {
+            auto e = Worker<T>::_queue->GetObjBulk();
+            if(e)
+            {
+                while(!e->empty())
+                {
+                    DealElement(std::move(e->front()));
+                    e->pop();
+                }
+            }
+            else
+            {
+                if(!original)
+                    break;
+            }
+        }
+    }
+
+    virtual typename std::enable_if<std::is_same<typename T::Type, int>::value>::type
+    DealElement(int &&i)
+    {
+        sum += i;
+    }
+};
+
+void testQueueTypeThreadPool()
+{
+    unsigned int j=1783293664;
+    unsigned int j2=3566587328;
+    // for(unsigned int i=0;i<1000000;i++)
+    //     j+=i;
+
+    using QueueType = std::conditional_t<false, LockQueue<int>,  FreeLockRingQueue<int>>;
+    auto queuetask = std::shared_ptr<QueueType>(new QueueType);
+    std::shared_ptr<Worker<QueueType>> worker = std::make_shared<Worker3<QueueType>>(queuetask);
+
+    ThreadPool pool(queuetask,worker,1,1);
+
+    auto fun = [queuetask=queuetask](int endnum)
+    {
+        for(unsigned int i=0;i<endnum;i++)
+        {
+            while(!queuetask->AddObj(i))
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
+        }
+    };
+
+    std::thread p1(fun,1000000);
+    std::thread p2(fun,1000000);
+
+    p1.join();
+    p2.join();
+    std::cout << "producers finish, sum now is:" << sum << std::endl;
+}
+
 int main()
 {
-    testrapidjson();
+    testQueueTypeThreadPool();
+    // testrapidjson();
     // testspdlog();
     // testormpp();
     // testPThreadPool();
