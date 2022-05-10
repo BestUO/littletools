@@ -71,6 +71,10 @@
         "ranges": "cpp",
         "stop_token": "cpp",
         "cinttypes": "cpp",
-        "semaphore": "cpp"
+        "semaphore": "cpp",
+        "charconv": "cpp",
+        "span": "cpp",
+        "bitset": "cpp",
+        "regex": "cpp"
     }
 }

@@ -1,6 +1,6 @@
 #pragma once
 #include "reflection.hpp"
-#include "../third_party/msgpack/include/msgpack.hpp"
+#include "../msgpack/include/msgpack.hpp"
 
 namespace msgpack { MSGPACK_API_VERSION_NAMESPACE(v2)
 {

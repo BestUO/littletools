@@ -1,36 +1,17 @@
 #include "cinatra.hpp"
 #include "queue/ringqueue.hpp"
 #include "tools/threadpool.hpp"
+#include "tools/jsonwrap.hpp"
 #include "ormpp/dbng.hpp"
 #include "ormpp/mysql.hpp"
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/rotating_file_sink.h"
 #include "spdlog/async.h"
+#include "dbstruct/dbstruct.h"
 
 #define SPDLOG_FILENAME "log/TrimuleLogger.log"
 #define SPDLOGGERNAME "TrimuleLogger"
 #define LOGGER spdlog::get(SPDLOGGERNAME)
-
-void initspdlog()
-{
-    spdlog::flush_every(std::chrono::seconds(5));
-    auto file_logger = spdlog::rotating_logger_mt<spdlog::async_factory>(SPDLOGGERNAME, SPDLOG_FILENAME, 1024 * 1024 * 200, 5);
-    LOGGER->set_level(spdlog::level::info); // Set global log level to info
-    LOGGER->set_pattern("[%H:%M:%S:%e %z %^%L%$ %t] %v");
-}
-
-struct aicall_tts_file_cache
-{
-	int id;
-	std::string TTS_text;
-	int TTS_version_code;
-    std::string tts_src;
-    int tts_duration;
-    int create_time;
-    int access_time;
-    int extension;
-};
-REFLECTION(aicall_tts_file_cache, id, TTS_text, TTS_version_code, tts_src, tts_duration, create_time, access_time, extension)
 
 template<class T>
 class WorkerForHttp:public Worker<T>
@@ -41,8 +22,10 @@ public:
 protected:
     virtual void WorkerRun(bool original)
     {
+        auto config = JsonSimpleWrap::GetPaser("conf/setting.conf");
         ormpp::dbng<ormpp::mysql> mysqlclient;
-	    mysqlclient.connect("127.0.0.1", "db", "123", "ai");
+	    mysqlclient.connect((*config)["mysql_setting"]["mysql_host"].GetString(), (*config)["mysql_setting"]["mysql_user"].GetString(),
+                                     (*config)["mysql_setting"]["mysql_password"].GetString(), (*config)["mysql_setting"]["mysql_db"].GetString());
         while(!Worker<T>::_stop)
         {
             auto e = Worker<T>::_queue->GetObjBulk();
@@ -69,7 +52,7 @@ protected:
     DealElement(ormpp::dbng<ormpp::mysql> &mysql, std::string &&s)
     {
         LOGGER->info("message #{}", s);
-        auto res = mysql.query<aicall_tts_file_cache>("id = 5622");
+        auto res = mysql.query<aicall_tts_file_cache>("id = 5659");
         for(auto& file : res)
             std::cout<<file.id<<" "<<file.TTS_text<<" "<<file.TTS_version_code<<std::endl;
     }
@@ -91,6 +74,14 @@ void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
 	});
 }
 
+void initspdlog()
+{
+    spdlog::flush_every(std::chrono::seconds(5));
+    auto file_logger = spdlog::rotating_logger_mt<spdlog::async_factory>(SPDLOGGERNAME, SPDLOG_FILENAME, 1024 * 1024 * 200, 5);
+    LOGGER->set_level(spdlog::level::info); // Set global log level to info
+    LOGGER->set_pattern("[%H:%M:%S:%e %z %^%L%$ %t] %v");
+}
+
 int main()
 {
     initspdlog();
@@ -106,5 +97,6 @@ int main()
     SetApiCallBackHandler(server, threadpool);
 
 	server.run();
+    spdlog::shutdown();
 	return 0;
 }

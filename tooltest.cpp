@@ -662,9 +662,31 @@ void testspdlog()
     spdlog::shutdown();
 }
 
+#include "jsonwrap.hpp"
+
+void testrapidjson()
+{
+    JsonSimpleWrap::GetPaser("conf/setting.conf");
+
+        // 1. Parse a JSON string into DOM.
+    const char* json = "{\"mysql_setting\":{\"mysql_user\":\"emi_ai\",\"mysql_password\":\"Sinicnet123456\",\"mysql_db\":\"ai.calllog\",\"mysql_host\":\"rm-2ze4h4gd92r731iapeo.mysql.rds.aliyuncs.com\"}}";
+    rapidjson::Document d;
+    if (d.Parse(json).HasParseError())
+        return;
+
+    rapidjson::Value& a = d["mysql_setting"];
+    assert(a.IsObject());
+    printf("mysql_setting[%s] = %s\n", "mysql_user", a["mysql_user"].GetString());
+    
+    auto config = JsonSimpleWrap::GetPaser(json);
+    assert((*config).IsObject());
+    printf("mysql_setting[%s] = %s\n", "mysql_user", (*config)["mysql_setting"]["mysql_user"].GetString());
+}
+
 int main()
 {
-    testspdlog();
+    testrapidjson();
+    // testspdlog();
     // testormpp();
     // testPThreadPool();
     // testFThreadPool();
