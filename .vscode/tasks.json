@@ -9,9 +9,9 @@
     },
     "tasks": [
         {
-            "label": "cmake debug",
+            "label": "build tooltest",
             "args": [
-                "cmake -DCMAKE_BUILD_TYPE=Debug .."
+                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target tooltest -j 2"
             ],
             "group": {
                 "kind": "build",
@@ -19,28 +19,14 @@
             }
         },
         {
-            "label": "cmake release",
+            "label": "build toolcompose",
             "args": [
-                "cmake -DCMAKE_BUILD_TYPE=Release .."
+                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target toolcompose -j 2"
             ],
             "group": {
                 "kind": "build",
                 "isDefault": true
             }
-        },
-        {
-            "label": "Make",
-            "args": [
-                "make -j 2"
-            ],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
-        },
-        {
-            "label": "Make Debug",
-            "dependsOn":["cmake debug","Make"]
         },
     ]
 }
