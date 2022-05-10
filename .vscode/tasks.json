@@ -19,9 +19,9 @@
             }
         },
         {
-            "label": "build toolcompose",
+            "label": "build trimule",
             "args": [
-                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target toolcompose -j 2"
+                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target trimule -j 2"
             ],
             "group": {
                 "kind": "build",
