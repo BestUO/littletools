@@ -26,6 +26,11 @@ public:
 
     virtual ~FreeLockRingQueue()=default;
 
+    unsigned int GetElementNums()
+    {
+        return ringinfo.prod.tail.load() - ringinfo.cons.head.load();
+    }
+
     bool AddObj(T &&t)
     {
         std::vector<T> v;
@@ -43,6 +48,7 @@ public:
         {
             AddItems(old_head, std::move(v));
             UpdateTail(ringinfo.prod, old_head, new_head);
+            // __consumer.notify_one();
             return true;
         }
     }
@@ -70,18 +76,24 @@ public:
     std::optional<typename std::enable_if<std::is_same<C<T, A>,std::vector<T>>::value, C<T,A>>::type>
     GetObjBulk(unsigned int n)
     {
+        // std::unique_lock <std::mutex> lck(__mutex);
+        // __consumer.wait(lck,[this](){return GetElementNums();});
         return GetObjBulk<C<T, A>>(n);
     }
-    
+
     template <template<class> class C> 
     std::optional<typename std::enable_if<std::is_same<C<T>,std::queue<T>>::value, C<T>>::type>
     GetObjBulk(unsigned int n)
     {
+        // std::unique_lock <std::mutex> lck(__mutex);
+        // __consumer.wait(lck,[this](){return GetElementNums();});
         return GetObjBulk<C<T>>(n);
     }
     ////////////////////任意类型/////////////////////////
 
 private:
+    // std::mutex __mutex;
+    // std::condition_variable __consumer;
     struct RingHeadTail 
     {
         std::atomic<unsigned int> head;
