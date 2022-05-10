@@ -3,7 +3,7 @@
 		"mysql_setting": {
 			"mysql_user": "emi_ai",
 			"mysql_password": "Sinicnet123456",
-            "mysql_db": "ai.calllog",
+            "mysql_db": "ai",
 			"mysql_host": "rm-2ze4h4gd92r731iapeo.mysql.rds.aliyuncs.com"
 		}
 	}

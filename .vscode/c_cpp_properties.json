@@ -5,11 +5,14 @@
             "includePath": [
                 "${workspaceFolder}/**"
             ],
-            "defines": ["ASIO_STANDALONE"],
+            "defines": [
+                "ASIO_STANDALONE"
+            ],
             "compilerPath": "/usr/local/bin/gcc",
             "cStandard": "gnu17",
             "cppStandard": "gnu++20",
-            "intelliSenseMode": "linux-gcc-x64"
+            "intelliSenseMode": "linux-gcc-x64",
+            "configurationProvider": "go2sh.cmake-integration"
         }
     ],
     "version": 4

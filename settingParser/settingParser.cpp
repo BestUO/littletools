@@ -11,7 +11,7 @@ std::string settingParser::GetSettinghParser(std::string target)
     Json::Value root;
 
     //确认文件读取状态
-    std::ifstream in("conf//example.json", std::ios::binary);
+    std::ifstream in("conf//config.json", std::ios::binary);
 
     if (!in.is_open())
     {
