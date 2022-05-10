@@ -27,7 +27,7 @@
                     "ignoreFailures": true
                 }
             ],
-            "preLaunchTask": "Make Debug",
+            "preLaunchTask": "build tooltest",
             "miDebuggerPath": "/usr/bin/gdb"
         },
         {
@@ -48,7 +48,7 @@
                     "ignoreFailures": true
                 }
             ],
-            "preLaunchTask": "Make Debug",
+            "preLaunchTask": "build toolcompose",
             "miDebuggerPath": "/usr/bin/gdb"
         },
         {

@@ -15,10 +15,6 @@ include_directories(${PROJECT_SOURCE_DIR}/tools)
 link_directories(${THIRD_PARTY_PATH}/lib)
 link_directories(${THIRD_PARTY_PATH}/lib/json)
 link_directories(${THIRD_PARTY_PATH}/lib/rdkafka)
-# link_directories(${THIRD_PARTY_PATH}/lib/glog)
-# link_directories(${THIRD_PARTY_PATH}/lib/gtest)
-# link_directories(${THIRD_PARTY_PATH}/lib/protobuf)
-# link_directories(${PROJECT_SOURCE_DIR}/build/lib)
 
 
 ADD_SUBDIRECTORY(kafka)
