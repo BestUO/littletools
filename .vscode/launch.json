@@ -31,10 +31,10 @@
             "miDebuggerPath": "/usr/bin/gdb"
         },
         {
-            "name": "toolcompose",
+            "name": "trimule",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/toolcompose",
+            "program": "${workspaceFolder}/build/trimule",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
@@ -48,7 +48,7 @@
                     "ignoreFailures": true
                 }
             ],
-            "preLaunchTask": "build toolcompose",
+            "preLaunchTask": "build trimule",
             "miDebuggerPath": "/usr/bin/gdb"
         },
         {

@@ -89,10 +89,10 @@ int main()
 	cinatra::http_server server(max_thread_num);
     server.listen("0.0.0.0", "8080");
     
-    using QueueType = std::conditional_t<true, LockQueue<std::string>,  FreeLockRingQueue<std::string>>;
+    using QueueType = std::conditional_t<false, LockQueue<std::string>,  FreeLockRingQueue<std::string>>;
     auto queuetask = std::shared_ptr<QueueType>(new QueueType);
     std::shared_ptr<Worker<QueueType>> worker = std::make_shared<WorkerForHttp<QueueType>>(queuetask);
-    std::shared_ptr<ThreadPool<QueueType>> threadpool(new ThreadPool(queuetask,worker,2));
+    std::shared_ptr<ThreadPool<QueueType>> threadpool(new ThreadPool(queuetask,worker,2,2));
 
     SetApiCallBackHandler(server, threadpool);
 
