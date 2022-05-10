@@ -669,7 +669,7 @@ void testrapidjson()
     JsonSimpleWrap::GetPaser("conf/setting.conf");
 
         // 1. Parse a JSON string into DOM.
-    const char* json = "{\"mysql_setting\":{\"mysql_user\":\"emi_ai\",\"mysql_password\":\"Sinicnet123456\",\"mysql_db\":\"ai.calllog\",\"mysql_host\":\"rm-2ze4h4gd92r731iapeo.mysql.rds.aliyuncs.com\"}}";
+    const char* json = "{\"mysql_setting\":{\"mysql_user\":\"user\",\"mysql_password\":\"123\",\"mysql_db\":\"db\",\"mysql_host\":\"127.0.0.1\"}}";
     rapidjson::Document d;
     if (d.Parse(json).HasParseError())
         return;
