@@ -1,6 +1,4 @@
-#ifndef CALL_H
-#define CALL_H
-
+// #pragma once
 #include <iostream>
 #include <string>
 #include <json/json.h>
@@ -25,11 +23,15 @@
                      transfer_duration(-1), transfer_call_state(0), call_type(-1) ,
                      stop_reason(0), customer_fail_reason(0),manual_type(0){}
     };
-class CallRecord{
-    public:
-      
- CallInfo GetCallRecord(std::string s,int framework_class);
- 
- };
-
- #endif
+struct aicall_tts_file_cache
+{
+	int id;
+	std::string TTS_text;
+	int TTS_version_code;
+    std::string tts_src;
+    int tts_duration;
+    int create_time;
+    int access_time;
+    int extension;
+};
+// REFLECTION(aicall_tts_file_cache, id, TTS_text, TTS_version_code, tts_src, tts_duration, create_time, access_time, extension)

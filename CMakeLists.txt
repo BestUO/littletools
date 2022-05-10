@@ -20,7 +20,7 @@ link_directories(${THIRD_PARTY_PATH}/lib/rdkafka)
 ADD_SUBDIRECTORY(kafka)
 ADD_SUBDIRECTORY(queue)
 ADD_SUBDIRECTORY(settingParser)
-ADD_SUBDIRECTORY(work)
+ADD_SUBDIRECTORY(dbstruct)
 
 set(TOOL_TEST tooltest)
 set(TOOL_TEST_SOURCE tooltest.cpp)
