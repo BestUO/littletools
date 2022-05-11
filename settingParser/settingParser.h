@@ -5,18 +5,20 @@
 #include <json/json.h>
 
 using namespace std;
+
+struct sqlconnect{
+    // "conf//config.json"
+    std::string alarm;
+    std::string user;
+    std::string password;
+    std::string host;
+    std::string db;
+};
 class settingParser
 {
 public:
-    std::string GetSettinghParser(std::string target);
+    sqlconnect GetSettinghParser(std::string filepath);
 
-    std::string GetMysqlUser();
-
-    std::string GetMysqlPassord();
-
-    std::string GetMysqlHost();
-
-    std::string GetMysqlDb();
 };
 
 //。。。

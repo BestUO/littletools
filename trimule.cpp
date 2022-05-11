@@ -23,7 +23,6 @@ void initspdlog()
     LOGGER->set_pattern("[%H:%M:%S:%e %z %^%L%$ %t] %v");
 }
 
-
 template <class T>
 class WorkerForHttp : public Worker<T>
 {
@@ -35,12 +34,9 @@ protected:
     {
         ormpp::dbng<ormpp::mysql> mysqlclient;
         settingParser mysql_example;
-        std::string mysql_db = mysql_example.GetMysqlDb();
-        std::string mysql_host = mysql_example.GetMysqlHost();
-        std::string mysql_password = mysql_example.GetMysqlPassord();
-        std::string mysql_user = mysql_example.GetMysqlUser();
-        //  std::cout<<mysql_db<<"  "<<mysql_host<<"  "<<mysql_password<<" "<<mysql_user<<std::endl;
-        mysqlclient.connect(mysql_host.c_str(), mysql_user.c_str(), mysql_password.c_str(), mysql_db.c_str());
+        sqlconnect conne = mysql_example.GetSettinghParser("conf/config.json");
+
+        mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str());
         // DealElement(mysqlclient, "");
 
         while (!Worker<T>::_stop)
@@ -64,22 +60,13 @@ protected:
         }
     }
 
-
     virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
-    // typename std::enable_if<std::is_same<typename GetContainerType<T>::Type, Worker2Params>::value>::type
     DealElement(ormpp::dbng<ormpp::mysql> &mysql, std::string &&s)
     {
-        // LOGGER->info("message #{}", s);
-
         UpdateCalllog update_action;
-        update_action.handleSql(mysql,s);
-        // auto res = mysql.query<aicall_tts_file_cache>("id = 5663");
-        // for(auto& file : res)
-        //     std::cout<<file.id<<" "<<file.TTS_text<<" "<<file.TTS_version_code<<std::endl;
 
-        // auto res = mysql.query<aicall_tts_file_cache>("id = 5622");
-        // for(auto& file : res)
-        //     std::cout<<file.id<<" "<<file.TTS_text<<" "<<file.TTS_version_code<<std::endl;
+       
+        update_action.handleSql(mysql, s);
     }
 
     virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
@@ -96,22 +83,22 @@ void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
                                                          {
         std::cout << req.body() << std::endl;
         threadpool->EnqueueStr(std::string(req.body()));
-		res.set_status_and_content(cinatra::status_type::ok, "hello world"); });
+		res.set_status_and_content(cinatra::status_type::ok, "{data:200}"); });
 }
 
 int main()
 {
     initspdlog();
-    
-    auto config = JsonSimpleWrap::GetPaser("conf/setting.conf");
+
+    auto config = JsonSimpleWrap::GetPaser("conf/config.json");
     int max_thread_num = 1;
     cinatra::http_server server(max_thread_num);
     server.listen((*config)["httpserver_setting"]["host"].GetString(), (*config)["httpserver_setting"]["port"].GetString());
-    
-    using QueueType = std::conditional_t<false, LockQueue<std::string>,  FreeLockRingQueue<std::string>>;
+
+    using QueueType = std::conditional_t<false, LockQueue<std::string>, FreeLockRingQueue<std::string>>;
     auto queuetask = std::shared_ptr<QueueType>(new QueueType);
     std::shared_ptr<Worker<QueueType>> worker = std::make_shared<WorkerForHttp<QueueType>>(queuetask);
-    std::shared_ptr<ThreadPool<QueueType>> threadpool(new ThreadPool(queuetask,worker,2,2));
+    std::shared_ptr<ThreadPool<QueueType>> threadpool(new ThreadPool(queuetask, worker, 2, 2));
 
     SetApiCallBackHandler(server, threadpool);
 
