@@ -1,4 +1,5 @@
 #pragma once
+#include "ormpp/dbng.hpp"
 
 struct aicall_tts_file_cache
 {
