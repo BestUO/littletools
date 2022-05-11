@@ -52,27 +52,27 @@ protected:
         std::string mysql_user = mysql_example.GetMysqlUser();
         //  std::cout<<mysql_db<<"  "<<mysql_host<<"  "<<mysql_password<<" "<<mysql_user<<std::endl;
         mysqlclient.connect(mysql_host.c_str(), mysql_user.c_str(), mysql_password.c_str(), mysql_db.c_str());
+        DealElement(mysqlclient, "");
 
+        // while (!Worker<T>::_stop)
+        // {
+        //     auto e = Worker<T>::_queue->GetObjBulk();
+        //     if (e)
+        //     {
 
-        while (!Worker<T>::_stop)
-        {
-            auto e = Worker<T>::_queue->GetObjBulk();
-            if (e)
-            {
-
-                while (!e->empty())
-                {
-                    DealElement(mysqlclient, std::move(e->front()));
-                    e->pop();
-                }
-            }
-            else
-            {
-                if (!original)
-                    break;
-                std::this_thread::sleep_for(std::chrono::seconds(1));
-            }
-        }
+        //         while (!e->empty())
+        //         {
+        //             DealElement(mysqlclient, std::move(e->front()));
+        //             e->pop();
+        //         }
+        //     }
+        //     else
+        //     {
+        //         if (!original)
+        //             break;
+        //         std::this_thread::sleep_for(std::chrono::seconds(1));
+        //     }
+        // }
     }
 
 
@@ -80,11 +80,11 @@ protected:
     // typename std::enable_if<std::is_same<typename GetContainerType<T>::Type, Worker2Params>::value>::type
     DealElement(ormpp::dbng<ormpp::mysql> &mysql, std::string &&s)
     {
-        LOGGER->info("message #{}", s);
+        // LOGGER->info("message #{}", s);
 
         UpdateCalllog update_action;
-        update_action.handleSql(smysql,s);
-        // auto res = mysql.query<aicall_tts_file_cache>("id = 5622");
+        update_action.handleSql(mysql,s);
+        // auto res = mysql.query<aicall_tts_file_cache>("id = 5663");
         // for(auto& file : res)
         //     std::cout<<file.id<<" "<<file.TTS_text<<" "<<file.TTS_version_code<<std::endl;
 
@@ -120,7 +120,7 @@ int main()
     using QueueType = std::conditional_t<true, LockQueue<std::string>, FreeLockRingQueue<std::string>>;
     auto queuetask = std::shared_ptr<QueueType>(new QueueType);
     std::shared_ptr<Worker<QueueType>> worker = std::make_shared<WorkerForHttp<QueueType>>(queuetask);
-    std::shared_ptr<ThreadPool<QueueType>> threadpool(new ThreadPool(queuetask, worker, 2));
+    std::shared_ptr<ThreadPool<QueueType>> threadpool(new ThreadPool(queuetask, worker, 1));
 
     SetApiCallBackHandler(server, threadpool);
 

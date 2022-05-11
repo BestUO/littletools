@@ -1,4 +1,5 @@
 #include "GetCallRecord.h"
+#include "../dbstruct/dbstruct.h"
 #include <iostream>
 #include <json/json.h>
 #include <string>
@@ -50,7 +51,7 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
         auto record_url = (data)["record_url"];
         auto records = (data)["records"];
 
-        if (record_url.isString()&&!record_url.isNull())
+        if (record_url.isString() && !record_url.isNull())
             result.record_url = record_url.asString();
 
         if (enterprise_type.isInt())
@@ -74,6 +75,9 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                 int type = call_type.isString() && !call_type.isNull() ? stoi(call_type.asString()) : 1;
 
                 auto &duration_time = !record["valid_duration"].isNull() == true ? record["valid_duration"] : record["duration_time"];
+
+                if (record["cc_number"].isString())
+                    result.cc_number = record["cc_number"].asString();
 
                 if (type == 3 ||
                     type == 2)
@@ -108,7 +112,7 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                     auto &call_type = record["call_type"];
                     if (confirm_time.isString())
                         result.confirm_time = std::string(confirm_time.asString());
-                    if (end_time.isString() )
+                    if (end_time.isString())
                         result.end_time = std::string(end_time.asString());
 
                     if (duration_time.isString())
