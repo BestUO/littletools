@@ -16,7 +16,6 @@ link_directories(${THIRD_PARTY_PATH}/lib)
 link_directories(${THIRD_PARTY_PATH}/lib/json)
 link_directories(${THIRD_PARTY_PATH}/lib/rdkafka)
 
-
 ADD_SUBDIRECTORY(kafka)
 ADD_SUBDIRECTORY(queue)
 ADD_SUBDIRECTORY(settingParser)
@@ -28,7 +27,7 @@ add_executable(${TOOL_TEST} ${TOOL_TEST_SOURCE})
 target_link_libraries(${TOOL_TEST} uoqueue pthread uokafka rdkafka++ uuid jsoncpp atomic mysqlclient)
 
 
-set(TOOL_COMPOSE toolcompose)
-set(TOOL_COMPOSE_SOURCE toolcompose.cpp)
+set(TOOL_COMPOSE trimule)
+set(TOOL_COMPOSE_SOURCE trimule.cpp)
 add_executable(${TOOL_COMPOSE} ${TOOL_COMPOSE_SOURCE})
 target_link_libraries(${TOOL_COMPOSE} pthread mysqlclient jsoncpp settingParser GetCallRecord)

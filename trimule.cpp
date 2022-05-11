@@ -1,6 +1,7 @@
 #include "cinatra.hpp"
 #include "queue/ringqueue.hpp"
 #include "tools/threadpool.hpp"
+#include "tools/jsonwrap.hpp"
 #include "ormpp/dbng.hpp"
 #include "ormpp/mysql.hpp"
 #include "spdlog/spdlog.h"
@@ -22,18 +23,6 @@ void initspdlog()
     LOGGER->set_pattern("[%H:%M:%S:%e %z %^%L%$ %t] %v");
 }
 
-struct aicall_tts_file_cache
-{
-    int id;
-    std::string TTS_text;
-    int TTS_version_code;
-    std::string tts_src;
-    int tts_duration;
-    int create_time;
-    int access_time;
-    int extension;
-};
-REFLECTION(aicall_tts_file_cache, id, TTS_text, TTS_version_code, tts_src, tts_duration, create_time, access_time, extension)
 
 template <class T>
 class WorkerForHttp : public Worker<T>
@@ -52,27 +41,27 @@ protected:
         std::string mysql_user = mysql_example.GetMysqlUser();
         //  std::cout<<mysql_db<<"  "<<mysql_host<<"  "<<mysql_password<<" "<<mysql_user<<std::endl;
         mysqlclient.connect(mysql_host.c_str(), mysql_user.c_str(), mysql_password.c_str(), mysql_db.c_str());
-        DealElement(mysqlclient, "");
+        // DealElement(mysqlclient, "");
 
-        // while (!Worker<T>::_stop)
-        // {
-        //     auto e = Worker<T>::_queue->GetObjBulk();
-        //     if (e)
-        //     {
+        while (!Worker<T>::_stop)
+        {
+            auto e = Worker<T>::_queue->GetObjBulk();
+            if (e)
+            {
 
-        //         while (!e->empty())
-        //         {
-        //             DealElement(mysqlclient, std::move(e->front()));
-        //             e->pop();
-        //         }
-        //     }
-        //     else
-        //     {
-        //         if (!original)
-        //             break;
-        //         std::this_thread::sleep_for(std::chrono::seconds(1));
-        //     }
-        // }
+                while (!e->empty())
+                {
+                    DealElement(mysqlclient, std::move(e->front()));
+                    e->pop();
+                }
+            }
+            else
+            {
+                if (!original)
+                    break;
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+            }
+        }
     }
 
 
@@ -113,14 +102,16 @@ void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
 int main()
 {
     initspdlog();
+    
+    auto config = JsonSimpleWrap::GetPaser("conf/setting.conf");
     int max_thread_num = 1;
     cinatra::http_server server(max_thread_num);
-    server.listen("0.0.0.0", "8080");
-
-    using QueueType = std::conditional_t<true, LockQueue<std::string>, FreeLockRingQueue<std::string>>;
+    server.listen((*config)["httpserver_setting"]["host"].GetString(), (*config)["httpserver_setting"]["port"].GetString());
+    
+    using QueueType = std::conditional_t<false, LockQueue<std::string>,  FreeLockRingQueue<std::string>>;
     auto queuetask = std::shared_ptr<QueueType>(new QueueType);
     std::shared_ptr<Worker<QueueType>> worker = std::make_shared<WorkerForHttp<QueueType>>(queuetask);
-    std::shared_ptr<ThreadPool<QueueType>> threadpool(new ThreadPool(queuetask, worker, 1));
+    std::shared_ptr<ThreadPool<QueueType>> threadpool(new ThreadPool(queuetask,worker,2,2));
 
     SetApiCallBackHandler(server, threadpool);
 
