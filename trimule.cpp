@@ -85,9 +85,11 @@ void initspdlog()
 int main()
 {
     initspdlog();
+
+    auto config = JsonSimpleWrap::GetPaser("conf/setting.conf");
     int max_thread_num = 1;
 	cinatra::http_server server(max_thread_num);
-    server.listen("0.0.0.0", "8080");
+    server.listen((*config)["httpserver_setting"]["host"].GetString(), (*config)["httpserver_setting"]["port"].GetString());
     
     using QueueType = std::conditional_t<false, LockQueue<std::string>,  FreeLockRingQueue<std::string>>;
     auto queuetask = std::shared_ptr<QueueType>(new QueueType);
