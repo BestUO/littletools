@@ -73,8 +73,12 @@
         "cinttypes": "cpp",
         "semaphore": "cpp",
         "charconv": "cpp",
+<<<<<<< HEAD
+        "span": "cpp"
+=======
         "span": "cpp",
         "bitset": "cpp",
         "regex": "cpp"
+>>>>>>> 072b3907348e2389a3d5417acb43abd69c8644a3
     }
 }

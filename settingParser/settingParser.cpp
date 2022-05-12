@@ -4,42 +4,36 @@
 #include <fstream>
 using namespace std;
 
-std::string settingParser::GetSettinghParser(std::string target)
+
+sqlconnect settingParser::GetSettinghParser(std::string filepath)
 {
+
+    sqlconnect connect;
     std::string str = "";
     Json::Reader reader;
     Json::Value root;
 
     //确认文件读取状态
-    std::ifstream in("conf//example.json", std::ios::binary);
+    std::ifstream in(filepath, std::ios::binary);
 
     if (!in.is_open())
-    {
-        return "Error opening file";
+    {   connect.alarm = "file is not open!!";
+        return connect;
     }
 
     if (reader.parse(in, root))
     {
-        Json::Value data = root["data"];
-        Json::Value mysql_setting = data["mysql_setting"];
-        Json::Value  res = mysql_setting[target];
-        str = res.asString();
-        cout<<str<<endl;
-        return str;
+        Json::Value mysql_setting = root["mysql_setting"];
+        // Json::Value  res = mysql_setting[target];
+        // str = res.asString();
+        connect.db = mysql_setting["mysql_db"].asString();
+        connect.user = mysql_setting["mysql_user"].asString();
+        connect.password = mysql_setting["mysql_password"].asString();
+        connect.host = mysql_setting["mysql_host"].asString();
+
+
+        return connect;
     }
-    return str;
-}
-// settingParser::settingParser(){
-// int a = 1;
-// std::cout << "aaa" << std::endl;
-// };
-std::string settingParser::GetMysqlAccount()
-{
-
-    return GetSettinghParser("mysql_account");
-}
-std::string settingParser::GetMysqlPassord()
-{
-
-    return GetSettinghParser("mysql_password");
+    connect.alarm = "other error";
+    return connect;
 }
