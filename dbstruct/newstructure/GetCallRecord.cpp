@@ -22,9 +22,7 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
             for (unsigned int nos = 0; nos != pos; nos++)
             {
                 if ((str[nos]) > '0' && str[nos] <= '9')
-                {
                     return 2;
-                }
             }
             return 1;
         };
@@ -99,7 +97,6 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                     if (!record["valid_duration"].isNull())
                     {
                         result.manual_type = remove(record["valid_duration"].asString());
-                        // LOG(INFO) << "manual_type is " << result.manual_type;
                     }
                     //                result.switch_number = record.HasMember("switch_number") ? record["switch_number"].asString() : "";
                 }
