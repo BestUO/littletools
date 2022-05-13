@@ -30,8 +30,7 @@ sqlconnect settingParser::GetSettinghParser(std::string filepath)
         connect.user = mysql_setting["mysql_user"].asString();
         connect.password = mysql_setting["mysql_password"].asString();
         connect.host = mysql_setting["mysql_host"].asString();
-
-
+        
         return connect;
     }
     connect.alarm = "other error";

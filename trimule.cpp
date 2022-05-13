@@ -61,8 +61,10 @@ protected:
     virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
     DealElement(ormpp::dbng<ormpp::mysql> &mysql, std::string &&s)
     {
-        UpdateCalllog update_action;
-        update_action.handleSql(mysql, s);
+        mysql.ping();
+        UpdateMessage update_action;
+
+        update_action.HandleSQL(mysql, s);
     }
 
     virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
@@ -77,9 +79,11 @@ void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
 {
     server.set_http_handler<cinatra::GET, cinatra::POST>("/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
     {
-        std::cout << req.body() << std::endl;
-        threadpool->EnqueueStr(std::string(req.body()));
-		res.set_status_and_content(cinatra::status_type::ok, "{data:200}"); \
+        CallRecord check;
+        std::string check_res = check.CheckInfo(std::string(req.body()));
+        if(check_res!="900"&&check_res!="901")
+        {threadpool->EnqueueStr(std::string(req.body()));}
+		res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info:\""+check_res+"\"}");
     });
 }
 

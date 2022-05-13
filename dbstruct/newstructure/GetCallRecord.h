@@ -6,7 +6,6 @@
 #include <json/json.h>
 #include "../dbstruct/dbstruct.h"
 
-
 struct CallInfo 
 {
         std::string record_url;
@@ -35,7 +34,8 @@ class CallRecord{
     public:
       
  CallInfo GetCallRecord(std::string s,int framework_class);
+ std::string CheckInfo(std::string info);
  
  };
 
- #endif
+#endif

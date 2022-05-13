@@ -171,3 +171,33 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
     }
     return result;
 }
+
+std::string CallRecord::CheckInfo(std::string info)
+{
+    Json::Reader reader;
+    Json::Value root;
+
+    if (reader.parse(info, root))
+    {
+        Json::Value data = root["data"];
+        auto records = (data)["records"];
+        if (records.isArray() && records.size() > 0)
+        {
+
+            auto record = records[0];
+            if (!record["cc_number"].isNull() && record["cc_number"].asString() != "")
+            {
+
+                if (!record["switch_number"].isNull() || record["cc_number"].asString() == "")
+                {
+                    return "902";
+                }
+                else
+                    return "903";//switch_number为空
+            }
+            else
+                return "901"; // cc_number空或不存在
+        }
+    }
+    return "900"; // style error
+}

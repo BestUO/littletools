@@ -11,7 +11,7 @@
 #define SPDLOGGERNAME "TrimuleLogger"
 #define LOGGER spdlog::get(SPDLOGGERNAME)
 
-std::string updatecommmand::MysqlUpdateCommand(std::string db_name, std::vector<std::string> values, std::vector<std::string> columns, std::vector<std::string> condition, std::vector<std::string> condition_name, std::vector<std::string> condition_symbols)
+std::string GenerateSQL::MysqlGenerateUpdateSQL(std::string db_name, std::vector<std::string> values, std::vector<std::string> columns, std::vector<std::string> condition, std::vector<std::string> condition_name, std::vector<std::string> condition_symbols)
 {
     std::string command = "update " + db_name + " set ";
     
@@ -38,7 +38,7 @@ std::string updatecommmand::MysqlUpdateCommand(std::string db_name, std::vector<
             command += " " + condition_name[i] + " " + condition_symbols[i] + " \"" + condition[i] + "\" ";
     }
 
-if (num==0)
+    if (num==0)
          return "no command";
 
     return command;
