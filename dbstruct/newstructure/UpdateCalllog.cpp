@@ -19,7 +19,7 @@
 
 void UpdateCalllog::HandleSql(ormpp::dbng<ormpp::mysql> &mysql, std::string &s)
 {
-	LOGGER->info("message #{}", s);
+	LOGGER->info("{}", s);
 
 	CallRecord record;
 	CallInfo callog = record.GetCallRecord(s, 2);
@@ -57,7 +57,6 @@ void UpdateCalllog::UpdateCalllogMain(ormpp::dbng<ormpp::mysql> &mysql, CallInfo
 	std::string transfer_manual_cost = "";
 	std::vector<std::string> values = {std::to_string(calllog.duration_time), calllog.transfer_number, std::to_string(calllog.transfer_duration), calllog.record_url, transfer_manual_cost};
 	std::vector<std::string> condition(1);
-
 	condition[0] = calllog.cc_number;
 	std::vector<std::string> condition_name(1);
 	condition_name[0] = "cc_number";
@@ -98,7 +97,6 @@ void UpdateCalllog::UpdateOutCallClue(ormpp::dbng<ormpp::mysql> &mysql, CallInfo
 	GenerateSql command;
 	std::string sql_command = command.MysqlGenerateUpdateSql(" outcall_clue ", values, columns, condition, condition_name, condition_symbols);
 	LOGGER->info(" sql_command is ", sql_command);
-	std::cout << " sql_command is " << sql_command;
 	if (sql_command == "no command")
 	{
 		LOGGER->info(" update failed ,no command");
@@ -129,7 +127,6 @@ void UpdateCalllog::UpdateAiCalllogExtension(ormpp::dbng<ormpp::mysql> &mysql, C
 	GenerateSql command;
 	std::string sql_command = command.MysqlGenerateUpdateSql(" aicall_calllog_extension ", values, columns, condition, condition_name, condition_symbols);
 	LOGGER->info(" sql_command is ", sql_command);
-	std::cout << " sql_command is " << sql_command;
 	if (sql_command == "no command")
 	{
 		LOGGER->info(" update failed ,no command");

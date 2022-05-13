@@ -26,20 +26,16 @@ std::string GenerateSql::MysqlGenerateUpdateSql(std::string db_name, std::vector
                 command += ",";
             }
         }
-          
     }
 
-    if(num!=0&&command[command.size()-1]==','){
+    if(num!=0&&command[command.size()-1]==',')
          command.pop_back();
-    }
     
     command += " where ";
     for (int i = 0; i < condition.size(); i++)
     {
         if (condition[i] != "")
-        {
             command += " " + condition_name[i] + " " + condition_symbols[i] + " \"" + condition[i] + "\" ";
-        }
     }
 
 if (num==0)

@@ -37,14 +37,12 @@ protected:
         sqlconnect conne = mysql_example.GetSettinghParser("conf/config.json");
 
         mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str());
-        // DealElement(mysqlclient, "");
 
         while (!Worker<T>::_stop)
         {
             auto e = Worker<T>::_queue->GetObjBulk();
             if (e)
             {
-
                 while (!e->empty())
                 {
                     DealElement(mysqlclient, std::move(e->front()));
@@ -63,9 +61,10 @@ protected:
     virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
     DealElement(ormpp::dbng<ormpp::mysql> &mysql, std::string &&s)
     {
+        mysql.ping();
         UpdateCalllog update_action;
 
-               update_action.HandleSql(mysql, s);
+        update_action.HandleSql(mysql, s);
     }
 
     virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
