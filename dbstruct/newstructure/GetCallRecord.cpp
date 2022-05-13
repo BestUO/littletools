@@ -200,20 +200,4 @@ std::string CallRecord::CheckInfo(std::string info)
         }
     }
     return "900"; // style error
-
-    // JsonSimpleWrap::GetPaser("conf/setting.conf");
-
-    //     // 1. Parse a JSON string into DOM.
-    // const char* json = "{\"mysql_setting\":{\"mysql_user\":\"user\",\"mysql_password\":\"123\",\"mysql_db\":\"db\",\"mysql_host\":\"127.0.0.1\"}}";
-    // rapidjson::Document d;
-    // if (d.Parse(json).HasParseError())
-    //     return;
-
-    // rapidjson::Value& a = d["mysql_setting"];
-    // assert(a.IsObject());
-    // printf("mysql_setting[%s] = %s\n", "mysql_user", a["mysql_user"].GetString());
-
-    // auto config = JsonSimpleWrap::GetPaser(json);
-    // assert((*config).IsObject());
-    // printf("mysql_setting[%s] = %s\n", "mysql_user", (*config)["mysql_setting"]["mysql_user"].GetString());
 }

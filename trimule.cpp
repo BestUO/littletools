@@ -62,9 +62,9 @@ protected:
     DealElement(ormpp::dbng<ormpp::mysql> &mysql, std::string &&s)
     {
         mysql.ping();
-        UpdateCalllog update_action;
+        UpdateMessage update_action;
 
-        update_action.HandleSql(mysql, s);
+        update_action.HandleSQL(mysql, s);
     }
 
     virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
@@ -79,7 +79,6 @@ void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
 {
     server.set_http_handler<cinatra::GET, cinatra::POST>("/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
     {
-        std::cout << req.body() << std::endl;
         CallRecord check;
         std::string check_res = check.CheckInfo(std::string(req.body()));
         if(check_res!="900"&&check_res!="901")
