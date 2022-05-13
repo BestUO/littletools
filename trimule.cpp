@@ -37,14 +37,12 @@ protected:
         sqlconnect conne = mysql_example.GetSettinghParser("conf/config.json");
 
         mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str());
-        // DealElement(mysqlclient, "");
 
         while (!Worker<T>::_stop)
         {
             auto e = Worker<T>::_queue->GetObjBulk();
             if (e)
             {
-
                 while (!e->empty())
                 {
                     DealElement(mysqlclient, std::move(e->front()));
@@ -64,8 +62,6 @@ protected:
     DealElement(ormpp::dbng<ormpp::mysql> &mysql, std::string &&s)
     {
         UpdateCalllog update_action;
-
-       
         update_action.handleSql(mysql, s);
     }
 
@@ -80,10 +76,11 @@ template <class T>
 void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
 {
     server.set_http_handler<cinatra::GET, cinatra::POST>("/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
-                                                         {
+    {
         std::cout << req.body() << std::endl;
         threadpool->EnqueueStr(std::string(req.body()));
-		res.set_status_and_content(cinatra::status_type::ok, "{data:200}"); });
+		res.set_status_and_content(cinatra::status_type::ok, "{data:200}"); \
+    });
 }
 
 int main()

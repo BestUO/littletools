@@ -7,7 +7,8 @@
 #include "../dbstruct/dbstruct.h"
 
 
-typedef struct CallInfo {
+struct CallInfo 
+{
         std::string record_url;
         std::string confirm_time;
         std::string end_time;
@@ -28,7 +29,7 @@ typedef struct CallInfo {
         CallInfo() : confirm_time(""), end_time(""), duration_time(0), enterprise_type(1), call_state(0),
                      transfer_duration(-1), transfer_call_state(0), call_type(-1) ,
                      stop_reason(0), customer_fail_reason(0),manual_type(0),cc_number(""){}
-    };
+};
     
 class CallRecord{
     public:

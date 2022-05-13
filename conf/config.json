@@ -3,7 +3,7 @@
         "mysql_user": "ei",
         "mysql_password": "S",
         "mysql_db": "i",
-        "mysql_host": "r
+        "mysql_host": "r"
     },
     "httpserver_setting":
     {
