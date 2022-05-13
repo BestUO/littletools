@@ -174,3 +174,49 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
     }
     return result;
 }
+
+std::string CallRecord::CheckInfo(std::string info)
+{
+    Json::Reader reader;
+    Json::Value root;
+
+    if (reader.parse(info, root))
+    {
+        Json::Value data = root["data"];
+        auto records = (data)["records"];
+        if (records.isArray() && records.size() > 0)
+        {
+
+            auto record = records[0];
+            if (!record["cc_number"].isNull() && record["cc_number"].asString() != "")
+            {
+
+                if (!record["switch_number"].isNull() || record["cc_number"].asString() == "")
+                {
+                    return "902";
+                }
+                else
+                    return "903";//switch_number为空
+            }
+            else
+                return "901"; // cc_number空或不存在
+        }
+    }
+    return "900"; // style error
+
+    // JsonSimpleWrap::GetPaser("conf/setting.conf");
+
+    //     // 1. Parse a JSON string into DOM.
+    // const char* json = "{\"mysql_setting\":{\"mysql_user\":\"user\",\"mysql_password\":\"123\",\"mysql_db\":\"db\",\"mysql_host\":\"127.0.0.1\"}}";
+    // rapidjson::Document d;
+    // if (d.Parse(json).HasParseError())
+    //     return;
+
+    // rapidjson::Value& a = d["mysql_setting"];
+    // assert(a.IsObject());
+    // printf("mysql_setting[%s] = %s\n", "mysql_user", a["mysql_user"].GetString());
+
+    // auto config = JsonSimpleWrap::GetPaser(json);
+    // assert((*config).IsObject());
+    // printf("mysql_setting[%s] = %s\n", "mysql_user", (*config)["mysql_setting"]["mysql_user"].GetString());
+}

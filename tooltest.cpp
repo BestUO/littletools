@@ -683,6 +683,10 @@ void testrapidjson()
     printf("mysql_setting[%s] = %s\n", "mysql_user", (*config)["mysql_setting"]["mysql_user"].GetString());
 }
 
+
+
+
+
 std::atomic<unsigned int> sum;
 
 template<class T>
@@ -755,7 +759,7 @@ void testQueueTypeThreadPool()
 int main()
 {
     testQueueTypeThreadPool();
-    // testrapidjson();
+    testrapidjson();
     // testspdlog();
     // testormpp();
     // testPThreadPool();

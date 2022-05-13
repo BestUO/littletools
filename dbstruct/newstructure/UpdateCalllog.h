@@ -14,9 +14,9 @@
 class UpdateCalllog
 {
 public:
-    void handleSql(ormpp::dbng<ormpp::mysql> &mysql, std::string &s);
+    void HandleSql(ormpp::dbng<ormpp::mysql> &mysql, std::string &s);
 private: 
-    void updateCalllog( ormpp::dbng<ormpp::mysql> &mysql,CallInfo callog);
-    void updateOutCallClue( ormpp::dbng<ormpp::mysql> &mysql,CallInfo callog,std::string clue_id);
-    void updateAiCalllogExtension(ormpp::dbng<ormpp::mysql> &mysql, CallInfo callog,std::string calllog_id);
+    void UpdateCalllogMain( ormpp::dbng<ormpp::mysql> &mysql,CallInfo callog);
+    void UpdateOutCallClue( ormpp::dbng<ormpp::mysql> &mysql,CallInfo callog,std::string clue_id);
+    void UpdateAiCalllogExtension(ormpp::dbng<ormpp::mysql> &mysql, CallInfo callog,std::string calllog_id);
 };
