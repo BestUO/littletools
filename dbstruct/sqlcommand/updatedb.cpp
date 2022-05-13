@@ -19,12 +19,11 @@ std::string GenerateSQL::MysqlGenerateUpdateSQL(std::string db_name, std::vector
     for (int i = 0; i < values.size(); i++)
     {
         if (values[i] != "")
-        {   num++;
+        {   
+            num++;
             command += " " + columns[i] + " = \"" + values[i] + "\"";
             if (i != values.size() - 1)
-            {
                 command += ",";
-            }
         }
     }
 

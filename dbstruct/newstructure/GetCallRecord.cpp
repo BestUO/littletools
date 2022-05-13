@@ -12,7 +12,6 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
 
     if (reader.parse(s, root))
     {
-
         Json::Value data = root["data"];
 
         auto remove = [](std::string str) -> int
@@ -77,8 +76,7 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                 if (record["cc_number"].isString())
                     result.cc_number = record["cc_number"].asString();
 
-                if (type == 3 ||
-                    type == 2)
+                if (type == 3 || type == 2)
                 {
                     auto &dialing = record["dialing"];
                     auto &end_time = record["end_time"];
@@ -86,19 +84,14 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                     if (dialing.isString())
                         result.transfer_number = dialing.asString();
                     if (duration_time.isString())
-                    {
                         result.transfer_duration = remove_Chinese(duration_time.asString());
-                    }
 
                     if (end_time.isString())
                         result.transfer_end_time = std::string(end_time.asString());
                     if (call_state.isString())
                         result.transfer_call_state = stoi(call_state.asString(), 0);
                     if (!record["valid_duration"].isNull())
-                    {
                         result.manual_type = remove(record["valid_duration"].asString());
-                    }
-                    //                result.switch_number = record.HasMember("switch_number") ? record["switch_number"].asString() : "";
                 }
                 else
                 {
@@ -113,9 +106,7 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                         result.end_time = std::string(end_time.asString());
 
                     if (duration_time.isString())
-                    {
                         result.duration_time = remove_Chinese(duration_time.asString());
-                    }
 
                     if (call_state.isString())
                         result.call_state = stoi(call_state.asString(), 0);
@@ -183,15 +174,12 @@ std::string CallRecord::CheckInfo(std::string info)
         auto records = (data)["records"];
         if (records.isArray() && records.size() > 0)
         {
-
             auto record = records[0];
             if (!record["cc_number"].isNull() && record["cc_number"].asString() != "")
             {
 
                 if (!record["switch_number"].isNull() || record["cc_number"].asString() == "")
-                {
                     return "902";
-                }
                 else
                     return "903";//switch_number为空
             }
