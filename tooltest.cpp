@@ -709,6 +709,7 @@ protected:
             {
                 if(!original)
                     break;
+                Worker<T>::_queue->WaitComingObj();
             }
         }
     }
