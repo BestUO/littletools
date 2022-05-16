@@ -683,12 +683,7 @@ void testrapidjson()
     printf("mysql_setting[%s] = %s\n", "mysql_user", (*config)["mysql_setting"]["mysql_user"].GetString());
 }
 
-
-
-
-
 std::atomic<unsigned int> sum;
-
 template<class T>
 class Worker3:public Worker<T>
 {
@@ -713,6 +708,7 @@ protected:
             {
                 if(!original)
                     break;
+                Worker<T>::_queue->WaitComingObj();
             }
         }
     }
