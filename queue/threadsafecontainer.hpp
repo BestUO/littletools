@@ -178,7 +178,6 @@ public:
     std::optional<T> GetObj(std::function<bool(T)>comparefun=nullptr)
     {
         std::unique_lock<std::mutex> lck(__mutex);
-        __consumer.wait(lck,[this](){return GetElementNums();});
         if(!__queue.empty())
         {
             if(comparefun && !comparefun(__queue.front()))
@@ -197,7 +196,6 @@ public:
     std::optional<std::queue<T>> GetObjBulk(unsigned int n = 0)
     {
         std::unique_lock<std::mutex> lck(__mutex);
-        __consumer.wait(lck,[this](){return GetElementNums();});
         if(!__queue.empty())
         {
             std::queue<T> q;
@@ -212,6 +210,12 @@ public:
     {
         std::unique_lock<std::mutex> lck(__mutex);
         return __queue.empty();
+    }
+
+    void WaitComingObj()
+    {
+        std::unique_lock<std::mutex> lck(__mutex);
+        __consumer.wait(lck,[this](){return GetElementNums();});
     }
     
 private:

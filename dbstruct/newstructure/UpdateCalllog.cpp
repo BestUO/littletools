@@ -48,7 +48,6 @@ void UpdateMessage::HandleSQL(ormpp::dbng<ormpp::mysql> &mysql, std::string &s)
 
 void UpdateMessage::UpdateCalllog(ormpp::dbng<ormpp::mysql> &mysql, CallInfo calllog)
 {
-
 	std::vector<std::string> columns = {"duration", "transfer_number", "transfer_duration", "call_record_url", "transfer_manual_cost"};
 	std::string call_result = "";
 	std::string transfer_manual_cost = "";
@@ -95,6 +94,7 @@ void UpdateMessage::UpdateOutCallClue(ormpp::dbng<ormpp::mysql> &mysql, CallInfo
 	else
 		LOGGER->info("MysqlGenerateUpdateSql update failed ");
 }
+
 void UpdateMessage::UpdateAiCalllogExtension(ormpp::dbng<ormpp::mysql> &mysql, CallInfo calllog, std::string calllog_id)
 {
 	std::vector<std::string> columns = {"transfer_manual_cost", "call_state", "switch_number"};
@@ -113,15 +113,9 @@ void UpdateMessage::UpdateAiCalllogExtension(ormpp::dbng<ormpp::mysql> &mysql, C
 	std::string sql_command = command.MysqlGenerateUpdateSQL(" aicall_calllog_extension ", values, columns, condition, condition_name, condition_symbols);
 	LOGGER->info(" sql_command is ", sql_command);
 	if (sql_command == "no command")
-	{
 		LOGGER->info("UpdateAiCalllogExtension update failed ,no command");
-	}
 	else if (mysql.execute(sql_command))
-	{
 		LOGGER->info("UpdateAiCalllogExtension update success ");
-	}
 	else
-	{
 		LOGGER->info("UpdateAiCalllogExtension update failed ");
-	}
 }
