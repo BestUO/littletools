@@ -79,7 +79,8 @@ void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
 {
     server.set_http_handler<cinatra::GET, cinatra::POST>("/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
     {
-        LOGGER->info("news is ",req.body());
+        LOGGER->info("news is {}",std::string(req.body()));
+
         CallRecord check;
         std::string check_res = check.CheckInfo(std::string(req.body()));
         if(check_res!="900"&&check_res!="901")

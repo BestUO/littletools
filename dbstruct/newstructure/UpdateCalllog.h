@@ -15,8 +15,10 @@ class UpdateMessage
 {
 public:
     void HandleSQL(ormpp::dbng<ormpp::mysql> &mysql, std::string &s);
+ 
 private: 
     void UpdateCalllog( ormpp::dbng<ormpp::mysql> &mysql,CallInfo callog);
     void UpdateOutCallClue( ormpp::dbng<ormpp::mysql> &mysql,CallInfo callog,std::string clue_id);
     void UpdateAiCalllogExtension(ormpp::dbng<ormpp::mysql> &mysql, CallInfo callog,std::string calllog_id);
+    void ExecuteCommand(ormpp::dbng<ormpp::mysql> &mysql, std::string &s,std::string children_db_name);
 };

@@ -12,7 +12,7 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
 
     if (reader.parse(s, root))
     {
-        Json::Value data = root["data"];
+        Json::Value data = root;
 
         auto remove = [](std::string str) -> int
         {
@@ -81,13 +81,19 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                     auto &dialing = record["dialing"];
                     auto &end_time = record["end_time"];
                     auto &call_state = record["call_state"];
+                    auto &start_time = record["start_time"];
+
                     if (dialing.isString())
                         result.transfer_number = dialing.asString();
                     if (duration_time.isString())
                         result.transfer_duration = remove_Chinese(duration_time.asString());
 
-                    if (end_time.isString())
-                        result.transfer_end_time = std::string(end_time.asString());
+                     if (end_time.isString())
+                        result.transfer_end_time = end_time.asString();
+                    if (start_time.isString())
+                        result.transfer_start_time = start_time.asString();
+
+
                     if (call_state.isString())
                         result.transfer_call_state = stoi(call_state.asString(), 0);
                     if (!record["valid_duration"].isNull())
@@ -103,7 +109,7 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                     if (confirm_time.isString())
                         result.confirm_time = std::string(confirm_time.asString());
                     if (end_time.isString())
-                        result.end_time = std::string(end_time.asString());
+                        result.end_time = end_time.asString();
 
                     if (duration_time.isString())
                         result.duration_time = remove_Chinese(duration_time.asString());
@@ -170,8 +176,8 @@ std::string CallRecord::CheckInfo(std::string info)
 
     if (reader.parse(info, root))
     {
-        Json::Value data = root["data"];
-        auto records = (data)["records"];
+        
+        auto records = root["records"];
         if (records.isArray() && records.size() > 0)
         {
             auto record = records[0];
