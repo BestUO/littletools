@@ -140,7 +140,18 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                     };
                     string str;
                     int reason_judge = 0;
-                    if (!record["customer_fail_reason"].isNull())
+                        if (!record["stop_reason"].isNull())
+                    {
+                        auto &stop_reason = record["stop_reason"];
+                        int num = stop_reason.asInt();
+                        if (num != 0)
+                        {
+                            result.call_state = stoi(str_associaction(to_string(stop_reason.asInt()), 1));
+                            result.stop_reason = stop_reason.asInt();
+                        }  else
+                            reason_judge = 1;
+                    }
+                    if (!record["customer_fail_reason"].isNull() && reason_judge == 1)
                     {
                         auto &customer_fail_reason = record["customer_fail_reason"];
                         string str = customer_fail_reason.asString();
@@ -149,19 +160,9 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                             result.call_state = stoi(str_associaction(customer_fail_reason.asString(), 2));
                             result.customer_fail_reason = stoi(customer_fail_reason.asString());
                         }
-                        else
-                            reason_judge = 1;
+                      
                     }
-                    if (!record["stop_reason"].isNull() && reason_judge == 1)
-                    {
-                        auto &stop_reason = record["stop_reason"];
-                        int num = stop_reason.asInt();
-                        if (num != 0)
-                        {
-                            result.call_state = stoi(str_associaction(to_string(stop_reason.asInt()), 1));
-                            result.stop_reason = stop_reason.asInt();
-                        }
-                    }
+                
                 }
             }
         }
