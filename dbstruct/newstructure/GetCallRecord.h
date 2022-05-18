@@ -17,6 +17,7 @@ struct CallInfo
         std::string transfer_number;
         int transfer_duration;
         std::string transfer_end_time;
+        std::string transfer_start_time;
         int transfer_call_state;
         std::string start_time;
         int call_type;
@@ -25,7 +26,7 @@ struct CallInfo
         int customer_fail_reason;
         int manual_type;
         std::string cc_number;
-        CallInfo() : confirm_time(""), end_time(""), duration_time(0), enterprise_type(1), call_state(0),
+        CallInfo() : confirm_time(""),start_time(""), end_time(""),transfer_end_time(""),transfer_start_time(""), duration_time(0), enterprise_type(1), call_state(0),
                      transfer_duration(-1), transfer_call_state(0), call_type(-1) ,
                      stop_reason(0), customer_fail_reason(0),manual_type(0),cc_number(""){}
 };

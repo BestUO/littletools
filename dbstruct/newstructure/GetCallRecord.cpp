@@ -12,7 +12,7 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
 
     if (reader.parse(s, root))
     {
-        Json::Value data = root["data"];
+        Json::Value data = root;
 
         auto remove = [](std::string str) -> int
         {
@@ -81,13 +81,19 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                     auto &dialing = record["dialing"];
                     auto &end_time = record["end_time"];
                     auto &call_state = record["call_state"];
+                    auto &start_time = record["start_time"];
+
                     if (dialing.isString())
                         result.transfer_number = dialing.asString();
                     if (duration_time.isString())
                         result.transfer_duration = remove_Chinese(duration_time.asString());
 
-                    if (end_time.isString())
-                        result.transfer_end_time = std::string(end_time.asString());
+                     if (end_time.isString())
+                        result.transfer_end_time = end_time.asString();
+                    if (start_time.isString())
+                        result.transfer_start_time = start_time.asString();
+
+
                     if (call_state.isString())
                         result.transfer_call_state = stoi(call_state.asString(), 0);
                     if (!record["valid_duration"].isNull())
@@ -103,7 +109,7 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                     if (confirm_time.isString())
                         result.confirm_time = std::string(confirm_time.asString());
                     if (end_time.isString())
-                        result.end_time = std::string(end_time.asString());
+                        result.end_time = end_time.asString();
 
                     if (duration_time.isString())
                         result.duration_time = remove_Chinese(duration_time.asString());
@@ -134,7 +140,18 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                     };
                     string str;
                     int reason_judge = 0;
-                    if (!record["customer_fail_reason"].isNull())
+                        if (!record["stop_reason"].isNull())
+                    {
+                        auto &stop_reason = record["stop_reason"];
+                        int num = stop_reason.asInt();
+                        if (num != 0)
+                        {
+                            result.call_state = stoi(str_associaction(to_string(stop_reason.asInt()), 1));
+                            result.stop_reason = stop_reason.asInt();
+                        }  else
+                            reason_judge = 1;
+                    }
+                    if (!record["customer_fail_reason"].isNull() && reason_judge == 1)
                     {
                         auto &customer_fail_reason = record["customer_fail_reason"];
                         string str = customer_fail_reason.asString();
@@ -143,19 +160,9 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                             result.call_state = stoi(str_associaction(customer_fail_reason.asString(), 2));
                             result.customer_fail_reason = stoi(customer_fail_reason.asString());
                         }
-                        else
-                            reason_judge = 1;
+                      
                     }
-                    if (!record["stop_reason"].isNull() && reason_judge == 1)
-                    {
-                        auto &stop_reason = record["stop_reason"];
-                        int num = stop_reason.asInt();
-                        if (num != 0)
-                        {
-                            result.call_state = stoi(str_associaction(to_string(stop_reason.asInt()), 1));
-                            result.stop_reason = stop_reason.asInt();
-                        }
-                    }
+                
                 }
             }
         }
@@ -170,8 +177,8 @@ std::string CallRecord::CheckInfo(std::string info)
 
     if (reader.parse(info, root))
     {
-        Json::Value data = root["data"];
-        auto records = (data)["records"];
+        
+        auto records = root["records"];
         if (records.isArray() && records.size() > 0)
         {
             auto record = records[0];
