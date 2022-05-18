@@ -23,7 +23,7 @@ ADD_SUBDIRECTORY(settingParser)
 ADD_SUBDIRECTORY(dbstruct)
 
 
-set(SOURCE_DIR /build)
+set(SOURCE_DIR ${PROJECT_SOURCE_DIR}/build)
 # set(CONF_FILE ${SOURCE_DIR}/conf)
 # set(DBSTRUCT ${SOURCE_DIR}/dbstruct)
 # set(KAFKA ${SOURCE_DIR}/kafka)
@@ -31,7 +31,7 @@ set(SOURCE_DIR /build)
 # set(LOG ${SOURCE_DIR}/log)
 # set(QUEUE ${SOURCE_DIR}/queue)
 # set(SETTINGPARSER ${SOURCE_DIR}/settingParser)
-set(OUTPUT_PATH littletools_server)
+set(OUTPUT_PATH ${PROJECT_SOURCE_DIR}/littletools_server)
 
 FILE(GLOB SOURCE_DIRS 
 ${SOURCE_DIR}/conf/*
