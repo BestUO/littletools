@@ -45,9 +45,9 @@ ${SOURCE_DIR}/settingParser/*
 
 ADD_CUSTOM_TARGET(copy_file ALL
 # COMMAND 
-# mv ${SOURCE_DIR}/trimule ${OUTPUT_PATH}/trimule
+mv ${SOURCE_DIR}/trimule ${OUTPUT_PATH}/trimule
 COMMAND
-${CMAKE_COMMAND} -E copy  ${SOURCE_DIRS} ${OUTPUT_PATH}
+${CMAKE_COMMAND} -E copy_if_different  ${SOURCE_DIRS} ${OUTPUT_PATH}
 )
 
 
