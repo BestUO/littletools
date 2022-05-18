@@ -94,7 +94,7 @@ int main()
     initspdlog();
 
     auto config = JsonSimpleWrap::GetPaser("conf/config.json");
-    int max_thread_num = 1;
+    int max_thread_num = 100;
     cinatra::http_server server(max_thread_num);
     server.listen((*config)["httpserver_setting"]["host"].GetString(), (*config)["httpserver_setting"]["port"].GetString());
 
