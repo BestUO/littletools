@@ -23,6 +23,18 @@ ADD_SUBDIRECTORY(settingParser)
 ADD_SUBDIRECTORY(dbstruct)
 
 
+
+set(TOOL_TEST tooltest)
+set(TOOL_TEST_SOURCE tooltest.cpp)
+add_executable(${TOOL_TEST} ${TOOL_TEST_SOURCE})
+target_link_libraries(${TOOL_TEST} uoqueue pthread uokafka rdkafka++ uuid jsoncpp atomic mysqlclient)
+
+
+set(TOOL_COMPOSE trimule)
+set(TOOL_COMPOSE_SOURCE trimule.cpp)
+add_executable(${TOOL_COMPOSE} ${TOOL_COMPOSE_SOURCE})
+target_link_libraries(${TOOL_COMPOSE} pthread mysqlclient jsoncpp settingParser GetCallRecord)
+
 set(SOURCE_DIR ${PROJECT_SOURCE_DIR}/build)
 # set(CONF_FILE ${SOURCE_DIR}/conf)
 # set(DBSTRUCT ${SOURCE_DIR}/dbstruct)
@@ -31,7 +43,11 @@ set(SOURCE_DIR ${PROJECT_SOURCE_DIR}/build)
 # set(LOG ${SOURCE_DIR}/log)
 # set(QUEUE ${SOURCE_DIR}/queue)
 # set(SETTINGPARSER ${SOURCE_DIR}/settingParser)
-set(OUTPUT_PATH ${PROJECT_SOURCE_DIR}/littletools_server)
+ADD_CUSTOM_TARGET(
+    COMMAND
+    ${CMAKE_COMMAND} -E make_directory ${PROJECT_SOURCE_DIR}/trimule
+)
+set(OUTPUT_PATH ${PROJECT_SOURCE_DIR}/trimule)
 
 FILE(GLOB SOURCE_DIRS 
 ${SOURCE_DIR}/conf/*
@@ -52,15 +68,5 @@ ${CMAKE_COMMAND} -E copy_if_different  ${SOURCE_DIRS} ${OUTPUT_PATH}
 
 
 
-set(TOOL_TEST tooltest)
-set(TOOL_TEST_SOURCE tooltest.cpp)
-add_executable(${TOOL_TEST} ${TOOL_TEST_SOURCE})
-target_link_libraries(${TOOL_TEST} uoqueue pthread uokafka rdkafka++ uuid jsoncpp atomic mysqlclient)
-
-
-set(TOOL_COMPOSE trimule)
-set(TOOL_COMPOSE_SOURCE trimule.cpp)
-add_executable(${TOOL_COMPOSE} ${TOOL_COMPOSE_SOURCE})
-target_link_libraries(${TOOL_COMPOSE} pthread mysqlclient jsoncpp settingParser GetCallRecord)
 
 
