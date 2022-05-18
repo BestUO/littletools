@@ -1,4 +1,11 @@
+cmake_minimum_required(VERSION 3.8)
+project(UO_TOOLS)
+set(CMAKE_CXX_STANDARD 17)
 
+ADD_SUBDIRECTORY(kafka)
+ADD_SUBDIRECTORY(queue)
+ADD_SUBDIRECTORY(settingParser)
+ADD_SUBDIRECTORY(dbstruct)
 ADD_SUBDIRECTORY(run_trimule)
 
 set(SOURCE_DIR ${PROJECT_SOURCE_DIR}/build)
