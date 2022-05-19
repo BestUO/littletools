@@ -1,0 +1,24 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/github/wd/littletools/queue/rte_ring.cpp
+iostream
+-
+rte_ring.h
+/home/github/wd/littletools/queue/rte_ring.h
+
+/home/github/wd/littletools/queue/rte_ring.h
+string
+-
+mutex
+-
+queue
+-
+condition_variable
+-
+
