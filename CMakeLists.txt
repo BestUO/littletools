@@ -19,6 +19,20 @@ link_directories(${THIRD_PARTY_PATH}/lib/rdkafka)
 ADD_SUBDIRECTORY(kafka)
 ADD_SUBDIRECTORY(queue)
 
+set(OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/Trimule)
+
+ADD_CUSTOM_TARGET(copy_file ALL
+COMMAND ${CMAKE_COMMAND} -E  make_directory ${OUTPUT_PATH}
+COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/conf ${OUTPUT_PATH}/conf
+COMMAND mv ${PROJECT_SOURCE_DIR}/build/trimule ${OUTPUT_PATH}
+
+COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/Dockerfile ${OUTPUT_PATH}/Dockerfile
+COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/docker_build.sh ${OUTPUT_PATH}/docker_build.sh
+COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/docker_run.sh ${OUTPUT_PATH}/docker_run.sh
+
+COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/README.md ${OUTPUT_PATH}/README.md
+) 
+
 set(TOOL_TEST tooltest)
 set(TOOL_TEST_SOURCE tooltest.cpp)
 add_executable(${TOOL_TEST} ${TOOL_TEST_SOURCE})

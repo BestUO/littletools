@@ -1,4 +1,4 @@
-Code Examples
+littletools usage in tooltest
 ====
 * DPDK RTE_Ring
 * simple queue wrap
@@ -10,3 +10,23 @@ Code Examples
 * CephHashFun JenkinsHashFun public_align32pow2 cpu_bind
 * memory pool
 * timemanager
+* freelockqueue c++17 implement from RTE_Ring
+* threadpool
+* c++20 coroutines test
+* hootest
+* funregister for rpc
+
+# Trimule
+use cinatra+ormpp+freelockqueue for httpserver and dbclient.  
+**very fast**
+
+## HowtoRunTrimule
+### Make
+mkdir build && cd build  
+cmake .. && make  
+### Run in Docker
+//if you want chang port, change docker_run.sh and conf/config.json
+cd Trimule  
+sh docker_build.sh  
+sh docker_run.sh  
+##Trimule Run in docker
