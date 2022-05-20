@@ -1,0 +1,1 @@
+/usr/local/bin/c++ -fPIC -shared -Wl,-soname,libuoqueue.so -o ../lib/libuoqueue.so CMakeFiles/uoqueue.dir/rte_ring.cpp.o   -L/home/github/wd/littletools/3rdparty/lib  -L/home/github/wd/littletools/3rdparty/lib/json  -L/home/github/wd/littletools/3rdparty/lib/rdkafka 
