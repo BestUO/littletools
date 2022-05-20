@@ -21,7 +21,7 @@ ADD_SUBDIRECTORY(queue)
 
 set(OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/Trimule)
 
-ADD_CUSTOM_TARGET(copy_file ALL
+ADD_CUSTOM_TARGET(trimule_copyfile ALL
 COMMAND ${CMAKE_COMMAND} -E  make_directory ${OUTPUT_PATH}
 COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/conf ${OUTPUT_PATH}/conf
 COMMAND mv ${PROJECT_SOURCE_DIR}/build/trimule ${OUTPUT_PATH}
