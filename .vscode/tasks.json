@@ -21,7 +21,7 @@
         {
             "label": "build trimule",
             "args": [
-                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target trimule -j 4"
+                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target trimule -j 4; make trimule_copyfile"
             ],
             "group": {
                 "kind": "build",

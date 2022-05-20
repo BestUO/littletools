@@ -34,7 +34,7 @@
             "name": "trimule",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/trimule",
+            "program": "${workspaceFolder}/build/Trimule/trimule",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
