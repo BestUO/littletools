@@ -31,7 +31,7 @@ COMMAND
 ${CMAKE_COMMAND} -E  make_directory ${OUTPUT_PATH}/Trimule
 
 COMMAND
-${CMAKE_COMMAND} -E copy_directory  ${PROJECT_SOURCE_DIR}/conf ${OUTPUT_PATH}/Trimule/conf
+${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/conf ${OUTPUT_PATH}/Trimule/conf
 
 COMMAND
 mv ${OUTPUT_PATH}/trimule ${OUTPUT_PATH}/Trimule

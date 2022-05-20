@@ -1,2 +1,0 @@
-/usr/bin/ar qc libdbstruct.a CMakeFiles/dbstruct.dir/dbstruct.cpp.o
-/usr/bin/ranlib libdbstruct.a

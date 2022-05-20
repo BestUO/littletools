@@ -11,7 +11,7 @@
         {
             "label": "build tooltest",
             "args": [
-                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target tooltest -j 2"
+                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target tooltest -j 4"
             ],
             "group": {
                 "kind": "build",
@@ -21,7 +21,7 @@
         {
             "label": "build trimule",
             "args": [
-                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target trimule -j 2"
+                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target trimule -j 4"
             ],
             "group": {
                 "kind": "build",
