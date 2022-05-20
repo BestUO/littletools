@@ -25,7 +25,7 @@ use cinatra+ormpp+freelockqueue for httpserver and dbclient.
 mkdir build && cd build  
 cmake .. && make  
 ### Run in Docker
-//if you want chang port, change docker_run.sh and conf/config.json
+//if you want chang port, change docker_run.sh and conf/config.json  
 cd Trimule  
 sh docker_build.sh  
 sh docker_run.sh  
