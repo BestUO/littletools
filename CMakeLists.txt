@@ -22,20 +22,29 @@ ADD_SUBDIRECTORY(settingParser)
 ADD_SUBDIRECTORY(dbstruct)
 
 
-
 set(OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build)
+# ADD_CUSTOM_TARGET(copy_file ALL
+# COMMAND 
+# ${CMAKE_COMMAND} -E  make_directory ${OUTPUT_PATH}/Trimule
+# COMMAND
+# ${CMAKE_COMMAND} -E copy_directory  ${PROJECT_SOURCE_DIR}/conf ${OUTPUT_PATH}/Trimule/conf
+# COMMAND
+# mv ${OUTPUT_PATH}/trimule ${OUTPUT_PATH}/Trimule
+# )
 
-ADD_CUSTOM_TARGET(copy_file ALL
 
+ADD_CUSTOM_TARGET(copy_file
+COMMAND
+{CMAKE_COMMAND} -E make_directory  ${OUTPUT_PATH}/Trimule
 COMMAND 
-${CMAKE_COMMAND} -E  make_directory ${OUTPUT_PATH}/Trimule
+mv ${PROJECT_SOURCE_DIR}/trimule ${OUTPUT_PATH}/Trimule/
+COMMAND 
+{CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/conf/ ${OUTPUT_PATH}/conf
 
-COMMAND
-${CMAKE_COMMAND} -E copy_directory  ${PROJECT_SOURCE_DIR}/conf ${OUTPUT_PATH}/Trimule/conf
-
-COMMAND
-mv ${OUTPUT_PATH}/trimule ${OUTPUT_PATH}/Trimule
 )
+
+
+
 
 
 set(TOOL_TEST tooltest)

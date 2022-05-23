@@ -1,1 +1,0 @@
-/usr/local/bin/c++ -fPIC -shared -Wl,-soname,libuokafka.so -o ../lib/libuokafka.so CMakeFiles/uokafka.dir/simplewrapkafka.cpp.o   -L/home/github/wd/littletools/3rdparty/lib  -L/home/github/wd/littletools/3rdparty/lib/json  -L/home/github/wd/littletools/3rdparty/lib/rdkafka 
