@@ -62,10 +62,37 @@ void UpdateMessage::UpdateCalllog(ormpp::dbng<ormpp::mysql> &mysql, CallInfo cal
 	std::string sql_command = command.MysqlGenerateUpdateSQL(" calllog ", values, columns, condition, condition_name, condition_symbols);
 	ExecuteCommand(mysql,sql_command,"UpdateCalllog");
 }
+int UpdateMessage::NewGetHangupCauseFromCallRecord(CallInfo info) {
+    int cause = 3;
+    if (info.call_type == -1 || info.end_time == "0") {
+        return 0;
+    } else if (info.customer_fail_reason == 25)
+        cause = 1;
+    else if (info.stop_reason == 9 || info.stop_reason == 10 || info.stop_reason == 11 || info.stop_reason == 27 ||
+             info.stop_reason == 28 || info.stop_reason == 29 || info.stop_reason == 31 || info.stop_reason == 33 ||
+             info.stop_reason == 34 || info.stop_reason == 26 )
+        cause = 2;
+    return cause;
+}
+
+int UpdateMessage::GetCallResult(int hangup_cause_) 
+{
+    // if(hangup_cause_ == 0)
+    //     LOG(WARNING)<< "Hangup cause is still empty";
+    if(hangup_cause_ == 3)
+        return 3;
+    // else if (SessionNumber() == 0)
+    //     return CallResult::HANGUP_WITH_NO_INPUT;
+    else
+        return 2;
+}
+
 void UpdateMessage::UpdateOutCallClue(ormpp::dbng<ormpp::mysql> &mysql, CallInfo calllog, std::string clue_id)
 {
 	std::vector<std::string> columns = {"call_result", "manual_status"};
-	std::string call_result = std::to_string(calllog.stop_reason != 0 ? calllog.stop_reason: calllog.customer_fail_reason);
+	int hangup_cause_ = NewGetHangupCauseFromCallRecord(calllog);
+	// std::string call_result = std::to_string(calllog.stop_reason != 0 ? calllog.stop_reason: calllog.customer_fail_reason);
+	std::string call_result = std::to_string(GetCallResult(hangup_cause_));
 	std::string manual_status = std::to_string(calllog.manual_type);
 	std::vector<std::string> values = {call_result, manual_status};
 	std::vector<std::string> condition(1);
