@@ -67,8 +67,9 @@ protected:
 template<class T>
 void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
 {
-	server.set_http_handler<cinatra::GET, cinatra::POST>("/", [threadpool=threadpool](cinatra::request& req, cinatra::response& res) {
-        std::cout << req.body() << std::endl;
+	server.set_http_handler<cinatra::GET, cinatra::POST>("/", [threadpool=threadpool](cinatra::request& req, cinatra::response& res) 
+    {
+        LOGGER->info("message #{}", req.body());
         threadpool->EnqueueStr(std::string(req.body()));
 		res.set_status_and_content(cinatra::status_type::ok, "hello world");
 	});
