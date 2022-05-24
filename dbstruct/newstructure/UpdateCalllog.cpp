@@ -77,12 +77,8 @@ int UpdateMessage::NewGetHangupCauseFromCallRecord(CallInfo info) {
 
 int UpdateMessage::GetCallResult(int hangup_cause_) 
 {
-    // if(hangup_cause_ == 0)
-    //     LOG(WARNING)<< "Hangup cause is still empty";
     if(hangup_cause_ == 3)
         return 3;
-    // else if (SessionNumber() == 0)
-    //     return CallResult::HANGUP_WITH_NO_INPUT;
     else
         return 2;
 }
@@ -112,7 +108,7 @@ void UpdateMessage::UpdateAiCalllogExtension(ormpp::dbng<ormpp::mysql> &mysql, C
 {
 	std::vector<std::string> columns = {"transfer_manual_cost", "call_state", "switch_number"};
 
-	std::string transfer_manual_cost = (calllog.transfer_start_time!=""&&calllog.end_time!="")==true?std::to_string(stoi(calllog.transfer_start_time)-stoi(calllog.end_time)):0;
+	std::string transfer_manual_cost = (calllog.transfer_start_time!=""&&calllog.end_time!="")==true?std::to_string(stoi(calllog.transfer_start_time)-stoi(calllog.end_time)):"0";
 	
 	std::string switch_number = calllog.switch_number;
 	std::string call_state = std::to_string(calllog.call_state);
