@@ -19,7 +19,7 @@
 
 void UpdateMessage::HandleSQL(ormpp::dbng<ormpp::mysql> &mysql, std::string &s)
 {
-	LOGGER->info("{}", s);
+	LOGGER->info("handle coming message {}", s);
 
 	CallRecord record;
 	CallInfo callog = record.GetCallRecord(s, 2);
