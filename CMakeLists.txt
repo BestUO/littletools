@@ -35,9 +35,6 @@ COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/docker_run.s
 COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/README.md ${OUTPUT_PATH}/README.md
 ) 
 
-
-
-
 set(TOOL_TEST tooltest)
 set(TOOL_TEST_SOURCE tooltest.cpp)
 add_executable(${TOOL_TEST} ${TOOL_TEST_SOURCE})
@@ -47,7 +44,6 @@ set(TOOL_COMPOSE trimule)
 set(TOOL_COMPOSE_SOURCE trimule.cpp)
 add_executable(${TOOL_COMPOSE} ${TOOL_COMPOSE_SOURCE})
 target_link_libraries(${TOOL_COMPOSE} pthread mysqlclient jsoncpp settingParser GetCallRecord)
-
 
 
 
