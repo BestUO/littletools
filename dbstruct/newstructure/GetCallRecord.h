@@ -27,8 +27,8 @@ struct CallInfo
         int manual_type;
         std::string cc_number;
         CallInfo() : confirm_time(""),start_time(""), end_time(""),transfer_end_time(""),transfer_start_time(""), duration_time(0), enterprise_type(1), call_state(0),
-                     transfer_duration(-1), transfer_call_state(0), call_type(-1) ,
-                     stop_reason(0), customer_fail_reason(0),manual_type(0),cc_number(""){}
+                     transfer_duration(0), transfer_call_state(0), call_type(-1) ,
+                     stop_reason(0), customer_fail_reason(0),manual_type(1),cc_number(""){}
 };
     
 class CallRecord{

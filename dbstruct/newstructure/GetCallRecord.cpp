@@ -93,11 +93,16 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                     if (start_time.isString())
                         result.transfer_start_time = start_time.asString();
 
-
                     if (call_state.isString())
                         result.transfer_call_state = stoi(call_state.asString(), 0);
-                    if (!record["valid_duration"].isNull())
+
+                     if(!record["stop_reason"].isNull()&&record["stop_reason"].asInt()==31)
+                        result.manual_type =  1; 
+                     if(!record["stop_reason"].isNull()&&(record["stop_reason"].asInt()==7||record["stop_reason"].asInt()==6||record["stop_reason"].asInt()==5))
+                      {  result.manual_type =  3; cout<<"result.manual_type "<<result.manual_type<<endl;}
+                     else if (!record["valid_duration"].isNull())
                         result.manual_type = remove(record["valid_duration"].asString());
+                   
                 }
                 else
                 {

@@ -71,14 +71,14 @@ int UpdateMessage::NewGetHangupCauseFromCallRecord(CallInfo info)
 	{
 		return 0; // NO_HANGUP_CAUSE
 	}
-	else if (info.customer_fail_reason == 25)
+	else if (info.stop_reason == 25)
 		cause = 1; // USER_HANGUP
 	else if (info.stop_reason == 9 || info.stop_reason == 10 || info.stop_reason == 11 || info.stop_reason == 27 ||
 			 info.stop_reason == 28 || info.stop_reason == 29 || info.stop_reason == 31 || info.stop_reason == 33 ||
 			 info.stop_reason == 34 || info.stop_reason == 26)
 		cause = 2; // AI_HANGUP
 	else
-		cause = 4;
+		cause = 3;
 	return cause;
 }
 
