@@ -81,9 +81,9 @@ void UpdateMessage::UpdateCalllog(ormpp::dbng<ormpp::mysql> &mysql, CallInfo cal
 	int hangup_cause_ = NewGetHangupCauseFromCallRecord(calllog);
 
 	std::string call_result = std::to_string(GetCallResult(hangup_cause_));
-	std::vector<std::string> columns = {"duration", "call_result", "transfer_number", "transfer_duration", "call_record_url", "manual_status"};
+	std::vector<std::string> columns = {"duration", "call_result", "transfer_number", "transfer_duration", "call_record_url", "manual_status","answer_time","hangup_time"};
 	std::string manual_status = std::to_string(calllog.manual_type);
-	std::vector<std::string> values = {std::to_string(calllog.duration_time), call_result, calllog.transfer_number, std::to_string(calllog.transfer_duration), calllog.record_url, manual_status};
+	std::vector<std::string> values = {std::to_string(calllog.duration_time), call_result, calllog.transfer_number, std::to_string(calllog.transfer_duration), calllog.record_url, manual_status,calllog.confirm_time,calllog.end_time};
 	std::vector<std::string> condition(1);
 	condition[0] = calllog.cc_number;
 	std::vector<std::string> condition_name(1);

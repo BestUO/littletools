@@ -6,31 +6,31 @@
 #include <json/json.h>
 #include "../dbstruct/dbstruct.h"
 
-struct CallInfo 
-{
+    struct CallInfo {
         std::string record_url;
-        std::string confirm_time;
-        std::string end_time;
+        std::string confirm_time;//sql confirm_timestamp
+        std::string transfer_confirm_time;//sql manual_confirm
+        std::string end_time;//end_time
+        std::string transfer_end_time;//manual_disconnect
         int duration_time;
         int enterprise_type;// 1 is call center, 0 is cloud switch
         int call_state;
         std::string transfer_number;
         int transfer_duration;
-        std::string transfer_end_time;
-        std::string transfer_start_time;
-        std::string transfer_confirm_time;
         int transfer_call_state;
         std::string start_time;
+        std::string transfer_start_time;//manual_incoming
         int call_type;
         std::string switch_number;
         int stop_reason;
         int customer_fail_reason;
         int manual_type;
         std::string cc_number;
-        CallInfo() : confirm_time(""),start_time(""), end_time(""),transfer_end_time(""),transfer_start_time(""),transfer_confirm_time(""), duration_time(0), enterprise_type(1), call_state(0),
-                     transfer_duration(0), transfer_call_state(0), call_type(-1) ,
-                     stop_reason(0), customer_fail_reason(0),manual_type(1),cc_number(""){}
-};
+
+        CallInfo() : confirm_time(""),transfer_confirm_time(""), end_time(""), transfer_end_time(""),duration_time(0), enterprise_type(1), call_state(0),
+                     transfer_duration(-1), transfer_call_state(0),start_time(""), transfer_start_time(""),call_type(-1) ,
+                     stop_reason(0), customer_fail_reason(0),manual_type(0),cc_number(""){}
+    };
     
 class CallRecord{
     public:
