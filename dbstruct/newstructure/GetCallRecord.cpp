@@ -97,9 +97,9 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                     if (call_state.isString())
                         result.transfer_call_state = stoi(call_state.asString(), 0);
 
-                    if(!record["stop_reason"].isNull()&&record["stop_reason"].asInt()==31&&(record["stop_reason"].asInt()==7||record["stop_reason"].asInt()==6||record["stop_reason"].asInt()==5)||record["stop_reason"].asInt()==5)
+                    if(!record["stop_reason"].isNull()&&(record["stop_reason"].asInt()==31||(record["stop_reason"].asInt()==7||record["stop_reason"].asInt()==6||record["stop_reason"].asInt()==5)||record["stop_reason"].asInt()==5))
                       {  result.manual_type =  3; }
-                    else if(!record["stop_reason"].isNull()&&record["stop_reason"].asInt()==9&&record["stop_reason"].asInt()==11)
+                    else if(!record["stop_reason"].isNull()&&(record["stop_reason"].asInt()==9||record["stop_reason"].asInt()==11))
                         result.manual_type =  1; 
                     else result.manual_type = 2;
                    
@@ -125,10 +125,10 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                         result.start_time = start_time.asString();
                     if (call_type.isString())
                         result.call_type = stoi(call_type.asString());
-
-                    if(!record["stop_reason"].isNull()&&record["stop_reason"].asInt()==31&&(record["stop_reason"].asInt()==7||record["stop_reason"].asInt()==6||record["stop_reason"].asInt()==5||record["stop_reason"].asInt()==4))
-                         result.manual_type =  3; 
-                    else if(!record["stop_reason"].isNull()&&record["stop_reason"].asInt()==9&&record["stop_reason"].asInt()==11)
+                   
+                    if(!record["stop_reason"].isNull()&&(record["stop_reason"].asInt()==31||(record["stop_reason"].asInt()==7||record["stop_reason"].asInt()==6||record["stop_reason"].asInt()==5)||record["stop_reason"].asInt()==5))
+                      {  result.manual_type =  3; }
+                    else if(!record["stop_reason"].isNull()&&(record["stop_reason"].asInt()==9||record["stop_reason"].asInt()==11))
                         result.manual_type =  1; 
                     else result.manual_type = 2;
                     
