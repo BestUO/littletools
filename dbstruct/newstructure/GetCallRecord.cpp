@@ -99,7 +99,7 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                      if(!record["stop_reason"].isNull()&&record["stop_reason"].asInt()==31)
                         result.manual_type =  1; 
                      if(!record["stop_reason"].isNull()&&(record["stop_reason"].asInt()==7||record["stop_reason"].asInt()==6||record["stop_reason"].asInt()==5))
-                      {  result.manual_type =  3; cout<<"result.manual_type "<<result.manual_type<<endl;}
+                      {  result.manual_type =  3; }
                      else if (!record["valid_duration"].isNull())
                         result.manual_type = remove(record["valid_duration"].asString());
                    

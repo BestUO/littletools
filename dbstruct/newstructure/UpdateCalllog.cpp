@@ -52,7 +52,7 @@ void UpdateMessage::UpdateCalllog(ormpp::dbng<ormpp::mysql> &mysql, CallInfo cal
 	// std::string call_result = std::to_string(calllog.stop_reason != 0 ? calllog.stop_reason: calllog.customer_fail_reason);
 	std::string call_result = std::to_string(GetCallResult(hangup_cause_));
 	std::vector<std::string> columns = {"duration", "transfer_number", "transfer_duration", "call_record_url", "manual_status", "call_result"};
-	std::vector<std::string> values = {std::to_string(calllog.duration_time), calllog.transfer_number, std::to_string(calllog.transfer_duration), calllog.record_url, std::to_string(calllog.manual_type)};
+	std::vector<std::string> values = {std::to_string(calllog.duration_time), calllog.transfer_number, std::to_string(calllog.transfer_duration), calllog.record_url, call_result};
 	std::vector<std::string> condition(1);
 	condition[0] = calllog.cc_number;
 	std::vector<std::string> condition_name(1);
@@ -64,7 +64,7 @@ void UpdateMessage::UpdateCalllog(ormpp::dbng<ormpp::mysql> &mysql, CallInfo cal
 	std::string sql_command = command.MysqlGenerateUpdateSQL(" calllog ", values, columns, condition, condition_name, condition_symbols);
 	ExecuteCommand(mysql, sql_command, "UpdateCalllog");
 }
-int UpdateMessage::NewGetHangupCauseFromCallRecord(CallInfo info)
+int UpdateMessage:: NewGetHangupCauseFromCallRecord(CallInfo info)
 {
 	int cause = 3; // NOT_CONNECTED
 	if (info.call_type == -1 || info.end_time == "0")
@@ -115,13 +115,13 @@ void UpdateMessage::UpdateOutCallClue(ormpp::dbng<ormpp::mysql> &mysql, CallInfo
 
 void UpdateMessage::UpdateAiCalllogExtension(ormpp::dbng<ormpp::mysql> &mysql, CallInfo calllog, std::string calllog_id)
 {
-	std::vector<std::string> columns = {"transfer_manual_cost", "call_state", "switch_number"};
+	std::vector<std::string> columns = {"transfer_manual_cost", "call_state", "switch_number","hangup_type"};
 
 	std::string transfer_manual_cost = (calllog.transfer_start_time != "" && calllog.end_time != "") == true ? std::to_string(stoi(calllog.transfer_start_time) - stoi(calllog.end_time)) : "0";
-
+	int hangup_cause_ = NewGetHangupCauseFromCallRecord(calllog)==1?2:1;
 	std::string switch_number = calllog.switch_number;
 	std::string call_state = std::to_string(calllog.call_state);
-	std::vector<std::string> values = {transfer_manual_cost, call_state, switch_number};
+	std::vector<std::string> values = {transfer_manual_cost, call_state, switch_number,std::to_string(hangup_cause_)};
 	std::vector<std::string> condition(1);
 	condition[0] = calllog_id;
 	std::vector<std::string> condition_name(1);
