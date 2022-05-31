@@ -23,4 +23,5 @@ private:
     void ExecuteCommand(ormpp::dbng<ormpp::mysql> &mysql, std::string &s,std::string children_db_name);
     int  NewGetHangupCauseFromCallRecord(CallInfo info);
     int  GetCallResult(int cause); 
+    std::string CalculateTransferManualCost(CallInfo callog);
 };
