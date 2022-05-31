@@ -16,6 +16,7 @@ std::string GenerateSQL::MysqlGenerateUpdateSQL(std::string db_name, std::vector
     std::string command = "update " + db_name + " set ";
     
     int num=0;
+
     for (int i = 0; i < values.size(); i++)
     {
         if (values[i] != "")
