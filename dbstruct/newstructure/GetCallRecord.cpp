@@ -96,12 +96,12 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                     if (call_state.isString())
                         result.transfer_call_state = stoi(call_state.asString(), 0);
 
-                     if(!record["stop_reason"].isNull()&&record["stop_reason"].asInt()==31)
+                     if(!record["stop_reason"].isNull()&&record["stop_reason"].asInt()==31&&record["stop_reason"].asInt()==9&&record["stop_reason"].asInt()==11)
                         result.manual_type =  1; 
                      if(!record["stop_reason"].isNull()&&(record["stop_reason"].asInt()==7||record["stop_reason"].asInt()==6||record["stop_reason"].asInt()==5))
                       {  result.manual_type =  3; }
-                     else if (!record["valid_duration"].isNull())
-                        result.manual_type = remove(record["valid_duration"].asString());
+                    //  else if (!record["valid_duration"].isNull())
+                    //     result.manual_type = remove(record["valid_duration"].asString());
                    
                 }
                 else
@@ -125,7 +125,11 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                         result.start_time = start_time.asString();
                     if (call_type.isString())
                         result.call_type = stoi(call_type.asString());
-
+                    if(!record["stop_reason"].isNull()&&record["stop_reason"].asInt()==31&&record["stop_reason"].asInt()==9&&record["stop_reason"].asInt()==11)
+                        result.manual_type =  1; 
+                    if(!record["stop_reason"].isNull()&&(record["stop_reason"].asInt()==7||record["stop_reason"].asInt()==6||record["stop_reason"].asInt()==5))
+                      {  result.manual_type =  3; }
+                    
                     result.switch_number = !record["switch_number"].isNull() ? record["switch_number"].asString() : "";
                 }
                 if (framework_class == 2)
