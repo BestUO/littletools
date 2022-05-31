@@ -52,14 +52,16 @@ int UpdateMessage:: NewGetHangupCauseFromCallRecord(CallInfo info)
 	{
 		return 0; // NO_HANGUP_CAUSE
 	}
+	else  if (info.stop_reason == 1 || info.stop_reason == 2|| info.stop_reason == 3 || info.stop_reason == 16 || info.stop_reason == 18 ||
+			 info.stop_reason == 21 || info.stop_reason == 22 || info.stop_reason == 23 || info.stop_reason == 24 ||
+			 info.stop_reason == 34 || info.stop_reason == 37|| info.stop_reason == 41 )
+		cause = 3;//fail
 	else if (info.stop_reason == 25)
 		cause = 2; // USER_HANGUP
-	else if (info.stop_reason == 9 || info.stop_reason == 10 || info.stop_reason == 11 || info.stop_reason == 27 ||
-			 info.stop_reason == 28 || info.stop_reason == 29 || info.stop_reason == 31 || info.stop_reason == 33 ||
-			 info.stop_reason == 34 || info.stop_reason == 26)
-		cause = 1; // AI_HANGUP
-	else
-		cause = 3;
+	// else if (info.stop_reason == 9 || info.stop_reason == 7|| info.stop_reason == 10 || info.stop_reason == 11 || info.stop_reason == 27 ||
+	// 		 info.stop_reason == 28 || info.stop_reason == 29 || info.stop_reason == 31 || info.stop_reason == 33 || info.stop_reason == 26)
+	// 	cause = 1; // AI_HANGUP
+	else cause  = 1;
 	return cause;
 }
 
