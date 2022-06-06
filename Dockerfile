@@ -1,8 +1,10 @@
 FROM gcc:11.3.0
 MAINTAINER Parsifal
 
-RUN apt-get update && apt-get install supervisor -y  \
-    &&  apt-get install vim -y && mkdir /home/TRIMULE
+RUN  sed -i s@/archive.ubuntu.com/@/mirrors.aliyun.com/@g /etc/apt/sources.list \
+     && sed -i s@/deb.debian.org/@/mirrors.aliyun.com/@g /etc/apt/sources.list \
+     &&  apt-get clean && apt-get update  --fix-missing -o Acquire::http::No-Cache=True && apt-get install supervisor -y  \
+     && apt-get install vim -y
 
 
 RUN echo '[program:Trimule] \n\

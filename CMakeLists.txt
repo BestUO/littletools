@@ -48,4 +48,3 @@ target_link_libraries(${TOOL_COMPOSE} pthread mysqlclient jsoncpp settingParser 
 
 
 
-
