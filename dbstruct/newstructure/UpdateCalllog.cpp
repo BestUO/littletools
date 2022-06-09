@@ -120,7 +120,7 @@ std::string UpdateMessage::CalculateTransferManualCost(CallInfo calllog)
 	if (calllog.transfer_start_time == "0")
 		transfer_manual_cost = std::to_string(stoi(calllog.transfer_end_time) - stoi(calllog.start_time) - calllog.duration_time);
 	else if (calllog.transfer_start_time != "" && calllog.end_time != "" )
-		transfer_manual_cost = std::to_string(stoi(calllog.transfer_confirm_time) - stoi(calllog.end_time));
+		transfer_manual_cost = std::to_string(stoi(calllog.transfer_end_time) - stoi(calllog.transfer_duration_time) - stoi(calllog.duration_time) - stoi(calllog.confirm_time));
 	return transfer_manual_cost;
 }
 
