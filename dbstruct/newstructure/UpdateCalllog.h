@@ -21,7 +21,7 @@ private:
     void UpdateOutCallClue( ormpp::dbng<ormpp::mysql> &mysql,CallInfo callog,std::string clue_id);
     void UpdateAiCalllogExtension(ormpp::dbng<ormpp::mysql> &mysql, CallInfo callog,std::string calllog_id);
     void ExecuteCommand(ormpp::dbng<ormpp::mysql> &mysql, std::string &s,std::string children_db_name);
-    int  NewGetHangupCauseFromCallRecord(CallInfo info);
-    int  GetCallResult(int cause); 
+    // int  NewGetHangupCauseFromCallRecord(CallInfo info);
+    // int  GetCallResult(int cause); 
     std::string CalculateTransferManualCost(CallInfo callog);
 };
