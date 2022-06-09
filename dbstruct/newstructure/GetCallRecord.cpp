@@ -79,7 +79,7 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                 if (record["cc_number"].isString())
                     result.cc_number = record["cc_number"].asString();
 
-                result.flow_number = record["flow.number"].isNull()?-1 :record["flow.number"].asInt();
+                result.flow_number = record["flow_number"].isNull()?-1 :record["flow_number"].asInt();
                 if(record["customer_fail_reason"].asString()!="")
                 result.customer_fail_reason = stoi(record["customer_fail_reason"].asString());
                 result.stop_reason = record["stop_reason"].asInt();
