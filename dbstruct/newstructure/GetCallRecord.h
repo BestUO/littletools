@@ -26,18 +26,24 @@
         int customer_fail_reason;
         int manual_type;
         std::string cc_number;
+        int call_result;
+        int hangup_type;
+        int flow_number;
 
         CallInfo() : confirm_time(""),transfer_confirm_time(""), end_time(""), transfer_end_time(""),duration_time(0), enterprise_type(1), call_state(0),
-                     transfer_duration(-1), transfer_call_state(0),start_time(""), transfer_start_time(""),call_type(-1) ,
-                     stop_reason(0), customer_fail_reason(0),manual_type(0),cc_number(""){}
+                     transfer_duration(0), transfer_call_state(0),start_time(""), transfer_start_time(""),call_type(0) ,
+                     stop_reason(0), customer_fail_reason(0),manual_type(0),cc_number(""),call_result(0),hangup_type(0),flow_number(-1){}
     };
     
 class CallRecord{
-    public:
-      
- CallInfo GetCallRecord(std::string s,int framework_class);
- std::string CheckInfo(std::string info);
- 
+    public:     
+         CallInfo GetCallRecord(std::string s,int framework_class);
+         std::string CheckInfo(std::string info);
+
+    private: 
+         int GetManualType(int stop_reason,int customer_fail_reason);
+         int GetHangupType(int stop_reason,int customer_fail_reason);
+         int GetCallResult(int stop_reason,int customer_fail_reason);
  };
 
 #endif
