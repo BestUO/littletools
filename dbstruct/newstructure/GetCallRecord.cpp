@@ -232,21 +232,8 @@ int CallRecord::GetHangupType(int stop_reason,int customer_fail_reason)
 }
 int CallRecord::GetCallResult(int stop_reason,int customer_fail_reason)
 {
-    switch(stop_reason)
-    {
-        case 25:
-        case 26:
-        case 31:
-            return 2;
-        case 19:
-            return 3;
-        case 18:
-        case 42:
-            return 4;
-        default :
-            break;
-    }
-    switch (customer_fail_reason)
+
+        switch (customer_fail_reason)
     {
         case 9:
             return 5;
@@ -264,4 +251,19 @@ int CallRecord::GetCallResult(int stop_reason,int customer_fail_reason)
         default:
           return 0;
     }
+    switch(stop_reason)
+    {
+        case 25:
+        case 26:
+        case 31:
+            return 2;
+        case 19:
+            return 3;
+        case 18:
+        case 42:
+            return 4;
+        default :
+            break;
+    }
+
 }
