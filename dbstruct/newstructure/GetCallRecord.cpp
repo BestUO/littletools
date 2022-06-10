@@ -86,7 +86,7 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
 
                 if(result.flow_number==1)
                 {
-                    
+
                     result.manual_type = GetManualType(result.stop_reason,result.customer_fail_reason);
                 } else if(result.flow_number==0){
                     result.call_result = GetCallResult(result.stop_reason,result.customer_fail_reason);
@@ -225,7 +225,7 @@ std::string CallRecord::CheckInfo(std::string info)
 
 int CallRecord::GetHangupType(int stop_reason,int customer_fail_reason)
 {
-    if(customer_fail_reason==25)
+    if(stop_reason==25)
         return 2;
     else 
         return 1;
