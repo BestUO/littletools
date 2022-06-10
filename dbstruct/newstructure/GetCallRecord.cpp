@@ -80,12 +80,13 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                     result.cc_number = record["cc_number"].asString();
 
                 result.flow_number = record["flow_number"].isNull()?-1 :record["flow_number"].asInt();
-                if(record["customer_fail_reason"].asString()!="")
-                result.customer_fail_reason = stoi(record["customer_fail_reason"].asString());
+                if(record["customer_fail_reason"].asString()!="0")
+                    result.customer_fail_reason = stoi(record["customer_fail_reason"].asString());
                 result.stop_reason = record["stop_reason"].asInt();
 
                 if(result.flow_number==1)
                 {
+                    
                     result.manual_type = GetManualType(result.stop_reason,result.customer_fail_reason);
                 } else if(result.flow_number==0){
                     result.call_result = GetCallResult(result.stop_reason,result.customer_fail_reason);
@@ -209,6 +210,7 @@ std::string CallRecord::CheckInfo(std::string info)
             return 3;
         case 13:
         case 35:
+        case 7:
             return 4;
         case 25:
         case 26:
@@ -259,7 +261,7 @@ int CallRecord::GetCallResult(int stop_reason,int customer_fail_reason)
         case 30:
         case 31:
             return 11;
-    default:
-        return 0;
+        default:
+          return 0;
     }
 }
