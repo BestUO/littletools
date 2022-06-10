@@ -249,7 +249,7 @@ int CallRecord::GetCallResult(int stop_reason,int customer_fail_reason)
         case 31:
             return 11;
         default:
-          return 0;
+          break;
     }
     switch(stop_reason)
     {
@@ -263,7 +263,7 @@ int CallRecord::GetCallResult(int stop_reason,int customer_fail_reason)
         case 42:
             return 4;
         default :
-            break;
+           return 0;
     }
 
 }
