@@ -29,10 +29,13 @@
         int call_result;
         int hangup_type;
         int flow_number;
+        std::string send_query_msg_timestamp;
+        std::string send_invite_timestamp;
 
         CallInfo() : confirm_time(""),transfer_confirm_time(""), end_time(""), transfer_end_time(""),duration_time(0), enterprise_type(1), call_state(0),
                      transfer_duration(0), transfer_call_state(0),start_time(""), transfer_start_time(""),call_type(0) ,
-                     stop_reason(0), customer_fail_reason(0),manual_type(0),cc_number(""),call_result(0),hangup_type(0),flow_number(-1){}
+                     stop_reason(0), customer_fail_reason(0),manual_type(0),cc_number(""),call_result(0),hangup_type(0),
+                     flow_number(-1),send_query_msg_timestamp(""),send_invite_timestamp(""){}
     };
     
 class CallRecord{

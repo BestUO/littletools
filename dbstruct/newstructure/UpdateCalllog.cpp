@@ -126,13 +126,13 @@ std::string UpdateMessage::CalculateTransferManualCost(CallInfo calllog)
 
 void UpdateMessage::UpdateAiCalllogExtension(ormpp::dbng<ormpp::mysql> &mysql, CallInfo calllog, std::string calllog_id)
 {
-	std::vector<std::string> columns = {"transfer_manual_cost", "call_state", "switch_number", "hangup_type"};
+	std::vector<std::string> columns = {"transfer_manual_cost", "call_state", "switch_number", "hangup_type","manual_incoming","manual_confirm","manual_disconnect","send_query_msg_timestamp","send_invite_timestamp"};
 
 	std::string transfer_manual_cost = CalculateTransferManualCost(calllog);
 	std::string hangup_cause_ = calllog.hangup_type==0?"":std::to_string(calllog.hangup_type);
 	std::string switch_number = calllog.switch_number;
 	std::string call_state = std::to_string(calllog.call_state);
-	std::vector<std::string> values = {transfer_manual_cost, call_state, switch_number, hangup_cause_};
+	std::vector<std::string> values = {transfer_manual_cost, call_state, switch_number, hangup_cause_,calllog.start_time,calllog.transfer_confirm_time,calllog.end_time,calllog.send_query_msg_timestamp,calllog.send_invite_timestamp};
 	std::vector<std::string> condition(1);
 	condition[0] = calllog_id;
 	std::vector<std::string> condition_name(1);

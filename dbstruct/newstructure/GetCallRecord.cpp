@@ -79,14 +79,15 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                 if (record["cc_number"].isString())
                     result.cc_number = record["cc_number"].asString();
 
-                result.flow_number = record["flow_number"].isNull()?-1 :record["flow_number"].asInt();
-                if(record["customer_fail_reason"].asString()!="0")
+               if(record["customer_fail_reason"].asString()!="0")
                     result.customer_fail_reason = stoi(record["customer_fail_reason"].asString());
+                
                 result.stop_reason = record["stop_reason"].asInt();
 
+                result.flow_number = record["flow_number"].isNull()?-1 :record["flow_number"].asInt();
+                
                 if(result.flow_number==1)
                 {
-
                     result.manual_type = GetManualType(result.stop_reason,result.customer_fail_reason);
                 } else if(result.flow_number==0){
                     result.call_result = GetCallResult(result.stop_reason,result.customer_fail_reason);
@@ -99,6 +100,9 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                 {
                     auto &dialing = record["dialing"];
                     auto &transfer_confirm_time = record["confirm_timestamp"];
+                    auto &send_query_msg_timestamp = record["send_query_msg_timestamp"];
+                    auto &send_invite_timestamp = record["send_invite_timestamp"];
+
                     if (dialing.isString())
                         result.transfer_number = dialing.asString();
                     if (duration_time.isString())
@@ -112,6 +116,11 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                         result.transfer_confirm_time = transfer_confirm_time.asString();
                     if (call_state.isString())
                         result.transfer_call_state = stoi(call_state.asString(), 0);
+
+                    if (send_query_msg_timestamp.isString())
+                        result.send_query_msg_timestamp = std::string(send_query_msg_timestamp.asString());
+                    if (send_invite_timestamp.isString())
+                        result.send_invite_timestamp = std::string(send_invite_timestamp.asString());
                    
                 }
                 else//ai_
