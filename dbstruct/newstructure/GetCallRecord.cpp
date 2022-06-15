@@ -77,7 +77,9 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                 auto &start_time = record["start_time"];
 
                 if (record["cc_number"].isString())
-                    result.cc_number = record["cc_number"].asInt64();
+                    result.cc_number = record["cc_number"].asString();
+                // if (record["cc_number"].isString())
+                //     result.cc_number = record["cc_number"].asInt64();
 
                if(record["customer_fail_reason"].asString()!="0")
                     result.customer_fail_reason = stoi(record["customer_fail_reason"].asString());

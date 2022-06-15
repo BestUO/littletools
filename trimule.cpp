@@ -101,18 +101,8 @@ int main()
     auto queuetask = std::shared_ptr<QueueType>(new QueueType);
     std::shared_ptr<Worker<QueueType>> worker = std::make_shared<WorkerForHttp<QueueType>>(queuetask);
     std::shared_ptr<ThreadPool<QueueType>> threadpool(new ThreadPool(queuetask, worker, 2, 2));
-    try
-    {
-
-         SetApiCallBackHandler(server, threadpool);
-    }catch (exception ex)
-    {
-        auto max_size = 1024 * 1024 * 200;
-        auto max_files = 100;
-        time_t now;
-        std::string file_name = SPDLOG_FILENAME + std::to_string(now);
-        auto file_logger = spdlog::rotating_logger_mt<spdlog::async_factory>(SPDLOGGERNAME, file_name,max_size , max_files);
-    }
+  
+    SetApiCallBackHandler(server, threadpool);
     server.run();
     return 0;
 }
