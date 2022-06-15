@@ -77,7 +77,7 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                 auto &start_time = record["start_time"];
 
                 if (record["cc_number"].isString())
-                    result.cc_number = record["cc_number"].asString();
+                    result.cc_number = record["cc_number"].asInt64();
 
                if(record["customer_fail_reason"].asString()!="0")
                     result.customer_fail_reason = stoi(record["customer_fail_reason"].asString());
@@ -100,8 +100,8 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                 {
                     auto &dialing = record["dialing"];
                     auto &transfer_confirm_time = record["confirm_timestamp"];
-                    auto &send_query_msg_timestamp = record["send_query_msg_timestamp"];
-                    auto &send_invite_timestamp = record["send_invite_timestamp"];
+                    auto &send_query_msg_timestamp = record["query_msg_time"];
+                    auto &send_invite_timestamp = record["invite_time"];
 
                     if (dialing.isString())
                         result.transfer_number = dialing.asString();

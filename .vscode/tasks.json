@@ -9,6 +9,16 @@
     },
     "tasks": [
         {
+            "label": "build test_main",
+            "args": [
+                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target trimule -j 4; make trimule_copyfile"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
             "label": "build tooltest",
             "args": [
                 "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target tooltest -j 4"
