@@ -104,7 +104,14 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
                     auto &transfer_confirm_time = record["confirm_timestamp"];
                     auto &send_query_msg_timestamp = record["query_msg_time"];
                     auto &send_invite_timestamp = record["invite_time"];
+                    auto &transfer_manual_cost = record["seat_ring_duration"];
+                    auto &ring_time = record["customer_ring_duration"];
 
+                    if (transfer_manual_cost.isString())
+                        result.transfer_manual_cost = transfer_manual_cost.asString();
+                    if (ring_time.isString())
+                        result.ring_time = ring_time.asString();
+                        
                     if (dialing.isString())
                         result.transfer_number = dialing.asString();
                     if (duration_time.isString())
@@ -256,6 +263,8 @@ int CallRecord::GetCallResult(int stop_reason,int customer_fail_reason)
             return 8;
         case 13:
             return 9;
+        case 37:
+            return 10;
         case 30:
         case 31:
             return 11;
@@ -270,11 +279,8 @@ int CallRecord::GetCallResult(int stop_reason,int customer_fail_reason)
             return 2;
         case 19:
             return 3;
-        case 18:
-        case 42:
-            return 4;
         default :
-           return 0;
+           return 4;
     }
 
 }
