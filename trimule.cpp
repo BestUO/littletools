@@ -20,7 +20,7 @@ void initspdlog()
     spdlog::flush_every(std::chrono::seconds(5));
     auto file_logger = spdlog::rotating_logger_mt<spdlog::async_factory>(SPDLOGGERNAME, SPDLOG_FILENAME, 1024 * 1024 * 200, 5);
     LOGGER->set_level(spdlog::level::info); // Set global log level to info
-    LOGGER->set_pattern("[%Y/%m/%d %H:%M:%S:%e %^%L%$ %t] %v");
+    LOGGER->set_pattern("[%Y-%m-%d %H:%M:%S.%e %^%L%$ %t] %v");
 }
 
 template <class T>
