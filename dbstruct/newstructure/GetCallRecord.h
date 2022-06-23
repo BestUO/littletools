@@ -38,7 +38,37 @@
                      stop_reason(0), customer_fail_reason(0),manual_type(0),cc_number(""),call_result(0),hangup_type(0),
                      flow_number(-1),send_query_msg_timestamp(""),send_invite_timestamp(""),ring_time(""),transfer_manual_cost(""){}
     };
+
+enum ManualType{
+    NoType = 0,
+    NoFreeSeats = 1,
+    Answered,
+    HangUpDuringTransfer,
+    ManualNotAnswered,
+    ManualRefuse
+};
+
+enum HangUpType{
+    AiHangUp = 1,
+    UserHangUp
+};
+
+enum CallResult
+{
+    HANGUP_WITH_NO_INPUT = 1,
+    CALL_SUCCESS,
+    UNCONNECTED,
+    CALL_FAIL,
+    CALL_REJECT,
+    NOT_EXIST,
+    POWER_OFF,
+    OUT_OF_SERVICE,
+    NOT_IN_SERVICE,
+    BUSY,
+    SEAT_ARREARAGE,
     
+};
+
 class CallRecord{
     public:     
          CallInfo GetCallRecord(std::string s,int framework_class);
