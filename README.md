@@ -13,7 +13,7 @@ littletools usage in tooltest
 * freelockqueue c++17 implement from RTE_Ring
 * threadpool
 * c++20 coroutines test
-* hootest
+* hooktest
 * funregister for rpc
 
 # Trimule
