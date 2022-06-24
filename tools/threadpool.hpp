@@ -34,7 +34,7 @@ class Worker
 public:
     using ContainerType = typename T::Type;
     // using ContainerType = typename GetContainerType<T>::Type;
-    Worker(std::shared_ptr<T> queue):_queue(queue) {}
+    Worker(std::shared_ptr<T> queue, unsigned int expireduration=60):_queue(queue),_expire_duration(expireduration) {}
     void CreateWorker(bool original)
     {
         WorkerRun(original);
@@ -43,13 +43,16 @@ public:
 protected:
     std::shared_ptr<T> _queue;
     bool _stop = false;
+    unsigned int _expire_duration;
     virtual void WorkerRun(bool original)
     {
+        auto worktime = std::chrono::system_clock::now();
         while(!_stop)
         {
             auto e = _queue->GetObjBulk();
             if(e)
             {
+                worktime = std::chrono::system_clock::now();
                 while(!e->empty())
                 {
                     DealElement(std::move(e->front()));
@@ -59,7 +62,15 @@ protected:
             else
             {
                 if(!original)
-                    break;
+                {
+                    if(worktime + std::chrono::seconds(_expire_duration) > std::chrono::system_clock::now())
+                    {
+                        std::this_thread::sleep_for(std::chrono::seconds(1));
+                        continue;
+                    }
+                    else
+                        break;
+                }
                 _queue->WaitComingObj();
             }
         }
@@ -73,13 +84,13 @@ template<class QueueType>
 class ThreadPool 
 {
 public:
-    ThreadPool(size_t minsize, size_t maxsize=10):__minsize(minsize),__maxsize(maxsize)
+    ThreadPool(size_t minsize, size_t maxsize=10, unsigned int expireduration=60):__minsize(minsize),__maxsize(maxsize)
     {
         if(!__queuetask)
             __queuetask = std::shared_ptr<QueueType>(new QueueType);
             
         if(!__worker)
-            __worker = std::make_shared<WorkerDefault>(__queuetask);
+            __worker = std::make_shared<WorkerDefault>(__queuetask,expireduration);
 
         for(size_t i = 0;i<__minsize;++i)
             __workerthreads.emplace_back(std::move(CreateWorker(true)));
@@ -144,7 +155,7 @@ private:
     class WorkerDefault:public Worker<QueueType>
     {
     public:
-        WorkerDefault(std::shared_ptr<QueueType> queue):Worker<QueueType>(queue){};
+        WorkerDefault(std::shared_ptr<QueueType> queue, unsigned int expireduration=60):Worker<QueueType>(queue,expireduration){};
 
     protected:
         virtual void DealElement(std::function<void()> &&p) final
