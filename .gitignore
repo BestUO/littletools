@@ -1,4 +1,6 @@
 build/*
 www
 *.log
-conf/
+conf/*
+conf/config.json
+2158700.core

@@ -16,11 +16,11 @@
 #define LOGGER spdlog::get(SPDLOGGERNAME)
 
 void initspdlog()
-{
+{ 
     spdlog::flush_every(std::chrono::seconds(5));
     auto file_logger = spdlog::rotating_logger_mt<spdlog::async_factory>(SPDLOGGERNAME, SPDLOG_FILENAME, 1024 * 1024 * 200, 5);
     LOGGER->set_level(spdlog::level::info); // Set global log level to info
-    LOGGER->set_pattern("[%H:%M:%S:%e %z %^%L%$ %t] %v");
+    LOGGER->set_pattern("[%Y-%m-%d %H:%M:%S.%e %^%L%$ %t] %v");
 }
 
 template <class T>
@@ -101,9 +101,8 @@ int main()
     auto queuetask = std::shared_ptr<QueueType>(new QueueType);
     std::shared_ptr<Worker<QueueType>> worker = std::make_shared<WorkerForHttp<QueueType>>(queuetask);
     std::shared_ptr<ThreadPool<QueueType>> threadpool(new ThreadPool(queuetask, worker, 2, 2));
-
+  
     SetApiCallBackHandler(server, threadpool);
-
     server.run();
     return 0;
 }
