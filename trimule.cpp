@@ -88,7 +88,7 @@ void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
     });
 
 
-       server.set_http_handler<cinatra::GET, cinatra::POST>("/web/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
+       server.set_http_handler<cinatra::GET, cinatra::POST>("/GetCallRecord/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
     {
         LOGGER->info("message is {}",std::string(req.body()));
         CallRecord check;
