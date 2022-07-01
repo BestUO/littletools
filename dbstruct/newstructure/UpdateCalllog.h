@@ -8,6 +8,7 @@
 #include <vector>
 #include <string>
 #include "GetCallRecord.h"
+#include "CallBack/CallBack.h"
 #define SPDLOG_FILENAME "log/TrimuleLogger.log"
 #define SPDLOGGERNAME "TrimuleLogger"
 #define LOGGER spdlog::get(SPDLOGGERNAME)

@@ -283,7 +283,3 @@ int CallRecord::GetCallResult(int stop_reason, int customer_fail_reason)
     }
 }
 
-void GetOCSyncData(ormpp::dbng<ormpp::mysql> &mysql,CallBackData &data)
-{
-
-}

@@ -23,27 +23,32 @@ void UpdateMessage::HandleSQL(ormpp::dbng<ormpp::mysql> &mysql, std::string &s)
 
 	CallRecord record;
 	CallInfo callog = record.GetCallRecord(s, 2);
-
+	
 	if (callog.cc_number != "")
 	{
 		LOGGER->info("update calllog,cc_number is {}", callog.cc_number);
 		std::string cc_ = R"(cc_number = ')" + callog.cc_number + R"(')";
 
-		auto result = mysql.query<std::tuple<int, int>>("select id, clue_id from calllog where " + cc_);
+		auto result = mysql.query<std::tuple<int, int,int,int>>("select id, clue_id ,task_id,enterprise_uid from calllog where " + cc_);
 		if (result.size())
 		{
 			std::string id = std::to_string(std::get<0>(result[0]));
 			std::string clue_id = std::to_string(std::get<1>(result[0]));
-
+			std::string task_id = std::to_string(std::get<2>(result[0]));
+			std::string eid = std::to_string(std::get<3>(result[0]));
 			UpdateCalllog(mysql, callog);
 			UpdateOutCallClue(mysql, callog, clue_id);
 			UpdateAiCalllogExtension(mysql, callog, id);
+			
+			CallBackManage data_handle;
+			data_handle.CallBackHandle(mysql,callog,task_id,clue_id,id);
 		}
 	}
 	else
 	{
 		LOGGER->info("cc_number is null ,cannot update calllog...");
 	}
+
 }
 // int UpdateMessage::NewGetHangupCauseFromCallRecord(CallInfo info)
 // {
@@ -156,3 +161,5 @@ void UpdateMessage::ExecuteCommand(ormpp::dbng<ormpp::mysql> &mysql, std::string
 	else
 		LOGGER->info("{}", children_db_name + " update failed ");
 }
+
+ 
