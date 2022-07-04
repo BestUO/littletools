@@ -42,7 +42,7 @@ struct CallBackRules{
     std::string call_result_judge;
     std::string auto_recall_scenes;
     CallBackRules() : task_id(0),eid(0),callback(0),
-                      call_count(0),auto_recall_max_times(0),auto_recall_status(0),scope_judge(0),uuid(""),api_callback_scene_status("")
+                      call_count(0),auto_recall_max_times(0),auto_recall_status(0),scope_judge(0),uuid(""),api_callback_scene_status("0")
                       ,intention_type_judge("0000000000000"),call_result_judge("00000000000"),auto_recall_scenes(""){}
 };
 
@@ -78,7 +78,7 @@ struct CallBackData{
         CallBackData() : record_url(""),answer_time(""),hangup_time(""),duration_time(0),transfer_number(""),
                          transfer_duration(0),switch_number(""),manual_status(0),cc_number(""),call_result(0),
                         hangup_type(0), uuid(""),task_id(""),script_name(""),callee_phone(""),caller_phone(""),
-                        calllog_txt(""),intention_type(""),label(""),call_count(""),match_global_keyword(""),
+                        calllog_txt(""),intention_type("0"),label(""),call_count("0"),match_global_keyword(""),
                         clue_no(""),collect_info(""),buttons(""),calllog_id{}
 };
 
@@ -150,7 +150,6 @@ enum IntentionType
 class CallBackManage:public CallRecord{
 
 public:
-    RedisOperate client;
     void CallBackHandle(ormpp::dbng<ormpp::mysql> &mysql,CallInfo & cm_data,const std::tuple<std::string,std::string,std::string,std::string> &id_cluster);
     void CmDataSwitch(CallInfo & cm_data,CallBackData &data);
     void GetOCSyncData(ormpp::dbng<ormpp::mysql> &mysql,CallBackData &data);
@@ -159,6 +158,8 @@ public:
     CallBackRules MakeCallBackRulesFromMySql(ormpp::dbng<ormpp::mysql> &mysql,const std::tuple<std::string,std::string,std::string,std::string> &id_cluster);
     std::string SetRulesRedisCache(const CallBackRules &rules);
     bool GetRulesFromRedis(CallBackRules &rules);
+    bool CallBackJudge(const CallBackRules &rules,const CallBackData &data);
+    bool AutoTaskMatch(const CallBackRules &rules,const CallBackData &data);
     
 };      
 

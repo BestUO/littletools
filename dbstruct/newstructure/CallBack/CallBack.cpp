@@ -85,8 +85,6 @@ CallBackRules CallBackManage::MakeCallBackRulesFromMySql(ormpp::dbng<ormpp::mysq
     rules.eid = stoi(std::get<IdCluster::EnterpriseUid>(id_cluster));
     rules.task_id = stoi(std::get<IdCluster::TaskId>(id_cluster));
 
-
-
     GenerateSQL general_sql;
     
     std::string calllog_id,clue_id,task_id;
@@ -135,7 +133,7 @@ void CallBackManage::ParseIntetionAndCallResult(CallBackRules &rules)
             for(int i=0;i<root.Size();i++)
             {
                 int pos = root[i].GetInt();
-                rules.call_result_judge.replace(13-pos,1,"1");
+                rules.call_result_judge.replace(pos,1,"1");
             }
         } 
         if(doc.HasMember("intention_type"))
@@ -144,7 +142,7 @@ void CallBackManage::ParseIntetionAndCallResult(CallBackRules &rules)
             for(int i=0;i<root.Size();i++)
             {
                 int pos = root[i].GetInt();
-                rules.call_result_judge.replace(10-pos,1,"1");
+                rules.call_result_judge.replace(pos,1,"1");
             }
         }
     }
@@ -196,4 +194,38 @@ bool CallBackManage::GetRulesFromRedis(CallBackRules &rules)
     }
     return 0;
 
+}
+
+  bool AutoTaskMatch(const CallBackRules &rules,const CallBackData &data)
+  {
+    if(rules.intention_type_judge!="0000000000000")
+    {
+
+        if((rules.intention_type_judge)[stoi(data.intention_type)]=='1')
+            return 1;
+    }
+    if(rules.call_result_judge!="00000000000")
+    {
+        if(rules.call_result_judge[data.call_result]=='1')
+            return 1;
+    }
+    return 0;
+  }
+
+bool CallBackManage::CallBackJudge(const CallBackRules &rules,const CallBackData &data)
+{
+    if(((rules.global_judge)||(rules.uuid!=""))&&rules.api_callback_scene_status!="0")
+    {
+        if((rules.scope_judge==1&&rules.auto_recall_status==1))
+        {
+            if(AutoTaskMatch(rules,data))
+            {
+                if(rules.auto_recall_max_times==stoi(data.call_count))
+                    return 1;
+                else  
+                    return 0;
+            } else return 1;
+        } else 
+                return 1;
+    }
 }
