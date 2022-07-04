@@ -150,17 +150,6 @@ void CallBackManage::ParseIntetionAndCallResult(CallBackRules &rules)
     }
 }
 
-{
-    "global_judge": "",
-    "detail_judge":"",
-    "auto_recall_status":"",
-    "scope_judge":"",
-    "uuid":"",
-    "intention_type_judge":"",
-    "call_result_judge":""
-}
-
-
 std::string  CallBackManage::SetRulesRedisCache(const CallBackRules &rules)
 {
 
@@ -188,7 +177,9 @@ bool CallBackManage::GetRulesFromRedis(CallBackRules &rules)
 {
    
     std::string location = std::to_string(rules.eid)+'-'+std::to_string(rules.task_id);
-    std::string rule = client.SearchRules(location);
+
+    RedisOperate *client = RedisOperate::getInstance();
+    std::string rule = client->SearchRules(location);
     rapidjson::Document doc;
     LOGGER->info("GetRulesFromRedis search {}",location);
     doc.Parse(rule.c_str());

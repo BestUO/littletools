@@ -28,3 +28,14 @@ std::string RedisOperate::SearchRules(const std::string &str)
         return *value;
     else return "null";
 }
+
+RedisOperate* RedisOperate::getInstance()
+{
+    static RedisOperate instance;
+    return &instance;
+}
+
+RedisOperate::~RedisOperate()
+{
+   LOGGER->info("RedisOperate::~RedisOperate()");
+}

@@ -13,12 +13,20 @@ class RedisOperate
 {
 public:
   
+    static RedisOperate *getInstance();
     void CacheRules(const std::string &key,const std::string &rules);
     std::string SearchRules(const std::string &str);
 private:
     Redis redis;
     void RedisConnect();
-  
+    
+    RedisOperate();
+
+    RedisOperate(const RedisOperate &);
+
+    RedisOperate &operator=(const RedisOperate &);
+
+    ~RedisOperate();
 
 
 };
