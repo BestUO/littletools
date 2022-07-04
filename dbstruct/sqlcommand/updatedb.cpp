@@ -31,15 +31,31 @@ std::string GenerateSQL::MysqlGenerateUpdateSQL(std::string db_name, std::vector
     if(num!=0&&command[command.size()-1]==',')
          command.pop_back();
     
-    command += " where ";
-    for (int i = 0; i < condition.size(); i++)
-    {
-        if (condition[i] != "")
-            command += " " + condition_name[i] + " " + condition_symbols[i] + " \"" + condition[i] + "\" ";
-    }
+   command+=MysqlGenerateMySqlCondition(condition,condition_name,condition_symbols);
 
     if (num==0)
          return "no command";
 
     return command;
 }
+
+std::string GenerateSQL::MysqlGenerateMySqlCondition(const std::vector<std::string> &condition,const std::vector<std::string> &condition_name,
+                                            const std::vector<std::string> &condition_symbols)
+{
+    std::string command;
+     command += " where ";
+    for (int i = 0; i < condition.size(); i++)
+    {
+        if(i!=condition.size()-1)
+        {
+            if (condition[i] != "")
+            command += " " + condition_name[i] + " " + condition_symbols[i] + " \"" + condition[i] + "\" " ;
+            command += "and";
+        }
+        else if (condition[i] != "")
+            command += " " + condition_name[i] + " " + condition_symbols[i] + " \"" + condition[i] + "\" ";
+    }
+
+
+    return command;
+ }

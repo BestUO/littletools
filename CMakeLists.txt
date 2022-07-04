@@ -20,7 +20,7 @@ ADD_SUBDIRECTORY(kafka)
 ADD_SUBDIRECTORY(queue)
 ADD_SUBDIRECTORY(settingParser)
 ADD_SUBDIRECTORY(dbstruct)
-
+ADD_SUBDIRECTORY(redispool)
 set(OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/Trimule)
 
 ADD_CUSTOM_TARGET(trimule_copyfile ALL
@@ -43,7 +43,7 @@ target_link_libraries(${TOOL_TEST} uoqueue pthread uokafka rdkafka++ uuid jsoncp
 set(TOOL_COMPOSE trimule)
 set(TOOL_COMPOSE_SOURCE trimule.cpp)
 add_executable(${TOOL_COMPOSE} ${TOOL_COMPOSE_SOURCE})
-target_link_libraries(${TOOL_COMPOSE} pthread mysqlclient jsoncpp settingParser GetCallRecord)
+target_link_libraries(${TOOL_COMPOSE} pthread mysqlclient jsoncpp settingParser GetCallRecord redisclient)
 
 
 

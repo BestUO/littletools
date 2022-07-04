@@ -11,26 +11,39 @@
 #include "ormpp/connection_pool.hpp"
 #include "ormpp/dbng.hpp"
 #include "ormpp/ormpp_cfg.hpp"
-
+#include "../../sqlcommand/updatedb.h"
+#include "rapidjson/document.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
 #define TEST_MAIN
 #include "ormpp/unit_test.hpp"
 using namespace std::string_literals;
-
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/rotating_file_sink.h"
+#include "spdlog/async.h"
+#include  "../../../redispool/redisclient.h"
+#define SPDLOG_FILENAME "log/TrimuleLogger.log"
+#define SPDLOGGERNAME "TrimuleLogger"
+#define LOGGER spdlog::get(SPDLOGGERNAME)
 
 struct CallBackRules{
     int task_id;
     int eid;
-    int uuid;
-    int call_record_detail;//0:donot callback,1:callback
-    int call_record_detail_occasion;//0 :all  1:auto_task should use rules
+    
+    int callback;//0:donot callback,1:callback
+    int global_judge;//0 :all  1:auto_task should use rules
     int call_count;
     int auto_recall_max_times;
     int auto_recall_status;
+    int scope_judge;
+    std::string uuid;
+    std::string api_callback_scene_status;
     std::string intention_type_judge;
     std::string call_result_judge;
     std::string auto_recall_scenes;
-    CallBackRules() : task_id(0),eid(0),uuid(0),call_record_detail(0),call_record_detail_occasion(0),
-                      call_count(0),auto_recall_max_times(0),auto_recall_status(0),intention_type_judge(""),call_result_judge(""),auto_recall_scenes(""){}
+    CallBackRules() : task_id(0),eid(0),callback(0),
+                      call_count(0),auto_recall_max_times(0),auto_recall_status(0),scope_judge(0),uuid(""),api_callback_scene_status("")
+                      ,intention_type_judge("0000000000000"),call_result_judge("00000000000"),auto_recall_scenes(""){}
 };
 
 struct CallBackData{
@@ -134,14 +147,19 @@ enum IntentionType
     IntentionI,
     IntentionJ //J is not used, just use as sentinel
 };
-
 class CallBackManage:public CallRecord{
+
 public:
+    RedisOperate client;
     void CallBackHandle(ormpp::dbng<ormpp::mysql> &mysql,CallInfo & cm_data,const std::tuple<std::string,std::string,std::string,std::string> &id_cluster);
     void CmDataSwitch(CallInfo & cm_data,CallBackData &data);
     void GetOCSyncData(ormpp::dbng<ormpp::mysql> &mysql,CallBackData &data);
+    void ParseIntetionAndCallResult(CallBackRules &rules);
     std::string SetMySqlRules(std::vector<std::string> rule_name,std::vector<std::string> rule);
     CallBackRules MakeCallBackRulesFromMySql(ormpp::dbng<ormpp::mysql> &mysql,const std::tuple<std::string,std::string,std::string,std::string> &id_cluster);
+    std::string SetRulesRedisCache(const CallBackRules &rules);
+    bool GetRulesFromRedis(CallBackRules &rules);
+    
 };      
 
 #endif

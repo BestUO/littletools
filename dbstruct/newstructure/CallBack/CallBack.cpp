@@ -68,10 +68,141 @@
         data.transfer_duration = cm_data.transfer_duration;
     }
 
-CallBackRules MakeCallBackRulesFromMySql(ormpp::dbng<ormpp::mysql> &mysql,const std::tuple<std::string,std::string,std::string,std::string> &id_cluster)
+CallBackRules CallBackManage::MakeCallBackRulesFromMySql(ormpp::dbng<ormpp::mysql> &mysql,const std::tuple<std::string,std::string,std::string,std::string> &id_cluster)
 {
+
+    struct outcall_task{
+        int uuid;//0:donot callback,1:callback
+        std::string auto_recall_scenes;
+        int auto_recall_max_times;
+        int auto_recall_status;
+    };
+    struct aicall_config{
+        int api_callback_scene_status;
+    };
+
     CallBackRules rules;
     rules.eid = stoi(std::get<IdCluster::EnterpriseUid>(id_cluster));
     rules.task_id = stoi(std::get<IdCluster::TaskId>(id_cluster));
+
+
+
+    GenerateSQL general_sql;
+    
+    std::string calllog_id,clue_id,task_id;
+    std::vector<std::string> condition;
+    std::vector<std::string> condition_name;
+    std::vector<std::string> condition_symbols;
+    condition_name.push_back("id");
+    condition_name.push_back("enterprise_uid");
+    condition.push_back(std::get<IdCluster::TaskId>(id_cluster));
+    condition.push_back(std::get<IdCluster::EnterpriseUid>(id_cluster));
+    condition_symbols.push_back("=");
+    condition_symbols.push_back("=");
+    std::string outcall_task_rule = general_sql.MysqlGenerateMySqlCondition(condition,condition_name,condition_symbols);
+    auto result_outcall_task = mysql.query<outcall_task>(outcall_task_rule);
+    
+    rules.auto_recall_scenes = result_outcall_task[0].auto_recall_scenes;
+    rules.auto_recall_status = result_outcall_task[0].auto_recall_status;
+    rules.auto_recall_max_times = result_outcall_task[0].auto_recall_max_times ;
+
+    std::vector<std::string> condition_;
+    std::vector<std::string> condition_name_;
+    std::vector<std::string> condition_symbols_;
+    condition_name_.push_back("eid");
+    condition_.push_back(std::get<IdCluster::EnterpriseUid>(id_cluster));
+    condition_symbols_.push_back("=");
+    std::string aicall_config_rule = general_sql.MysqlGenerateMySqlCondition(condition_,condition_name_,condition_symbols_);
+    auto result_aicall_config = mysql.query<aicall_config>(aicall_config_rule);
+    rules.api_callback_scene_status = result_aicall_config[0].api_callback_scene_status;
+
+
+    ParseIntetionAndCallResult(rules);
+    return rules;
+    //
+}
+void CallBackManage::ParseIntetionAndCallResult(CallBackRules &rules)
+{
+    LOGGER->info("ParseIntetionAndCallResult, rules is {}",rules.auto_recall_scenes);
+    rapidjson::Value root;
+    rapidjson::Document doc;
+    doc.Parse(rules.auto_recall_scenes.c_str());
+    if(doc.IsObject())
+    {
+        if(doc.HasMember("call_result"))
+        {
+            root = doc["call_result"];
+            for(int i=0;i<root.Size();i++)
+            {
+                int pos = root[i].GetInt();
+                rules.call_result_judge.replace(13-pos,1,"1");
+            }
+        } 
+        if(doc.HasMember("intention_type"))
+        {
+            root = doc["intention_type"];
+            for(int i=0;i<root.Size();i++)
+            {
+                int pos = root[i].GetInt();
+                rules.call_result_judge.replace(10-pos,1,"1");
+            }
+        }
+    }
+}
+
+{
+    "global_judge": "",
+    "detail_judge":"",
+    "auto_recall_status":"",
+    "scope_judge":"",
+    "uuid":"",
+    "intention_type_judge":"",
+    "call_result_judge":""
+}
+
+
+std::string  CallBackManage::SetRulesRedisCache(const CallBackRules &rules)
+{
+
+    LOGGER->info("SetRulesRedisCache, result is {} and so on",rules.uuid);
+    rapidjson::Document doc;
+    std::string result;
+    std::string api_callback_scene_status = rules.api_callback_scene_status;
+    rapidjson::Document::AllocatorType& allocator  = doc.GetAllocator();
+
+    doc.AddMember("detail_judge",rules.api_callback_scene_status,allocator);
+    doc.AddMember("global_judge",rules.global_judge,allocator);
+    doc.AddMember("scope_judge",rules.scope_judge,allocator);
+    doc.AddMember("uuid",rules.uuid,allocator);
+    doc.AddMember("intention_type_judge",rules.intention_type_judge,allocator);
+    doc.AddMember("call_result_judge",rules.call_result_judge,allocator);
+    doc.AddMember("auto_recall_status",rules.auto_recall_status,allocator);
+
+    rapidjson::StringBuffer str_buf;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(str_buf);
+    doc.Accept(writer);
+    return str_buf.GetString();
+}
+
+bool CallBackManage::GetRulesFromRedis(CallBackRules &rules)
+{
+   
+    std::string location = std::to_string(rules.eid)+'-'+std::to_string(rules.task_id);
+    std::string rule = client.SearchRules(location);
+    rapidjson::Document doc;
+    LOGGER->info("GetRulesFromRedis search {}",location);
+    doc.Parse(rule.c_str());
+    if(doc.IsObject())
+    {
+        rules.api_callback_scene_status = doc["detail_judge"].GetString();
+        rules.global_judge = doc["global_judge"].GetInt();
+        rules.scope_judge = doc["scope_judge"].GetInt();
+        rules.uuid = doc["uuid"].GetString();
+        rules.intention_type_judge = doc["intention_type_judge"].GetString();
+        rules.call_result_judge = doc["call_result_judge"].GetString();
+        rules.auto_recall_status = doc["auto_recall_status"].GetInt();
+        return 1;
+    }
+    return 0;
 
 }

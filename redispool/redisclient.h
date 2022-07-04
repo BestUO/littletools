@@ -14,11 +14,11 @@ class RedisOperate
 public:
   
     void CacheRules(const std::string &key,const std::string &rules);
-
+    std::string SearchRules(const std::string &str);
 private:
     Redis redis;
     void RedisConnect();
-    std::string SearchRules(const std::string &str);
+  
 
 
 };

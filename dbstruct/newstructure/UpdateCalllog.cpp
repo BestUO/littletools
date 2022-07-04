@@ -40,8 +40,10 @@ void UpdateMessage::HandleSQL(ormpp::dbng<ormpp::mysql> &mysql, std::string &s)
 			UpdateOutCallClue(mysql, callog, clue_id);
 			UpdateAiCalllogExtension(mysql, callog, id);
 			
+
+			std::tuple<std::string,std::string,std::string,std::string> id_cluster = std::make_tuple(id,clue_id,task_id,eid);
 			CallBackManage data_handle;
-			data_handle.CallBackHandle(mysql,callog,task_id,clue_id,id);
+			data_handle.CallBackHandle(mysql,callog,id_cluster);
 		}
 	}
 	else

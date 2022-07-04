@@ -31,4 +31,5 @@ find_path(REDIS_PLUS_PLUS_HEADER sw)
 target_include_directories(redis PUBLIC ${REDIS_PLUS_PLUS_HEADER})
 
 find_library(REDIS_PLUS_PLUS_LIB redis++)
+add_library(redisclient redisclient.cpp redisclient.h)
 target_link_libraries(redis ${REDIS_PLUS_PLUS_LIB} pthread)
