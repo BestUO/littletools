@@ -29,7 +29,7 @@ void UpdateMessage::HandleSQL(ormpp::dbng<ormpp::mysql> &mysql, std::string &s)
 		LOGGER->info("update calllog,cc_number is {}", callog.cc_number);
 		std::string cc_ = R"(cc_number = ')" + callog.cc_number + R"(')";
 
-		auto result = mysql.query<std::tuple<int, int,int,int>>("select id, clue_id ,task_id,enterprise_uid from calllog where " + cc_);
+		auto result = mysql.query<std::tuple<int, int,int,int,int>>("select id, clue_id ,task_id,enterprise_uid,call_count from calllog where " + cc_);
 		if (result.size())
 		{
 			std::string id = std::to_string(std::get<0>(result[0]));
@@ -40,8 +40,8 @@ void UpdateMessage::HandleSQL(ormpp::dbng<ormpp::mysql> &mysql, std::string &s)
 			UpdateOutCallClue(mysql, callog, clue_id);
 			UpdateAiCalllogExtension(mysql, callog, id);
 			
-
-			std::tuple<std::string,std::string,std::string,std::string> id_cluster = std::make_tuple(id,clue_id,task_id,eid);
+			std::string call_count = std::to_string(std::get<4>(result[0]));
+			std::tuple<std::string,std::string,std::string,std::string,std::string> id_cluster = std::make_tuple(id,clue_id,task_id,eid,call_count);
 			CallBackManage data_handle;
 			data_handle.CallBackHandle(mysql,callog,id_cluster);
 		}

@@ -2,7 +2,7 @@
 #include <vector>
 #include <iostream>
 #include <vector>
-void CallBackManage::CallBackHandle(ormpp::dbng<ormpp::mysql> &mysql, CallInfo &cm_data, const std::tuple<std::string, std::string, std::string, std::string> &id_cluster)
+void CallBackManage::CallBackHandle(ormpp::dbng<ormpp::mysql> &mysql, CallInfo &cm_data, const std::tuple<std::string, std::string, std::string, std::string,std::string> &id_cluster)
 {
     LOGGER->info("begin CallBackHandle");
     CallBackData data;
@@ -11,33 +11,47 @@ void CallBackManage::CallBackHandle(ormpp::dbng<ormpp::mysql> &mysql, CallInfo &
     data.task_id = std::get<IdCluster::TaskId>(id_cluster);
     data.clue_id = std::get<IdCluster::ClueId>(id_cluster);
     data.calllog_id = std::get<IdCluster::CalllogId>(id_cluster);
+    data.call_count = std::get<IdCluster::CallCount>(id_cluster);
     CmDataSwitch(cm_data, data);
-    if(OC_sync_judge(std::get<IdCluster::CalllogId>(id_cluster)))
+
+
+    RedisOperate *client = RedisOperate::getInstance();
+    std::string locate = data.eid+"-"+data.task_id;
+    if(client->SearchRules(locate)!="null")
     {
-        GetOCSyncData(mysql, data);
-        RedisOperate *client = RedisOperate::getInstance();
-        std::string locate = data.eid+"-"+data.task_id;
-        if(client->SearchRules(locate)!="null")
+        GetRulesFromRedis(rule);
+        if(CallBackJudge(rule,data))
         {
-            GetRulesFromRedis(rule);
-            if(CallBackJudge(rule,data))
+            //callback
+            if(OC_sync_judge(std::get<IdCluster::CalllogId>(id_cluster)))
             {
-                //callback
+                GetOCSyncData(mysql, data);
+                
+            }else{ 
+
             }
 
-        } else {
-            rule = MakeCallBackRulesFromMySql(mysql,id_cluster);
-            client->CacheRules(locate,SetRulesRedisCache(rule));
-            if(CallBackJudge(rule,data))
-            {
-                //callback
-            }
         }
 
-    } else{
-        //queue
+    } else {
+        rule = MakeCallBackRulesFromMySql(mysql,id_cluster);
+        client->CacheRules(locate,SetRulesRedisCache(rule));
+        if(CallBackJudge(rule,data))
+        {
+
+            if(OC_sync_judge(std::get<IdCluster::CalllogId>(id_cluster)))
+            {
+                GetOCSyncData(mysql, data);
+                //callback
+            }else{ 
+                    //callback
+            }
+
+        }
     }
 }
+
+
 bool CallBackManage::OC_sync_judge(const std::string &calllog_id)
 {
     MySql * instance = MySql::getInstance();
@@ -107,7 +121,7 @@ void CallBackManage::CmDataSwitch(CallInfo &cm_data, CallBackData &data)
     data.call_time = stoi(cm_data.start_time);
 }
 
-CallBackRules CallBackManage::MakeCallBackRulesFromMySql(ormpp::dbng<ormpp::mysql> &mysql, const std::tuple<std::string, std::string, std::string, std::string> &id_cluster)
+CallBackRules CallBackManage::MakeCallBackRulesFromMySql(ormpp::dbng<ormpp::mysql> &mysql, const std::tuple<std::string, std::string, std::string, std::string,std::string> &id_cluster)
 {
 
     struct outcall_task
@@ -157,7 +171,6 @@ CallBackRules CallBackManage::MakeCallBackRulesFromMySql(ormpp::dbng<ormpp::mysq
 
     ParseIntetionAndCallResult(rules);
     return rules;
-    //
 }
 void CallBackManage::ParseIntetionAndCallResult(CallBackRules &rules)
 {
