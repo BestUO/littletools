@@ -1,6 +1,17 @@
 #include "redisclient.h"
+#include <iostream>
 
 
+RedisOperate* RedisOperate::getInstance()
+{
+    static RedisOperate instance;
+    return &instance;
+}
+
+RedisOperate::~RedisOperate()
+{
+   LOGGER->info("RedisOperate::~RedisOperate()");
+}
 void RedisOperate::RedisConnect()
 {
     ConnectionOptions connection_options;
@@ -20,6 +31,18 @@ void RedisOperate::CacheRules(const std::string &key,const std::string &rules)
     LOGGER->info("set rules {}",rules);
 }
 
+void RedisOperate::CacheData(const std::string &key,const std::string &str,int time)
+{
+    redis.set(key,str);
+    redis.expire(key,std::chrono::seconds(time));
+    LOGGER->info("set str  {}",str);
+}
+
+void RedisOperate::CacheData(const std::string &key,const std::string &str)
+{
+    redis.set(key,str);
+    LOGGER->info("set str  {}",str);
+}
 
 std::string RedisOperate::SearchRules(const std::string &str)
 {
@@ -29,13 +52,21 @@ std::string RedisOperate::SearchRules(const std::string &str)
     else return "null";
 }
 
-RedisOperate* RedisOperate::getInstance()
+std::unordered_set<std::string> RedisOperate::GetSetFromRedis(const std::string & set)
 {
-    static RedisOperate instance;
-    return &instance;
+    std::unordered_set<std::string> union_ ;
+    redis.smembers(set,union_);
+    return union_;
 }
 
-RedisOperate::~RedisOperate()
+void RedisOperate::REMForSet(const std::string &set_name,const std::unordered_set<std::string> &values)
 {
-   LOGGER->info("RedisOperate::~RedisOperate()");
+    int num = redis.srem(set_name,values.begin(),values.end());
+    LOGGER->info("{} elements rem set",num);
+}
+
+void RedisOperate::InsertSet(const std::string &set_name,const std::unordered_set<std::string> &values)
+{
+    int num = redis.sadd(set_name,values.begin(),values.end());
+    LOGGER->info("{} elements insert set",num);
 }
