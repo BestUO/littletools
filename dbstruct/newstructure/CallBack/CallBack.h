@@ -47,6 +47,10 @@ struct CallBackRules{
 };
 
 struct CallBackData{
+        std::string eid;
+        std::string clue_id;
+        std::string	calllog_id;
+        std::string	task_id;
     //May be cm/oc  data
         std::string record_url;
         std::string answer_time;//sql confirm_timestamp
@@ -61,7 +65,6 @@ struct CallBackData{
         int hangup_type;
     //OC_data
         std::string	uuid;
-        std::string	task_id;
         std::string	script_name;
         std::string	callee_phone;
         std::string	caller_phone;
@@ -73,13 +76,12 @@ struct CallBackData{
         std::string	clue_no;
         std::string	collect_info;
         std::string	buttons;
-        std::string	calllog_id;
 
-        CallBackData() : record_url(""),answer_time(""),hangup_time(""),duration_time(0),transfer_number(""),
+        CallBackData() : eid(""),clue_id(""),record_url(""),answer_time(""),hangup_time(""),duration_time(0),transfer_number(""),
                          transfer_duration(0),switch_number(""),manual_status(0),cc_number(""),call_result(0),
                         hangup_type(0), uuid(""),task_id(""),script_name(""),callee_phone(""),caller_phone(""),
                         calllog_txt(""),intention_type("0"),label(""),call_count("0"),match_global_keyword(""),
-                        clue_no(""),collect_info(""),buttons(""),calllog_id{}
+                        clue_no(""),collect_info(""),buttons(""),calllog_id(""){}
 };
 
 struct OC_data{
@@ -154,11 +156,13 @@ public:
     void CmDataSwitch(CallInfo & cm_data,CallBackData &data);
     void GetOCSyncData(ormpp::dbng<ormpp::mysql> &mysql,CallBackData &data);
     void ParseIntetionAndCallResult(CallBackRules &rules);
-    std::string SetMySqlRules(std::vector<std::string> rule_name,std::vector<std::string> rule);
     CallBackRules MakeCallBackRulesFromMySql(ormpp::dbng<ormpp::mysql> &mysql,const std::tuple<std::string,std::string,std::string,std::string> &id_cluster);
     std::string SetRulesRedisCache(const CallBackRules &rules);
     bool GetRulesFromRedis(CallBackRules &rules);
     bool CallBackJudge(const CallBackRules &rules,const CallBackData &data);
+    
+private:
+    void CallBackAction();
     bool AutoTaskMatch(const CallBackRules &rules,const CallBackData &data);
     
 };      
