@@ -1,7 +1,7 @@
 #include "CallBack.h"
 #include <vector>
 #include <iostream>
-
+#include <vector>
 void CallBackManage::CallBackHandle(ormpp::dbng<ormpp::mysql> &mysql, CallInfo &cm_data, const std::tuple<std::string, std::string, std::string, std::string> &id_cluster)
 {
     LOGGER->info("begin CallBackHandle");
@@ -104,6 +104,7 @@ void CallBackManage::CmDataSwitch(CallInfo &cm_data, CallBackData &data)
     data.hangup_type = cm_data.hangup_type;
     data.transfer_number = cm_data.transfer_number;
     data.transfer_duration = cm_data.transfer_duration;
+    data.call_time = stoi(cm_data.start_time);
 }
 
 CallBackRules CallBackManage::MakeCallBackRulesFromMySql(ormpp::dbng<ormpp::mysql> &mysql, const std::tuple<std::string, std::string, std::string, std::string> &id_cluster)
@@ -269,4 +270,79 @@ bool CallBackManage::CallBackJudge(const CallBackRules &rules, const CallBackDat
         else
             return 1;
     }
+}
+
+void CallBackManage::CacheCmData(const CallBackData &data)
+{
+    std::string id = data.eid+"-"+data.task_id+"-"+data.calllog_id;
+    std::string cache_data;
+    RedisOperate* instance = RedisOperate::getInstance();
+    
+    cache_data = MakeCacheJson(data);
+    instance->CacheData(id,cache_data);
+
+}
+
+std::string CallBackManage::MakeCacheJson(const CallBackData &data)//from code cache
+{
+    rapidjson::Document doc;
+    rapidjson::Value root;
+    rapidjson::Value data_json;
+    rapidjson::Document::AllocatorType &allocator = doc.GetAllocator();
+
+    
+    doc.AddMember("uuid",data.uuid,allocator);
+
+    root.AddMember("task_id",stoi(data.task_id),allocator);
+    root.AddMember("call_result",data.call_result,allocator);
+    root.AddMember("manual_status",data.manual_status,allocator);
+    root.AddMember("call_time",data.call_time,allocator);
+    root.AddMember("duration",data.duration_time,allocator);
+    root.AddMember("answer_time",stoi(data.answer_time),allocator);
+    root.AddMember("hangup_time",stoi(data.hangup_time),allocator);
+    root.AddMember("transfer_number",data.transfer_number,allocator);
+    root.AddMember("transfer_duration",data.transfer_duration,allocator);
+    root.AddMember("record_url",data.record_url,allocator);
+
+    data_json.PushBack(root,allocator);
+
+    doc.AddMember("records",data_json,allocator);
+
+    rapidjson::StringBuffer strBuffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(strBuffer);
+    doc.Accept(writer);
+    LOGGER->info("oc has not sync,apicallback data is {}",strBuffer.GetString());
+    return strBuffer.GetString();
+}
+
+std::string CallBackManage::MakeCacheJson(const CallBackData &data,const std::string &redis_cache)//from redis cache
+{
+    rapidjson::Document doc;
+    rapidjson::Value root;
+    rapidjson::Value data_json;
+    rapidjson::Document::AllocatorType &allocator = doc.GetAllocator();
+
+    doc.Parse(redis_cache.c_str());
+
+    root = doc["records"][0];
+    root.AddMember("script_name",data.script_name,allocator);
+    root.AddMember("callee_phone",data.callee_phone,allocator);
+    root.AddMember("calllog_txt",data.calllog_txt,allocator);
+    root.AddMember("intention_type",stoi(data.intention_type),allocator);
+    root.AddMember("label",data.label,allocator);
+    root.AddMember("call_count",stoi(data.call_count),allocator);
+    root.AddMember("match_global_keyword",data.match_global_keyword,allocator);
+    root.AddMember("clue_no",data.clue_no,allocator);
+    root.AddMember("collect_info",data.collect_info,allocator);
+    root.AddMember("buttons",data.buttons,allocator);
+
+    data_json.PushBack(root,allocator);
+    doc.EraseMember("records");
+    doc.AddMember("records",data_json,allocator);
+
+    rapidjson::StringBuffer strBuffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(strBuffer);
+    doc.Accept(writer);
+    LOGGER->info("oc has sync ,apicallback data is {}",strBuffer.GetString());
+    return strBuffer.GetString();
 }

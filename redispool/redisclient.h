@@ -4,9 +4,10 @@
 #include <sw/redis++/redis++.h>
 #include <iostream>
 #include "spdlog/spdlog.h"
+#include <unordered_set>
+#include <vector>
 #define SPDLOG_FILENAME "log/TrimuleLogger.log"
 #define SPDLOGGERNAME "TrimuleLogger"
-#include <unordered_set>
 #define LOGGER spdlog::get(SPDLOGGERNAME)
 using namespace sw::redis;
 
@@ -17,8 +18,10 @@ public:
     static RedisOperate *getInstance();
     void CacheRules(const std::string &key,const std::string &rules);
     std::string SearchRules(const std::string &str);
-    void RedisOperate::CacheData(const std::string &key,const std::string &str,int time);
-    void RedisOperate::CacheData(const std::string &key,const std::string &str);
+    void CacheData(const std::string &key,const std::string &str,int time);
+    void CacheData(const std::string &key,const std::string &str);
+    void DelKey(const std::string &key);
+    void DelKey(const std::vector<std::string> &key);
     std::unordered_set<std::string> GetSetFromRedis(const std::string & set);
     void REMForSet(const std::string &set_name,const std::unordered_set<std::string> &values);
     void InsertSet(const std::string &set_name,const std::unordered_set<std::string> &values);

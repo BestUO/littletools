@@ -44,6 +44,19 @@ void RedisOperate::CacheData(const std::string &key,const std::string &str)
     LOGGER->info("set str  {}",str);
 }
 
+void RedisOperate::DelKey(const std::string &key)
+{
+    int num = redis.del(key);
+    LOGGER->info("{} key delete",num);
+}
+
+void RedisOperate::DelKey(const std::vector<std::string> &key)
+{
+    int num  = redis.del(key.begin(),key.end());
+    LOGGER->info("{} key delete",num);
+}
+
+
 std::string RedisOperate::SearchRules(const std::string &str)
 {
     auto value = redis.get(str);

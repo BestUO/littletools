@@ -63,6 +63,7 @@ struct CallBackData{
         std::string cc_number;
         int call_result;
         int hangup_type;
+        int call_time;
     //OC_data
         std::string	uuid;
         std::string	script_name;
@@ -79,7 +80,7 @@ struct CallBackData{
 
         CallBackData() : eid(""),clue_id(""),record_url(""),answer_time(""),hangup_time(""),duration_time(0),transfer_number(""),
                          transfer_duration(0),switch_number(""),manual_status(0),cc_number(""),call_result(0),
-                        hangup_type(0), uuid(""),task_id(""),script_name(""),callee_phone(""),caller_phone(""),
+                        hangup_type(0),call_time(0), uuid(""),task_id(""),script_name(""),callee_phone(""),caller_phone(""),
                         calllog_txt(""),intention_type("0"),label(""),call_count("0"),match_global_keyword(""),
                         clue_no(""),collect_info(""),buttons(""),calllog_id(""){}
 };
@@ -165,7 +166,9 @@ public:
 private:
     void CallBackAction();
     bool AutoTaskMatch(const CallBackRules &rules,const CallBackData &data);
-    
+    void CacheCmData(const CallBackData &data);
+    std::string MakeCacheJson(const CallBackData &data);
+    std::string MakeCacheJson(const CallBackData &data,const std::string &redis_cache);
 };      
 
 #endif
