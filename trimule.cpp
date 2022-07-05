@@ -11,6 +11,7 @@
 #include "dbstruct/newstructure/UpdateCalllog.h"
 #include <vector>
 #include <string>
+#include "dbstruct/dbstruct/dbstruct.h"
 #define SPDLOG_FILENAME "log/TrimuleLogger.log"
 #define SPDLOGGERNAME "TrimuleLogger"
 #define LOGGER spdlog::get(SPDLOGGERNAME)
@@ -106,6 +107,9 @@ int main()
 {
     initspdlog();
 
+    MySql *mysql_ = MySql::getInstance();
+    mysql_->connect();
+    
     auto config = JsonSimpleWrap::GetPaser("conf/config.json");
     int max_thread_num = 1;
     cinatra::http_server server(max_thread_num);

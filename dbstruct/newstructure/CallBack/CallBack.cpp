@@ -12,9 +12,7 @@ void CallBackManage::CallBackHandle(ormpp::dbng<ormpp::mysql> &mysql, CallInfo &
     data.clue_id = std::get<IdCluster::ClueId>(id_cluster);
     data.calllog_id = std::get<IdCluster::CalllogId>(id_cluster);
     CmDataSwitch(cm_data, data);
-    auto sync_judge = mysql.query<std::tuple<int>>("select sync_judge from aicall_calllog_extension where calllog_id = "+std::get<IdCluster::CalllogId>(id_cluster));
-   
-    if(std::get<0>(sync_judge[0]))
+    if(OC_sync_judge(std::get<IdCluster::CalllogId>(id_cluster)))
     {
         GetOCSyncData(mysql, data);
         RedisOperate *client = RedisOperate::getInstance();
@@ -22,14 +20,30 @@ void CallBackManage::CallBackHandle(ormpp::dbng<ormpp::mysql> &mysql, CallInfo &
         if(client->SearchRules(locate)!="null")
         {
             GetRulesFromRedis(rule);
+            if(CallBackJudge(rule,data))
+            {
+                //callback
+            }
+
         } else {
             rule = MakeCallBackRulesFromMySql(mysql,id_cluster);
-            client->CacheRules(SetRulesRedisCache(rule));
+            client->CacheRules(locate,SetRulesRedisCache(rule));
+            if(CallBackJudge(rule,data))
+            {
+                //callback
+            }
         }
 
+    } else{
+        //queue
     }
 }
-
+bool CallBackManage::OC_sync_judge(const std::string &calllog_id)
+{
+    MySql * instance = MySql::getInstance();
+    auto sync_judge = instance->mysqlclient.query<std::tuple<int>>("select sync_judge from aicall_calllog_extension where calllog_id = "+calllog_id);
+    return std::get<0>(sync_judge[0]);
+}
 void CallBackManage::GetOCSyncData(ormpp::dbng<ormpp::mysql> &mysql, CallBackData &data)
 {
     LOGGER->info("GetOCSyncData eid is {}",data.eid);

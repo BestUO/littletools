@@ -152,6 +152,7 @@ enum IntentionType
 class CallBackManage:public CallRecord{
 
 public:
+    
     void CallBackHandle(ormpp::dbng<ormpp::mysql> &mysql,CallInfo & cm_data,const std::tuple<std::string,std::string,std::string,std::string> &id_cluster);
     void CmDataSwitch(CallInfo & cm_data,CallBackData &data);
     void GetOCSyncData(ormpp::dbng<ormpp::mysql> &mysql,CallBackData &data);
@@ -160,7 +161,7 @@ public:
     std::string SetRulesRedisCache(const CallBackRules &rules);
     bool GetRulesFromRedis(CallBackRules &rules);
     bool CallBackJudge(const CallBackRules &rules,const CallBackData &data);
-    
+    bool OC_sync_judge(const std::string &calllog_id);
 private:
     void CallBackAction();
     bool AutoTaskMatch(const CallBackRules &rules,const CallBackData &data);
