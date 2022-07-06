@@ -169,7 +169,7 @@ private:
     bool AutoTaskMatch(const CallBackRules &rules,const CallBackData &data);
     void CacheCmData(const CallBackData &data);
     std::string MakeCacheJson(const CallBackData &data);
-    std::string MakeCacheJson(const CallBackData &data,const std::string &redis_cache);
+    std::string MergeCacheJson(const CallBackData &data,const std::string &redis_cache);
 };      
 
 #endif

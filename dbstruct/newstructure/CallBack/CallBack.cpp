@@ -28,7 +28,7 @@ void CallBackManage::CallBackHandle(ormpp::dbng<ormpp::mysql> &mysql, CallInfo &
                 GetOCSyncData(mysql, data);
                 
             }else{ 
-
+                
             }
 
         }
@@ -290,10 +290,11 @@ void CallBackManage::CacheCmData(const CallBackData &data)
     std::string id = data.eid+"-"+data.task_id+"-"+data.calllog_id;
     std::string cache_data;
     RedisOperate* instance = RedisOperate::getInstance();
-    
+    std::unordered_set<std::string>set{id};
+    std::string set_name = "cm_id_cluster";
     cache_data = MakeCacheJson(data);
     instance->CacheData(id,cache_data);
-
+    instance->InsertSet(set_name,set);
 }
 
 std::string CallBackManage::MakeCacheJson(const CallBackData &data)//from code cache
@@ -328,7 +329,7 @@ std::string CallBackManage::MakeCacheJson(const CallBackData &data)//from code c
     return strBuffer.GetString();
 }
 
-std::string CallBackManage::MakeCacheJson(const CallBackData &data,const std::string &redis_cache)//from redis cache
+std::string CallBackManage::MergeCacheJson(const CallBackData &data,const std::string &redis_cache)//from redis cache  ,add these data
 {
     rapidjson::Document doc;
     rapidjson::Value root;
