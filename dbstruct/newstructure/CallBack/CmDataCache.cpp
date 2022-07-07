@@ -21,7 +21,28 @@ void DataCache::PollingQueue()
             
             std::string now_id = que.front().first;
             IdMuster muster = ParseCmId(now_id);
-            
+            // std::string rule_id = muster.eid+'-'+muster.task_id;
+            // std::string rule = instance->SearchRules(rule_id);
+            CallBackRules rule;
+            CallBackData data;
+            std::string cm_data_cache = instance->SearchRules(now_id);
+            if(cm_data_cache!="null")
+            {
+                data = CacheCmJsonSwitch(cm_data_cache);
+                GetRulesFromRedis(rule);
+                if(CallBackJudge(rule,data))
+                {
+                    //callback
+                    if(OC_sync_judge(muster.calllog_id))
+                    {
+                        GetOCSyncData(data);
+                        std::string caback_data = MergeCacheJson(data,cm_data_cache);
+                    }else{ 
+                
+                    }
+                }
+            }
+
         }
         else
         {
@@ -29,8 +50,6 @@ void DataCache::PollingQueue()
             PushQueue(que,set);
             now_time = time(NULL);
             pre_time = time(NULL);
-
-
         }
     }
 }
@@ -61,7 +80,7 @@ void DataCache::MoveQueue(std::deque<std::pair<std::string, int>> &que)
     }
 }
 
-bool CheckQueue(const std::deque<std::pair<std::string, int>> &que, const std::time_t &time_pre, const std::time_t &time_now)
+bool DataCache::CheckQueue(const std::deque<std::pair<std::string, int>> &que, const std::time_t &time_pre, const std::time_t &time_now)
 {
     std::stringstream sstream;
     sstream << time_pre;
@@ -74,7 +93,7 @@ bool CheckQueue(const std::deque<std::pair<std::string, int>> &que, const std::t
     return ((que.size() == 0) || (duration >= 10) || (que.front().second == 1)) ? 0 : 1;
 }
 
-IdMuster ParseCmId(const std::string &cm_id)
+IdMuster DataCache::ParseCmId(const std::string &cm_id)
 {
     IdMuster muster;
     int id_num=0;

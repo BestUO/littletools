@@ -2,7 +2,7 @@
 #include <vector>
 #include <iostream>
 #include <vector>
-void CallBackManage::CallBackHandle(ormpp::dbng<ormpp::mysql> &mysql, CallInfo &cm_data, const std::tuple<std::string, std::string, std::string, std::string,std::string> &id_cluster)
+void CallBackManage::CallBackHandle(CallInfo &cm_data, const std::tuple<std::string, std::string, std::string, std::string,std::string> &id_cluster)
 {
     LOGGER->info("begin CallBackHandle");
     CallBackData data;
@@ -25,7 +25,7 @@ void CallBackManage::CallBackHandle(ormpp::dbng<ormpp::mysql> &mysql, CallInfo &
             //callback
             if(OC_sync_judge(std::get<IdCluster::CalllogId>(id_cluster)))
             {
-                GetOCSyncData(mysql, data);
+                GetOCSyncData(data);
                 
             }else{ 
                 
@@ -34,14 +34,14 @@ void CallBackManage::CallBackHandle(ormpp::dbng<ormpp::mysql> &mysql, CallInfo &
         }
 
     } else {
-        rule = MakeCallBackRulesFromMySql(mysql,id_cluster);
+        rule = MakeCallBackRulesFromMySql(id_cluster);
         client->CacheRules(locate,SetRulesRedisCache(rule));
         if(CallBackJudge(rule,data))
         {
 
             if(OC_sync_judge(std::get<IdCluster::CalllogId>(id_cluster)))
             {
-                GetOCSyncData(mysql, data);
+                GetOCSyncData(data);
                 //callback
             }else{ 
                     //callback
@@ -58,16 +58,17 @@ bool CallBackManage::OC_sync_judge(const std::string &calllog_id)
     auto sync_judge = instance->mysqlclient.query<std::tuple<int>>("select sync_judge from aicall_calllog_extension where calllog_id = "+calllog_id);
     return std::get<0>(sync_judge[0]);
 }
-void CallBackManage::GetOCSyncData(ormpp::dbng<ormpp::mysql> &mysql, CallBackData &data)
+void CallBackManage::GetOCSyncData(CallBackData &data)
 {
+    MySql * instance = MySql::getInstance();
     LOGGER->info("GetOCSyncData eid is {}",data.eid);
     std::string where_eid = " and enterprise_uid = "+data.eid;
     std::string outcall_clue_rule = "where id = "+data.clue_id;
-    auto result_outcall_clue = mysql.query<outcall_clue>(outcall_clue_rule);
+    auto result_outcall_clue = instance->mysqlclient.query<outcall_clue>(outcall_clue_rule);
     TEST_CHECK(result_outcall_clue.size() == 1);
 
     std::string calllog_rule = "where id = "+data.calllog_id+where_eid;
-    auto result_calllog = mysql.query<calllog>(calllog_rule);
+    auto result_calllog = instance->mysqlclient.query<calllog>(calllog_rule);
     TEST_CHECK(result_calllog.size() == 1);
 
     // clue
@@ -87,7 +88,7 @@ void CallBackManage::GetOCSyncData(ormpp::dbng<ormpp::mysql> &mysql, CallBackDat
 
     // task
     std::string outcall_task_rule = "where id = "+data.task_id+where_eid;
-    auto result_outcall_task = mysql.query<outcall_task>(outcall_task_rule);
+    auto result_outcall_task = instance->mysqlclient.query<outcall_task>(outcall_task_rule);
     TEST_CHECK(result_outcall_task.size() == 1);
     data.uuid = result_outcall_task[0].uuid;
 }
@@ -121,7 +122,7 @@ void CallBackManage::CmDataSwitch(CallInfo &cm_data, CallBackData &data)
     data.call_time = stoi(cm_data.start_time);
 }
 
-CallBackRules CallBackManage::MakeCallBackRulesFromMySql(ormpp::dbng<ormpp::mysql> &mysql, const std::tuple<std::string, std::string, std::string, std::string,std::string> &id_cluster)
+CallBackRules CallBackManage::MakeCallBackRulesFromMySql(const std::tuple<std::string, std::string, std::string, std::string,std::string> &id_cluster)
 {
 
     struct outcall_task
@@ -135,6 +136,8 @@ CallBackRules CallBackManage::MakeCallBackRulesFromMySql(ormpp::dbng<ormpp::mysq
     {
         int api_callback_scene_status;
     };
+
+    MySql * instance = MySql::getInstance();
 
     CallBackRules rules;
     rules.eid = stoi(std::get<IdCluster::EnterpriseUid>(id_cluster));
@@ -153,7 +156,7 @@ CallBackRules CallBackManage::MakeCallBackRulesFromMySql(ormpp::dbng<ormpp::mysq
     condition_symbols.push_back("=");
     condition_symbols.push_back("=");
     std::string outcall_task_rule = general_sql.MysqlGenerateMySqlCondition(condition, condition_name, condition_symbols);
-    auto result_outcall_task = mysql.query<outcall_task>(outcall_task_rule);
+    auto result_outcall_task = instance->mysqlclient.query<outcall_task>(outcall_task_rule);
 
     rules.auto_recall_scenes = result_outcall_task[0].auto_recall_scenes;
     rules.auto_recall_status = result_outcall_task[0].auto_recall_status;
@@ -166,7 +169,7 @@ CallBackRules CallBackManage::MakeCallBackRulesFromMySql(ormpp::dbng<ormpp::mysq
     condition_.push_back(std::get<IdCluster::EnterpriseUid>(id_cluster));
     condition_symbols_.push_back("=");
     std::string aicall_config_rule = general_sql.MysqlGenerateMySqlCondition(condition_, condition_name_, condition_symbols_);
-    auto result_aicall_config = mysql.query<aicall_config>(aicall_config_rule);
+    auto result_aicall_config = instance->mysqlclient.query<aicall_config>(aicall_config_rule);
     rules.api_callback_scene_status = result_aicall_config[0].api_callback_scene_status;
 
     ParseIntetionAndCallResult(rules);

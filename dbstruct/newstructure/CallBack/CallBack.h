@@ -155,11 +155,11 @@ class CallBackManage:public CallRecord{
 
 public:
     
-    void CallBackHandle(ormpp::dbng<ormpp::mysql> &mysql,CallInfo & cm_data,const std::tuple<std::string,std::string,std::string,std::string,std::string> &id_cluster);
+    void CallBackHandle(CallInfo & cm_data,const std::tuple<std::string,std::string,std::string,std::string,std::string> &id_cluster);
     void CmDataSwitch(CallInfo & cm_data,CallBackData &data);
-    void GetOCSyncData(ormpp::dbng<ormpp::mysql> &mysql,CallBackData &data);
+    void GetOCSyncData(CallBackData &data);
     void ParseIntetionAndCallResult(CallBackRules &rules);
-    CallBackRules MakeCallBackRulesFromMySql(ormpp::dbng<ormpp::mysql> &mysql,const std::tuple<std::string,std::string,std::string,std::string,std::string> &id_cluster);
+    CallBackRules MakeCallBackRulesFromMySql(const std::tuple<std::string,std::string,std::string,std::string,std::string> &id_cluster);
     std::string SetRulesRedisCache(const CallBackRules &rules);
     bool GetRulesFromRedis(CallBackRules &rules);
     bool CallBackJudge(const CallBackRules &rules,const CallBackData &data);
