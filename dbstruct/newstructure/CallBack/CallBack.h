@@ -164,12 +164,14 @@ public:
     bool GetRulesFromRedis(CallBackRules &rules);
     bool CallBackJudge(const CallBackRules &rules,const CallBackData &data);
     bool OC_sync_judge(const std::string &calllog_id);
+    CallBackData CacheCmJsonSwitch(const std::string &cm_data);
+    std::string MergeCacheJson(const CallBackData &data,const std::string &redis_cache);
 private:
     void CallBackAction();
     bool AutoTaskMatch(const CallBackRules &rules,const CallBackData &data);
     void CacheCmData(const CallBackData &data);
     std::string MakeCacheJson(const CallBackData &data);
-    std::string MergeCacheJson(const CallBackData &data,const std::string &redis_cache);
+
 };      
 
 #endif

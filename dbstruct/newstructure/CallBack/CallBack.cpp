@@ -360,3 +360,26 @@ std::string CallBackManage::MergeCacheJson(const CallBackData &data,const std::s
     LOGGER->info("oc has sync ,apicallback data is {}",strBuffer.GetString());
     return strBuffer.GetString();
 }
+
+CallBackData  CallBackManage::CacheCmJsonSwitch(const std::string &data)
+{
+    CallBackData cm_info;
+    rapidjson::Document doc;
+    rapidjson::Value root;
+    doc.Parse(data.c_str());
+    root = doc["records"][0];
+    cm_info.cc_number = root["cc_number"].GetString();
+    cm_info.call_result = root["call_result"].GetInt();
+    cm_info.duration_time = root["duration_time"].GetInt();
+    cm_info.manual_status = root["manual_type"].GetInt();
+    cm_info.record_url = root["record_url"].GetString();
+    cm_info.answer_time = root["confirm_time"].GetString();
+    cm_info.hangup_time = root["end_time"].GetString();
+    cm_info.switch_number = root["switch_number"].GetString();
+    cm_info.hangup_type = root["hangup_type"].GetInt();
+    cm_info.transfer_number = root["transfer_number"].GetString();
+    cm_info.transfer_duration = root["transfer_duration"].GetInt();
+    cm_info.call_time = root["start_time"].GetInt();
+    return cm_info;
+
+}
