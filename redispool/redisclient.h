@@ -5,6 +5,7 @@
 #include <iostream>
 #include "spdlog/spdlog.h"
 #include <unordered_set>
+#include <list>
 #include <vector>
 #define SPDLOG_FILENAME "log/TrimuleLogger.log"
 #define SPDLOGGERNAME "TrimuleLogger"
@@ -25,6 +26,9 @@ public:
     std::unordered_set<std::string> GetSetFromRedis(const std::string & set);
     void REMForSet(const std::string &set_name,const std::unordered_set<std::string> &values);
     void InsertSet(const std::string &set_name,const std::unordered_set<std::string> &values);
+    std::vector<std::string> GetListFromRedis(const std::string & list);
+    void LREMForList(const std::string &list_name,const std::vector<std::string> &values);
+    void Rpush(const std::string &list_name,const std::vector<std::string> &values);
 private:
     Redis redis;
     void RedisConnect();

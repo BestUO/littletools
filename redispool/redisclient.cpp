@@ -83,3 +83,26 @@ void RedisOperate::InsertSet(const std::string &set_name,const std::unordered_se
     int num = redis.sadd(set_name,values.begin(),values.end());
     LOGGER->info("{} elements insert set",num);
 }
+
+std::vector<std::string> RedisOperate::GetListFromRedis(const std::string & list_name)
+{
+    int len = redis.llen(list_name);
+    std::vector<std::string> vec;
+    if(len!=0)
+    {
+        redis.lrange(list_name,0,len-1,vec);
+    }
+}
+void RedisOperate::LREMForList(const std::string &list_name,const std::vector<std::string> &values)
+{
+    for(int i=0;i<values.size();i++)
+    {
+        redis.lrem(list_name,1,values[i]);
+    }
+}
+void RedisOperate::Rpush(const std::string &list_name,const std::vector<std::string> &values)
+{
+    int num = values.size();
+    redis.rpush(list_name,values.begin(),values.end());
+    LOGGER->info("{} elements insert list",num);
+}

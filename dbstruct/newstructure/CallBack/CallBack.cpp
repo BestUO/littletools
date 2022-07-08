@@ -15,9 +15,9 @@ void CallBackManage::CallBackHandle(CallInfo &cm_data, const std::tuple<std::str
     CmDataSwitch(cm_data, data);
 
 
-    RedisOperate *client = RedisOperate::getInstance();
+    RedisOperate *redis_client = RedisOperate::getInstance();
     std::string locate = data.eid+"-"+data.task_id;
-    if(client->SearchRules(locate)!="null")
+    if(redis_client->SearchRules(locate)!="null")
     {
         GetRulesFromRedis(rule);
         if(CallBackJudge(rule,data))
@@ -26,25 +26,32 @@ void CallBackManage::CallBackHandle(CallInfo &cm_data, const std::tuple<std::str
             if(OC_sync_judge(std::get<IdCluster::CalllogId>(id_cluster)))
             {
                 GetOCSyncData(data);
-                
-            }else{ 
-                
+                std::string cm_data_json = MakeCacheJson(data);
+                std::string caback_data = MergeCacheJson(data,cm_data_json);
+            }
+            else
+            { 
+               CacheCmData(data);
             }
 
         }
 
     } else {
         rule = MakeCallBackRulesFromMySql(id_cluster);
-        client->CacheRules(locate,SetRulesRedisCache(rule));
+        redis_client->CacheRules(locate,SetRulesRedisCache(rule));
         if(CallBackJudge(rule,data))
         {
 
             if(OC_sync_judge(std::get<IdCluster::CalllogId>(id_cluster)))
             {
                 GetOCSyncData(data);
+                std::string cm_data_json = MakeCacheJson(data);
+                std::string caback_data = MergeCacheJson(data,cm_data_json);
                 //callback
-            }else{ 
-                    //callback
+            }
+            else
+            { 
+               CacheCmData(data);    
             }
 
         }
@@ -290,14 +297,20 @@ bool CallBackManage::CallBackJudge(const CallBackRules &rules, const CallBackDat
 
 void CallBackManage::CacheCmData(const CallBackData &data)
 {
-    std::string id = data.eid+"-"+data.task_id+"-"+data.calllog_id;
+    auto now = time(NULL);    
+    std::stringstream sstream;
+    sstream << now;
+    std::string time_ = sstream.str();
+    std::string id = data.eid+"-"+data.task_id+"-"+data.calllog_id+"-"+time_;
+    LOGGER->info("cache cm_data,which id is {}",id);
+    
     std::string cache_data;
     RedisOperate* instance = RedisOperate::getInstance();
-    std::unordered_set<std::string>set{id};
+    std::vector<std::string>list{id};
     std::string set_name = "cm_id_cluster";
     cache_data = MakeCacheJson(data);
     instance->CacheData(id,cache_data);
-    instance->InsertSet(set_name,set);
+    instance->Rpush(set_name,list);
 }
 
 std::string CallBackManage::MakeCacheJson(const CallBackData &data)//from code cache
