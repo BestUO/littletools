@@ -12,11 +12,13 @@
 #define LOGGER spdlog::get(SPDLOGGERNAME)
 using namespace sw::redis;
 
+
 class RedisOperate
 {
 public:
-  
-    static RedisOperate *getInstance();
+    RedisOperate(): 
+        connection_options_(_build_options()),
+        redis(connection_options_) {};
     void CacheRules(const std::string &key,const std::string &rules);
     std::string SearchRules(const std::string &str);
     void CacheData(const std::string &key,const std::string &str,int time);
@@ -29,14 +31,17 @@ public:
     std::vector<std::string> GetListFromRedis(const std::string & list);
     void LREMForList(const std::string &list_name,const std::vector<std::string> &values);
     void Rpush(const std::string &list_name,const std::vector<std::string> &values);
+    // ~RedisOperate();
 private:
+    ConnectionOptions _build_options() {
+    ConnectionOptions opts;
+    opts.host = "172.17.214.17";  // Required.
+    opts.port = 16379; // Optional. The default port is 6379.
+    opts.password = "greeisgood";   // Optional. No password by default.
+    return opts;
+    }
+    ConnectionOptions connection_options_;
     Redis redis;
-    void RedisConnect();
-    RedisOperate();
-    RedisOperate(const RedisOperate &);
-    RedisOperate &operator=(const RedisOperate &);
-    ~RedisOperate();
-
 
 };
 

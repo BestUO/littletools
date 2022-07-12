@@ -1,11 +1,15 @@
 #include <iostream>
 #include "CmDataCache.h"
 #include <ctime>
+#include "../../../redispool/redisclient.h"
 void DataCache::PollingQueue()
 {
     std::vector<std::string> list;
     std::deque<std::string> que; // pair: cm_id , is not _sync?
-    RedisOperate *instance = RedisOperate::getInstance();
+    // RedisOperate *instance = RedisOperate::getInstance();
+     RedisOperate instance;
+    
+    // instance->RedisConnect();
     std::string list_name = "cm_id_cluster";
 
     int sleep_judge=0;
@@ -14,7 +18,7 @@ void DataCache::PollingQueue()
         if(!que.size())
         {
 
-            list = instance->GetListFromRedis(list_name);
+            list = instance.GetListFromRedis(list_name);
             if(list.size())
                 PushQueue(que,list);
             else 
@@ -30,7 +34,7 @@ void DataCache::PollingQueue()
         // std::string rule = instance->SearchRules(rule_id);
         CallBackRules rule;
         CallBackData data;
-        std::string cm_data_cache = instance->SearchRules(now_id);
+        std::string cm_data_cache = instance.SearchRules(now_id);
         if(cm_data_cache!="null")
         {
             data = CacheCmJsonSwitch(cm_data_cache);
@@ -41,8 +45,8 @@ void DataCache::PollingQueue()
                 if(OC_sync_judge(muster.calllog_id)||CheckIdTime(muster))
                 {
                     GetOCSyncData(data);
-                    instance->DelKey(now_id);
-                    instance->LREMForList(list_name,{now_id});
+                    instance.DelKey(now_id);
+                    instance.LREMForList(list_name,{now_id});
                     std::string caback_data = MergeCacheJson(data,cm_data_cache);
                     que.pop_front();
                 }
@@ -55,14 +59,10 @@ void DataCache::PollingQueue()
  
     }
 
-
 }
 
 void DataCache::PushQueue(std::deque<std::string> &que, std::vector<std::string> &list)
 {
-
-
-
     for (std::vector<std::string>::iterator it = list.begin(); it != list.end(); it++)// reset  queue 
     {
         que.push_front(*it); 
@@ -178,8 +178,10 @@ bool DataCache::CheckIdTime(const IdMuster &muster)
 void DataCache::BackQueue(std::deque<std::string> &que,std::string list_name)
 {
     std::vector<std::string> vec(que.begin(),que.end());
-    RedisOperate *instance = RedisOperate::getInstance();
-    instance->Rpush(list_name,vec);
+    // std::shared_ptr<RedisOperate> instance = std::make_shared<RedisOperate>();
+    // instance->RedisConnect();
+    RedisOperate instance;
+    instance.Rpush(list_name,vec);
     que.clear();
     LOGGER->info("oc not sync,back to redis,and sleep 300s");
     sleep(300);

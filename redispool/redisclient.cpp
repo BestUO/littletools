@@ -2,32 +2,37 @@
 #include <iostream>
 
 
-RedisOperate* RedisOperate::getInstance()
-{
-    static RedisOperate instance;
-    return &instance;
-}
+// RedisOperate* RedisOperate::getInstance()
+// {
+//     static RedisOperate instance ;
+//     return &instance;
+// }
+// RedisOperate::RedisOperate()
+// {
+//   std::cout<<"";
+// }
 
-RedisOperate::~RedisOperate()
-{
-   LOGGER->info("RedisOperate::~RedisOperate()");
-}
-void RedisOperate::RedisConnect()
-{
-    ConnectionOptions connection_options;
-    connection_options.host = "172.17.214.17";  // Required.
-    connection_options.port = 16379; // Optional. The default port is 6379.
-    connection_options.password = "greeisgood";   // Optional. No password by default.
-    connection_options.db = 1;  // Optional. Use the 0th database by default.
-    connection_options.socket_timeout = std::chrono::milliseconds(200);
-    Redis redis1(connection_options);
-    redis = std::move(redis1);
-}
+// RedisOperate::~RedisOperate()
+// {
+    
+//    LOGGER->info("RedisOperate::~RedisOperate()");
+// }
+// void RedisOperate::RedisConnect()
+// {
+//     ConnectionOptions connection_options;
+//     connection_options.host = "";  // Required.
+//     connection_options.port = 16379; // Optional. The default port is 6379.
+//     connection_options.password = "";   // Optional. No password by default.
+//     connection_options.db = 1;  // Optional. Use the 0th database by default.
+//     connection_options.socket_timeout = std::chrono::milliseconds(200);
+//     Redis redis1(connection_options);
+//     redis = std::move(redis1);
+// }
 
 void RedisOperate::CacheRules(const std::string &key,const std::string &rules)
 {
     redis.set(key,rules);
-    redis.expire(key,std::chrono::minutes(10));
+    redis.expire(key,std::chrono::seconds(10));
     LOGGER->info("set rules {}",rules);
 }
 
@@ -53,7 +58,7 @@ void RedisOperate::DelKey(const std::string &key)
 void RedisOperate::DelKey(const std::vector<std::string> &key)
 {
     int num  = redis.del(key.begin(),key.end());
-    LOGGER->info("{} key delete",num);
+    LOGGER->info("{} keys delete",num);
 }
 
 
@@ -68,7 +73,7 @@ std::string RedisOperate::SearchRules(const std::string &str)
 std::unordered_set<std::string> RedisOperate::GetSetFromRedis(const std::string & set)
 {
     std::unordered_set<std::string> union_ ;
-    redis.smembers(set,union_);
+    redis.smembers(set,std::inserter(union_, union_.begin()));
     return union_;
 }
 
@@ -90,8 +95,9 @@ std::vector<std::string> RedisOperate::GetListFromRedis(const std::string & list
     std::vector<std::string> vec;
     if(len!=0)
     {
-        redis.lrange(list_name,0,len-1,vec);
+        redis.lrange(list_name,0,len-1,std::back_inserter(vec));
     }
+    return vec;
 }
 void RedisOperate::LREMForList(const std::string &list_name,const std::vector<std::string> &values)
 {

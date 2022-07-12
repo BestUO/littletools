@@ -15,9 +15,10 @@ void CallBackManage::CallBackHandle(CallInfo &cm_data, const std::tuple<std::str
     CmDataSwitch(cm_data, data);
 
 
-    RedisOperate *redis_client = RedisOperate::getInstance();
+    std::shared_ptr<RedisOperate> instance = std::make_shared<RedisOperate>();
+    // instance->RedisConnect();
     std::string locate = data.eid+"-"+data.task_id;
-    if(redis_client->SearchRules(locate)!="null")
+    if(instance->SearchRules(locate)!="null")
     {
         GetRulesFromRedis(rule);
         if(CallBackJudge(rule,data))
@@ -38,7 +39,7 @@ void CallBackManage::CallBackHandle(CallInfo &cm_data, const std::tuple<std::str
 
     } else {
         rule = MakeCallBackRulesFromMySql(id_cluster);
-        redis_client->CacheRules(locate,SetRulesRedisCache(rule));
+        instance->CacheRules(locate,SetRulesRedisCache(rule));
         if(CallBackJudge(rule,data))
         {
 
@@ -132,17 +133,7 @@ void CallBackManage::CmDataSwitch(CallInfo &cm_data, CallBackData &data)
 CallBackRules CallBackManage::MakeCallBackRulesFromMySql(const std::tuple<std::string, std::string, std::string, std::string,std::string> &id_cluster)
 {
 
-    struct outcall_task
-    {
-        int uuid; // 0:donot callback,1:callback
-        std::string auto_recall_scenes;
-        int auto_recall_max_times;
-        int auto_recall_status;
-    };
-    struct aicall_config
-    {
-        int api_callback_scene_status;
-    };
+   
 
     MySql * instance = MySql::getInstance();
 
@@ -164,6 +155,7 @@ CallBackRules CallBackManage::MakeCallBackRulesFromMySql(const std::tuple<std::s
     condition_symbols.push_back("=");
     std::string outcall_task_rule = general_sql.MysqlGenerateMySqlCondition(condition, condition_name, condition_symbols);
     auto result_outcall_task = instance->mysqlclient.query<outcall_task>(outcall_task_rule);
+    TEST_CHECK(result_outcall_task.size() == 1);
 
     rules.auto_recall_scenes = result_outcall_task[0].auto_recall_scenes;
     rules.auto_recall_status = result_outcall_task[0].auto_recall_status;
@@ -177,6 +169,7 @@ CallBackRules CallBackManage::MakeCallBackRulesFromMySql(const std::tuple<std::s
     condition_symbols_.push_back("=");
     std::string aicall_config_rule = general_sql.MysqlGenerateMySqlCondition(condition_, condition_name_, condition_symbols_);
     auto result_aicall_config = instance->mysqlclient.query<aicall_config>(aicall_config_rule);
+    TEST_CHECK(result_aicall_config.size() == 1);
     rules.api_callback_scene_status = result_aicall_config[0].api_callback_scene_status;
 
     ParseIntetionAndCallResult(rules);
@@ -216,17 +209,18 @@ std::string CallBackManage::SetRulesRedisCache(const CallBackRules &rules)
 
     LOGGER->info("SetRulesRedisCache, result is {} and so on", rules.uuid);
     rapidjson::Document doc;
+    rapidjson::Value val;
     std::string result;
     std::string api_callback_scene_status = rules.api_callback_scene_status;
     rapidjson::Document::AllocatorType &allocator = doc.GetAllocator();
 
-    doc.AddMember("detail_judge", rules.api_callback_scene_status, allocator);
-    doc.AddMember("global_judge", rules.global_judge, allocator);
-    doc.AddMember("scope_judge", rules.scope_judge, allocator);
-    doc.AddMember("uuid", rules.uuid, allocator);
-    doc.AddMember("intention_type_judge", rules.intention_type_judge, allocator);
-    doc.AddMember("call_result_judge", rules.call_result_judge, allocator);
-    doc.AddMember("auto_recall_status", rules.auto_recall_status, allocator);
+    doc.AddMember("detail_judge", val.SetString(rules.api_callback_scene_status.c_str(),allocator), allocator);
+    doc.AddMember("global_judge", val.SetInt(rules.global_judge), allocator);
+    doc.AddMember("scope_judge", val.SetInt(rules.scope_judge), allocator);
+    doc.AddMember("uuid", val.SetString(rules.uuid.c_str(),allocator), allocator);
+    doc.AddMember("intention_type_judge", val.SetString(rules.intention_type_judge.c_str(),allocator), allocator);
+    doc.AddMember("call_result_judge", val.SetString(rules.call_result_judge.c_str(),allocator), allocator);
+    doc.AddMember("auto_recall_status", val.SetInt(rules.auto_recall_status), allocator);
 
     rapidjson::StringBuffer str_buf;
     rapidjson::Writer<rapidjson::StringBuffer> writer(str_buf);
@@ -239,8 +233,9 @@ bool CallBackManage::GetRulesFromRedis(CallBackRules &rules)
 
     std::string location = std::to_string(rules.eid) + '-' + std::to_string(rules.task_id);
 
-    RedisOperate *client = RedisOperate::getInstance();
-    std::string rule = client->SearchRules(location);
+    std::shared_ptr<RedisOperate> instance = std::make_shared<RedisOperate>();
+    // instance->RedisConnect();
+    std::string rule = instance->SearchRules(location);
     rapidjson::Document doc;
     LOGGER->info("GetRulesFromRedis search {}", location);
     doc.Parse(rule.c_str());
@@ -258,7 +253,7 @@ bool CallBackManage::GetRulesFromRedis(CallBackRules &rules)
     return 0;
 }
 
-bool AutoTaskMatch(const CallBackRules &rules, const CallBackData &data)
+bool CallBackManage::AutoTaskMatch(const CallBackRules &rules, const CallBackData &data)
 {
     if (rules.intention_type_judge != "0000000000000")
     {
@@ -305,7 +300,8 @@ void CallBackManage::CacheCmData(const CallBackData &data)
     LOGGER->info("cache cm_data,which id is {}",id);
     
     std::string cache_data;
-    RedisOperate* instance = RedisOperate::getInstance();
+    std::shared_ptr<RedisOperate> instance = std::make_shared<RedisOperate>();
+    // instance->RedisConnect();
     std::vector<std::string>list{id};
     std::string set_name = "cm_id_cluster";
     cache_data = MakeCacheJson(data);
@@ -319,9 +315,9 @@ std::string CallBackManage::MakeCacheJson(const CallBackData &data)//from code c
     rapidjson::Value root;
     rapidjson::Value data_json;
     rapidjson::Document::AllocatorType &allocator = doc.GetAllocator();
-
+    rapidjson::Value val;
     
-    doc.AddMember("uuid",data.uuid,allocator);
+    doc.AddMember("uuid",val.SetString(data.uuid.c_str(),allocator),allocator);
 
     root.AddMember("task_id",stoi(data.task_id),allocator);
     root.AddMember("call_result",data.call_result,allocator);
@@ -330,9 +326,9 @@ std::string CallBackManage::MakeCacheJson(const CallBackData &data)//from code c
     root.AddMember("duration",data.duration_time,allocator);
     root.AddMember("answer_time",stoi(data.answer_time),allocator);
     root.AddMember("hangup_time",stoi(data.hangup_time),allocator);
-    root.AddMember("transfer_number",data.transfer_number,allocator);
+    root.AddMember("transfer_number",val.SetString(data.transfer_number.c_str(),allocator),allocator);
     root.AddMember("transfer_duration",data.transfer_duration,allocator);
-    root.AddMember("record_url",data.record_url,allocator);
+    root.AddMember("record_url",val.SetString(data.record_url.c_str(),allocator),allocator);
 
     data_json.PushBack(root,allocator);
 
@@ -351,20 +347,20 @@ std::string CallBackManage::MergeCacheJson(const CallBackData &data,const std::s
     rapidjson::Value root;
     rapidjson::Value data_json;
     rapidjson::Document::AllocatorType &allocator = doc.GetAllocator();
-
+    rapidjson::Value val;
     doc.Parse(redis_cache.c_str());
 
     root = doc["records"][0];
-    root.AddMember("script_name",data.script_name,allocator);
-    root.AddMember("callee_phone",data.callee_phone,allocator);
-    root.AddMember("calllog_txt",data.calllog_txt,allocator);
+    root.AddMember("script_name",val.SetString(data.script_name.c_str(),allocator),allocator);
+    root.AddMember("callee_phone",val.SetString(data.callee_phone.c_str(),allocator),allocator);
+    root.AddMember("calllog_txt",val.SetString(data.calllog_txt.c_str(),allocator),allocator);
     root.AddMember("intention_type",stoi(data.intention_type),allocator);
-    root.AddMember("label",data.label,allocator);
+    root.AddMember("label",val.SetString(data.label.c_str(),allocator),allocator);
     root.AddMember("call_count",stoi(data.call_count),allocator);
-    root.AddMember("match_global_keyword",data.match_global_keyword,allocator);
-    root.AddMember("clue_no",data.clue_no,allocator);
-    root.AddMember("collect_info",data.collect_info,allocator);
-    root.AddMember("buttons",data.buttons,allocator);
+    root.AddMember("match_global_keyword",val.SetString(data.match_global_keyword.c_str(),allocator),allocator);
+    root.AddMember("clue_no",val.SetString(data.clue_no.c_str(),allocator),allocator);
+    root.AddMember("collect_info",val.SetString(data.collect_info.c_str(),allocator),allocator);
+    root.AddMember("buttons",val.SetString(data.buttons.c_str(),allocator),allocator);
 
     data_json.PushBack(root,allocator);
     doc.EraseMember("records");

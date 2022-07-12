@@ -15,7 +15,7 @@
 class UpdateMessage
 {
 public:
-    void HandleSQL(ormpp::dbng<ormpp::mysql> &mysql, std::string &s);
+    void HandleSQL(std::string &s);
  
 private: 
     void UpdateCalllog( ormpp::dbng<ormpp::mysql> &mysql,CallInfo callog);

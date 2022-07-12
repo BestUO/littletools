@@ -1,6 +1,7 @@
 project(redis)
 cmake_minimum_required(VERSION 3.9)
-
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(THIRD_PARTY_PATH ${PROJECT_SOURCE_DIR}/3rdparty)
 
@@ -17,7 +18,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(REDIS redis)
 set(REDIS_SOURCE redisclient.cpp  redisclient.h)
 
-add_executable(${REDIS} ${REDIS_SOURCE})
+add_executable(redis ${REDIS_SOURCE})
 
 # <------------ add hiredis dependency --------------->
 find_path(HIREDIS_HEADER hiredis)

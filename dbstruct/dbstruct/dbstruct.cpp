@@ -2,7 +2,7 @@
 #include "../../settingParser/settingParser.h"
 
 MySql* MySql::getInstance()
-{
+{   
     static MySql instance;
     return &instance;
 }
@@ -20,3 +20,4 @@ MySql::~MySql()
 {
     LOGGER->info("delete mysql");
 }
+

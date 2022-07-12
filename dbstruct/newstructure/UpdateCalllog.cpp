@@ -17,33 +17,33 @@
 #define SPDLOGGERNAME "TrimuleLogger"
 #define LOGGER spdlog::get(SPDLOGGERNAME)
 
-void UpdateMessage::HandleSQL(ormpp::dbng<ormpp::mysql> &mysql, std::string &s)
+void UpdateMessage::HandleSQL(std::string &s)
 {
 	LOGGER->info("handle coming message {}", s);
 
 	CallRecord record;
 	CallInfo callog = record.GetCallRecord(s, 2);
-	
+	MySql *mysql = MySql::getInstance();
 	if (callog.cc_number != "")
 	{
 		LOGGER->info("update calllog,cc_number is {}", callog.cc_number);
 		std::string cc_ = R"(cc_number = ')" + callog.cc_number + R"(')";
 
-		auto result = mysql.query<std::tuple<int, int,int,int,int>>("select id, clue_id ,task_id,enterprise_uid,call_count from calllog where " + cc_);
+		auto result = mysql->mysqlclient.query<std::tuple<int, int,int,int,int>>("select id, clue_id ,task_id,enterprise_uid,call_count from calllog where " + cc_);
 		if (result.size())
 		{
 			std::string id = std::to_string(std::get<0>(result[0]));
 			std::string clue_id = std::to_string(std::get<1>(result[0]));
 			std::string task_id = std::to_string(std::get<2>(result[0]));
 			std::string eid = std::to_string(std::get<3>(result[0]));
-			UpdateCalllog(mysql, callog);
-			UpdateOutCallClue(mysql, callog, clue_id);
-			UpdateAiCalllogExtension(mysql, callog, id);
+			// UpdateCalllog(mysql, callog);
+			// UpdateOutCallClue(mysql, callog, clue_id);
+			// UpdateAiCalllogExtension(mysql, callog, id);
 			
 			std::string call_count = std::to_string(std::get<4>(result[0]));
 			std::tuple<std::string,std::string,std::string,std::string,std::string> id_cluster = std::make_tuple(id,clue_id,task_id,eid,call_count);
 			CallBackManage data_handle;
-			data_handle.CallBackHandle(mysql,callog,id_cluster);
+			data_handle.CallBackHandle(callog,id_cluster);
 		}
 	}
 	else

@@ -9,13 +9,11 @@
 #include "ormpp/dbng.hpp"
 #include "ormpp/mysql.hpp"
 #include "ormpp/connection_pool.hpp"
-#include "ormpp/dbng.hpp"
 #include "ormpp/ormpp_cfg.hpp"
 #include "../../sqlcommand/updatedb.h"
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
-#define TEST_MAIN
 #include "ormpp/unit_test.hpp"
 using namespace std::string_literals;
 #include "spdlog/spdlog.h"
@@ -125,10 +123,24 @@ struct calllog{
 };
 REFLECTION(calllog,task_id,script_name,callee_phone,caller_phone,calllog_txt,intention_type,call_count,match_global_keyword,collect_info,buttons,id)
 
-struct outcall_task{
-        std::string	uuid;
+// struct outcall_task{
+//         std::string	uuid;
+// };
+// REFLECTION(outcall_task,uuid)
+
+ struct outcall_task
+{
+        int uuid; // 0:donot callback,1:callback
+        std::string auto_recall_scenes;
+        int auto_recall_max_times;
+        int auto_recall_status;
 };
-REFLECTION(outcall_task,uuid)
+REFLECTION(outcall_task,uuid,auto_recall_scenes,auto_recall_max_times,auto_recall_status)
+struct aicall_config
+{
+    int api_callback_scene_status;
+};
+REFLECTION(aicall_config,api_callback_scene_status)
 
 enum IdCluster{
     CalllogId,

@@ -33,11 +33,11 @@ public:
 protected:
     virtual void WorkerRun(bool original)
     {
-        ormpp::dbng<ormpp::mysql> mysqlclient;
-        settingParser mysql_example;
-        sqlconnect conne = mysql_example.GetSettinghParser("conf/config.json");
+        // ormpp::dbng<ormpp::mysql> mysqlclient;
+        // settingParser mysql_example;
+        // sqlconnect conne = mysql_example.GetSettinghParser("conf/config.json");
 
-        mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str());
+        // mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str());
 
         while (!Worker<T>::_stop)
         {
@@ -46,6 +46,7 @@ protected:
             {
                 while (!e->empty())
                 {
+                    bool mysqlclient=0;
                     DealElement(mysqlclient, std::move(e->front()));
                     e->pop();
                 }
@@ -59,15 +60,22 @@ protected:
         }
     }
 
+    // virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
+    // DealElement(ormpp::dbng<ormpp::mysql> &mysql, std::string &&s)
+    // {
+    //     mysql.ping();
+    //     UpdateMessage update_action;
+
+    //     update_action.HandleSQL(mysql, s);
+    // }
     virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
-    DealElement(ormpp::dbng<ormpp::mysql> &mysql, std::string &&s)
+    DealElement(bool mysql, std::string &&s)
     {
-        mysql.ping();
+      
         UpdateMessage update_action;
 
-        update_action.HandleSQL(mysql, s);
+        update_action.HandleSQL(s);
     }
-
     virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
     DealElement(std::string &&s)
     {
@@ -101,8 +109,6 @@ void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
 }
 
 
-
-
 int main()
 {
     initspdlog();
@@ -110,6 +116,9 @@ int main()
     MySql *mysql_ = MySql::getInstance();
     mysql_->connect();
     
+    RedisOperate instance ;
+    instance.DelKey("wangdang");
+
     auto config = JsonSimpleWrap::GetPaser("conf/config.json");
     int max_thread_num = 1;
     cinatra::http_server server(max_thread_num);
