@@ -7,6 +7,12 @@
 #include <algorithm>
 #include <chrono>
 #include <sstream>
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/rotating_file_sink.h"
+#include "spdlog/async.h"
+#define SPDLOG_FILENAME "log/TrimuleLogger.log"
+#define SPDLOGGERNAME "TrimuleLogger"
+#define LOGGER spdlog::get(SPDLOGGERNAME)
 
 struct IdMuster{
     std::string calllog_id;
@@ -24,7 +30,7 @@ public:
     // void MoveQueue(std::deque<std::string> &que);
     void BackQueue(std::deque<std::string> &que,std::string list_name);
     // bool DataCache::CheckQueue(const std::deque<std::string> &que, const std::time_t &time_pre, const std::time_t &time_now);
-    void ManageIdTime( std::vector<std::string> &cm_id);
+    // void ManageIdTime( std::vector<std::string> &cm_id);
     bool CheckIdTime(const IdMuster &muster);
     std::string GetCmDataId(const std::string &id);
     IdMuster ParseCmId(const std::string &cm_id);

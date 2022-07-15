@@ -9,9 +9,13 @@
 #include "spdlog/async.h"
 #include "settingParser/settingParser.h"
 #include "dbstruct/newstructure/UpdateCalllog.h"
+#include "dbstruct/newstructure/CallBack/CallBack.h"
+#include "dbstruct/newstructure/CallBack/CmDataCache.h"
 #include <vector>
 #include <string>
 #include "dbstruct/dbstruct/dbstruct.h"
+#include <thread>
+#include <future>
 #define SPDLOG_FILENAME "log/TrimuleLogger.log"
 #define SPDLOGGERNAME "TrimuleLogger"
 #define LOGGER spdlog::get(SPDLOGGERNAME)
@@ -108,16 +112,19 @@ void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
     });
 }
 
+void PollingQueue()
+{
+    DataCache cache;
+    cache.PollingQueue();
+}
+
 
 int main()
 {
     initspdlog();
-
     MySql *mysql_ = MySql::getInstance();
     mysql_->connect();
-    
-    RedisOperate instance ;
-    instance.DelKey("wangdang");
+
 
     auto config = JsonSimpleWrap::GetPaser("conf/config.json");
     int max_thread_num = 1;
@@ -130,6 +137,10 @@ int main()
     std::shared_ptr<ThreadPool<QueueType>> threadpool(new ThreadPool(queuetask, worker, 2, 2));
   
     SetApiCallBackHandler(server, threadpool);
+
+    DataCache cache;
+    std::async(std::launch::deferred,PollingQueue);
+
     server.run();
     return 0;
 }

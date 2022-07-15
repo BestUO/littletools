@@ -4,11 +4,12 @@
 #include "../../../redispool/redisclient.h"
 void DataCache::PollingQueue()
 {
+    
     std::vector<std::string> list;
     std::deque<std::string> que; // pair: cm_id , is not _sync?
     // RedisOperate *instance = RedisOperate::getInstance();
-     RedisOperate instance;
-    
+    RedisOperate instance;
+    LOGGER->info("1111111111111111111");
     // instance->RedisConnect();
     std::string list_name = "cm_id_cluster";
 
@@ -126,21 +127,21 @@ IdMuster DataCache::ParseCmId(const std::string &cm_id)
     return muster;
 }
 
- void DataCache::ManageIdTime( std::vector<std::string> &cm_id)
-{
-    time_t now = time(NULL);
-    for(int i=0;i<cm_id.size();i++)
-    {
-        int num_ =0;
-        std::string rep;
-        rep = GetCmDataId(cm_id[i]);
-        rep+='-';
-        std::stringstream sstream;
-        sstream << now;
-        std::string time_ = sstream.str();
-        rep+=time_;
-    }
-}
+//  void DataCache::ManageIdTime( std::vector<std::string> &cm_id)
+// {
+//     time_t now = time(NULL);
+//     for(int i=0;i<cm_id.size();i++)
+//     {
+//         int num_ =0;
+//         std::string rep;
+//         rep = GetCmDataId(cm_id[i]);
+//         rep+='-';
+//         std::stringstream sstream;
+//         sstream << now;
+//         std::string time_ = sstream.str();
+//         rep+=time_;
+//     }
+// }
 
 
 // std::string DataCache::GetCmDataId(const std::string &id)

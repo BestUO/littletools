@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <json/json.h>
+#include "../../common/src/common_define.h"
 #include "../../dbstruct/dbstruct.h"
 #include "../GetCallRecord.h"
 #include "ormpp/dbng.hpp"
@@ -99,14 +100,23 @@ struct OC_data{
         std::string	buttons;
         std::string	calllog_id;
 };
-REFLECTION(OC_data,uuid,task_id,script_name,callee_phone,caller_phone,calllog_txt,intention_type,label,call_count,match_global_keyword,clue_no,collect_info,buttons,calllog_id)
+
+enum  class OC_data_enum{
+     uuid,task_id,script_name,callee_phone,
+     caller_phone,calllog_txt,intention_type,
+     label,call_count,match_global_keyword,clue_no,
+     collect_info,buttons,calllog_id
+};
+// REFLECTION(OC_data,uuid,task_id,script_name,callee_phone,caller_phone,calllog_txt,intention_type,label,call_count,match_global_keyword,clue_no,collect_info,buttons,calllog_id)
 
 struct outcall_clue{
     std::string	label;
     std::string	alias;
 };
-REFLECTION(outcall_clue,label,alias)
-
+// REFLECTION(outcall_clue,label,alias)
+enum  class outcall_clue_enum{
+    label,alias
+};
 
 struct calllog{
         std::string	task_id;
@@ -121,28 +131,43 @@ struct calllog{
         std::string	buttons;
         std::string	id;
 };
-REFLECTION(calllog,task_id,script_name,callee_phone,caller_phone,calllog_txt,intention_type,call_count,match_global_keyword,collect_info,buttons,id)
-
+// REFLECTION(calllog,task_id,script_name,callee_phone,caller_phone,calllog_txt,intention_type,call_count,match_global_keyword,collect_info,buttons,id)
+enum  class calllog_enum{
+    task_id,script_name,callee_phone,caller_phone,
+    calllog_txt,intention_type,call_count,match_global_keyword,
+    collect_info,buttons,id
+};
 // struct outcall_task{
 //         std::string	uuid;
 // };
 // REFLECTION(outcall_task,uuid)
 
- struct outcall_task
+struct outcall_task
 {
-        int uuid; // 0:donot callback,1:callback
+        std::string uuid; // 0:donot callback,1:callback
         std::string auto_recall_scenes;
-        int auto_recall_max_times;
-        int auto_recall_status;
+        std::string auto_recall_max_times;
+        std::string auto_recall_status;
 };
-REFLECTION(outcall_task,uuid,auto_recall_scenes,auto_recall_max_times,auto_recall_status)
+// REFLECTION(outcall_task,uuid,auto_recall_scenes,auto_recall_max_times,auto_recall_status)
+enum  class outcall_task_enum
+{
+    uuid, auto_recall_scenes,
+    auto_recall_max_times,auto_recall_status
+};
+
 struct aicall_config
 {
     int api_callback_scene_status;
 };
-REFLECTION(aicall_config,api_callback_scene_status)
+// REFLECTION(aicall_config,api_callback_scene_status)
+enum  class aicall_config_enum
+{
+    api_callback_scene_status
+};
 
-enum IdCluster{
+
+enum  class IdCluster{
     CalllogId,
     ClueId,
     TaskId,
@@ -150,7 +175,7 @@ enum IdCluster{
     CallCount
 };
 
-enum IntentionType
+enum  class IntentionType
 {
     IntentionA = 1,
     IntentionB,

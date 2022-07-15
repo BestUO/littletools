@@ -609,7 +609,8 @@ void testPThreadPool()
 
 #include "ormpp/dbng.hpp"
 #include "ormpp/mysql.hpp"
-
+#include "ormpp/unit_test.hpp"
+#include <iostream>
 struct aicall_tts_file_cache
 {
 	int id;
@@ -623,14 +624,28 @@ struct aicall_tts_file_cache
 };
 REFLECTION(aicall_tts_file_cache, id, TTS_text, TTS_version_code, tts_src, tts_duration, create_time, access_time, extension)
 
+struct user
+{
+    int id;
+};
+REFLECTION(user, id)
+
 void testormpp()
 {
 	ormpp::dbng<ormpp::mysql> mysql;
-	mysql.connect("127.0.0.1", "db", "123", "ai");
+	mysql.connect("rm-2ze4h4gd92r731iapeo.mysql.rds.aliyuncs.com", "emi_ai", "Sinicnet123456", "ai");
 
-    auto res = mysql.query<aicall_tts_file_cache>("id = 5622");
+    // auto res = mysql.query<aicall_tts_file_cache>("id = 5622");
+    auto res = mysql.query<user>(" id = 1 ");
+    std::cout<<res.size();
+    std::cout<<res[0].id;
+     auto res1 = mysql.query<std::tuple<int>>("select id from user where id = 5");
+
+     std::cout<<res.size();
+     
+     std::cout<<std::get<0>(res1[0]);
 	for(auto& file : res){
-		std::cout<<file.id<<" "<<file.TTS_text<<" "<<file.TTS_version_code<<std::endl;
+		std::cout<<file.id<<" ";
 	}
 }
 
@@ -752,12 +767,87 @@ void testQueueTypeThreadPool()
     std::cout << "producers finish, sum now is:" << sum << std::endl;
 }
 
+
+
+// #include <iguana/json.hpp>
+// struct person
+// {
+// 	std::string  name;
+// 	int          age;
+// };
+
+// REFLECTION(person, name, age) //define meta data
+// void testiguna()
+// {
+
+// person p = { "tom", 28 };
+
+// iguana::string_stream ss;
+// iguana::json::to_json(ss, p);
+
+// std::cout << ss.str() << std::endl; 
+// }
+
+
+
+
+using namespace ormpp;
+
+struct person
+{
+	int id;
+	std::string name;
+	int age;
+};
+REFLECTION(person, id, name, age)
+
+void wdtestormpp()
+{
+	person p = {1, "test1", 2};
+	person p1 = {2, "test2", 3};
+	person p2 = {3, "test3", 4};
+	std::vector<person> v{p1, p2};
+
+	dbng<mysql> mysql;
+	mysql.connect("172.17.214.17", "root", "123456", "test_db");
+    // mysql.connect("0.0.0.0", "root", "123456", "test_db");
+	mysql.create_datatable<person>();
+
+	mysql.insert(p);
+	mysql.insert(v);
+
+	mysql.update(p);
+	mysql.update(v);
+
+	auto result = mysql.query<person>(); //vector<person>
+	for(auto& person : result){
+		std::cout<<person.id<<" "<<person.name<<" "<<person.age<<std::endl;
+	}
+
+	mysql.delete_records<person>();
+
+	//transaction
+	mysql.begin();
+	for (int i = 0; i < 10; ++i) {
+        person s = {i, "tom", 19};
+            if(!mysql.insert(s)){
+                mysql.rollback();
+                std::cout<<"-1"<<std::endl;
+            }
+	}
+	mysql.commit();
+}
+
+
+
+
+
 int main()
 {
-    testQueueTypeThreadPool();
-    testrapidjson();
+    // testQueueTypeThreadPool();
+    // testrapidjson();
     // testspdlog();
-    // testormpp();
+    testormpp();
     // testPThreadPool();
     // testFThreadPool();
     // testLockQueue();
@@ -770,4 +860,6 @@ int main()
     // testKafkaCinatra();
     // testmemorypool();
     // testpublicfun();
+    // testiguna();
+    // wdtestormpp();
 }

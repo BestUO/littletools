@@ -14,6 +14,7 @@ void MySql::connect()
     sqlconnect conne = mysql_example.GetSettinghParser("conf/config.json");
 
     mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str());
+    mysqlclient.ping();
 }
 
 MySql::~MySql()

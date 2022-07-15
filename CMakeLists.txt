@@ -4,12 +4,6 @@ project(UO_TOOLS)
 # NOTE: you must build redis-plus-plus and your application code with the same standard.
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-
-
-
-
-
 set(THIRD_PARTY_PATH ${PROJECT_SOURCE_DIR}/3rdparty)
 
 add_definitions(-DASIO_STANDALONE)
@@ -67,7 +61,9 @@ target_include_directories(${TOOL_COMPOSE} PUBLIC ${REDIS_PLUS_PLUS_HEADER})
 
 find_library(REDIS_PLUS_PLUS_LIB redis++)
 
-target_link_libraries(${TOOL_COMPOSE}  ${REDIS_PLUS_PLUS_LIB}    pthread mysqlclient jsoncpp  dbstruct settingParser GetCallRecord redisclient CallBack)
+
+
+target_link_libraries(${TOOL_COMPOSE}  ${REDIS_PLUS_PLUS_LIB}    pthread   mysqlclient jsoncpp  dbstruct settingParser GetCallRecord redisclient CallBack )
 
 
 
