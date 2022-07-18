@@ -17,33 +17,40 @@
 #define SPDLOGGERNAME "TrimuleLogger"
 #define LOGGER spdlog::get(SPDLOGGERNAME)
 
-void UpdateMessage::HandleSQL(ormpp::dbng<ormpp::mysql> &mysql, std::string &s)
+void UpdateMessage::HandleSQL(std::string &s)
 {
 	LOGGER->info("handle coming message {}", s);
 
 	CallRecord record;
 	CallInfo callog = record.GetCallRecord(s, 2);
-
+	MySql *mysql = MySql::getInstance();
 	if (callog.cc_number != "")
 	{
 		LOGGER->info("update calllog,cc_number is {}", callog.cc_number);
 		std::string cc_ = R"(cc_number = ')" + callog.cc_number + R"(')";
 
-		auto result = mysql.query<std::tuple<int, int>>("select id, clue_id from calllog where " + cc_);
+		auto result = mysql->mysqlclient.query<std::tuple<int, int,int,int,int>>("select id, clue_id ,task_id,enterprise_uid,call_count from calllog where " + cc_);
 		if (result.size())
 		{
 			std::string id = std::to_string(std::get<0>(result[0]));
 			std::string clue_id = std::to_string(std::get<1>(result[0]));
-
-			UpdateCalllog(mysql, callog);
-			UpdateOutCallClue(mysql, callog, clue_id);
-			UpdateAiCalllogExtension(mysql, callog, id);
+			std::string task_id = std::to_string(std::get<2>(result[0]));
+			std::string eid = std::to_string(std::get<3>(result[0]));
+			// UpdateCalllog(mysql, callog);
+			// UpdateOutCallClue(mysql, callog, clue_id);
+			// UpdateAiCalllogExtension(mysql, callog, id);
+			
+			std::string call_count = std::to_string(std::get<4>(result[0]));
+			std::tuple<std::string,std::string,std::string,std::string,std::string> id_cluster = std::make_tuple(id,clue_id,task_id,eid,call_count);
+			CallBackManage data_handle;
+			data_handle.CallBackHandle(callog,id_cluster);
 		}
 	}
 	else
 	{
 		LOGGER->info("cc_number is null ,cannot update calllog...");
 	}
+
 }
 // int UpdateMessage::NewGetHangupCauseFromCallRecord(CallInfo info)
 // {
@@ -126,13 +133,13 @@ std::string UpdateMessage::CalculateTransferManualCost(CallInfo calllog)
 
 void UpdateMessage::UpdateAiCalllogExtension(ormpp::dbng<ormpp::mysql> &mysql, CallInfo calllog, std::string calllog_id)
 {
-	std::vector<std::string> columns = {"transfer_manual_cost","ring_duration", "call_state", "switch_number", "hangup_type","manual_incoming","manual_confirm","manual_disconnect","send_query_msg_timestamp","send_invite_timestamp"};
+	std::vector<std::string> columns = {"transfer_manual_cost","ring_duration", "call_state", "switch_number", "hangup_type","manual_incoming","manual_confirm","manual_disconnect"};
 
 	// std::string transfer_manual_cost = CalculateTransferManualCost(calllog);
 	std::string hangup_cause_ = calllog.hangup_type==0?"":std::to_string(calllog.hangup_type);
 	std::string switch_number = calllog.switch_number;
 	std::string call_state = std::to_string(calllog.call_state);
-	std::vector<std::string> values = {calllog.transfer_manual_cost,calllog.ring_time,call_state, switch_number, hangup_cause_,calllog.start_time,calllog.transfer_confirm_time,calllog.end_time,calllog.send_query_msg_timestamp,calllog.send_invite_timestamp};
+	std::vector<std::string> values = {calllog.transfer_manual_cost,calllog.ring_time,call_state, switch_number, hangup_cause_,calllog.start_time,calllog.transfer_confirm_time,calllog.end_time};
 	std::vector<std::string> condition(1);
 	condition[0] = calllog_id;
 	std::vector<std::string> condition_name(1);
@@ -156,3 +163,5 @@ void UpdateMessage::ExecuteCommand(ormpp::dbng<ormpp::mysql> &mysql, std::string
 	else
 		LOGGER->info("{}", children_db_name + " update failed ");
 }
+
+ 

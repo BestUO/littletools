@@ -8,13 +8,14 @@
 #include <vector>
 #include <string>
 #include "GetCallRecord.h"
+#include "CallBack/CallBack.h"
 #define SPDLOG_FILENAME "log/TrimuleLogger.log"
 #define SPDLOGGERNAME "TrimuleLogger"
 #define LOGGER spdlog::get(SPDLOGGERNAME)
 class UpdateMessage
 {
 public:
-    void HandleSQL(ormpp::dbng<ormpp::mysql> &mysql, std::string &s);
+    void HandleSQL(std::string &s);
  
 private: 
     void UpdateCalllog( ormpp::dbng<ormpp::mysql> &mysql,CallInfo callog);

@@ -9,8 +9,13 @@
 #include "spdlog/async.h"
 #include "settingParser/settingParser.h"
 #include "dbstruct/newstructure/UpdateCalllog.h"
+#include "dbstruct/newstructure/CallBack/CallBack.h"
+#include "dbstruct/newstructure/CallBack/CmDataCache.h"
 #include <vector>
 #include <string>
+#include "dbstruct/dbstruct/dbstruct.h"
+#include <thread>
+#include <future>
 #define SPDLOG_FILENAME "log/TrimuleLogger.log"
 #define SPDLOGGERNAME "TrimuleLogger"
 #define LOGGER spdlog::get(SPDLOGGERNAME)
@@ -32,11 +37,11 @@ public:
 protected:
     virtual void WorkerRun(bool original)
     {
-        ormpp::dbng<ormpp::mysql> mysqlclient;
-        settingParser mysql_example;
-        sqlconnect conne = mysql_example.GetSettinghParser("conf/config.json");
+        // ormpp::dbng<ormpp::mysql> mysqlclient;
+        // settingParser mysql_example;
+        // sqlconnect conne = mysql_example.GetSettinghParser("conf/config.json");
 
-        mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str());
+        // mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str());
 
         while (!Worker<T>::_stop)
         {
@@ -45,6 +50,7 @@ protected:
             {
                 while (!e->empty())
                 {
+                    bool mysqlclient=0;
                     DealElement(mysqlclient, std::move(e->front()));
                     e->pop();
                 }
@@ -58,15 +64,22 @@ protected:
         }
     }
 
+    // virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
+    // DealElement(ormpp::dbng<ormpp::mysql> &mysql, std::string &&s)
+    // {
+    //     mysql.ping();
+    //     UpdateMessage update_action;
+
+    //     update_action.HandleSQL(mysql, s);
+    // }
     virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
-    DealElement(ormpp::dbng<ormpp::mysql> &mysql, std::string &&s)
+    DealElement(bool mysql, std::string &&s)
     {
-        mysql.ping();
+      
         UpdateMessage update_action;
 
-        update_action.HandleSQL(mysql, s);
+        update_action.HandleSQL(s);
     }
-
     virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
     DealElement(std::string &&s)
     {
@@ -86,11 +99,33 @@ void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
         {threadpool->EnqueueStr(std::string(req.body()));}
 		res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+check_res+"\"}");
     });
+
+
+       server.set_http_handler<cinatra::GET, cinatra::POST>("/GetCallRecord/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
+    {
+        LOGGER->info("message is {}",std::string(req.body()));
+        CallRecord check;
+        std::string check_res = check.CheckInfo(std::string(req.body()));
+        if(check_res!="900"&&check_res!="901")
+        {threadpool->EnqueueStr(std::string(req.body()));}
+		res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+check_res+"\"}");
+    });
 }
+
+int PollingQueue()
+{
+    DataCache cache;
+    cache.PollingQueue();
+    return 0;
+}
+
 
 int main()
 {
     initspdlog();
+    MySql *mysql_ = MySql::getInstance();
+    mysql_->connect();
+
 
     auto config = JsonSimpleWrap::GetPaser("conf/config.json");
     int max_thread_num = 1;
@@ -103,6 +138,12 @@ int main()
     std::shared_ptr<ThreadPool<QueueType>> threadpool(new ThreadPool(queuetask, worker, 2, 2));
   
     SetApiCallBackHandler(server, threadpool);
+
+   
+
     server.run();
+     std::cout<<"main id = "<<this_thread::get_id()<<endl;
+    auto res = std::async(std::launch::async,PollingQueue);
+    
     return 0;
 }

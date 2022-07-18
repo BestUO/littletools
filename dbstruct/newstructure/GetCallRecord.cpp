@@ -282,3 +282,4 @@ int CallRecord::GetCallResult(int stop_reason, int customer_fail_reason)
         return CallResult::CALL_FAIL;
     }
 }
+
