@@ -139,11 +139,10 @@ int main()
   
     SetApiCallBackHandler(server, threadpool);
 
-   
 
+    std::thread queue(PollingQueue);
     server.run();
-     std::cout<<"main id = "<<this_thread::get_id()<<endl;
-    auto res = std::async(std::launch::async,PollingQueue);
+    queue.join();
     
     return 0;
 }

@@ -41,6 +41,7 @@ void UpdateMessage::HandleSQL(std::string &s)
 			// UpdateAiCalllogExtension(mysql, callog, id);
 			
 			std::string call_count = std::to_string(std::get<4>(result[0]));
+			LOGGER->info("calllog_id is {},clue_id is {},task_id is {},eid is {}", id,clue_id,task_id,eid);
 			std::tuple<std::string,std::string,std::string,std::string,std::string> id_cluster = std::make_tuple(id,clue_id,task_id,eid,call_count);
 			CallBackManage data_handle;
 			data_handle.CallBackHandle(callog,id_cluster);
