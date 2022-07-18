@@ -32,7 +32,7 @@
 void RedisOperate::CacheRules(const std::string &key,const std::string &rules)
 {
     redis.set(key,rules);
-    redis.expire(key,std::chrono::seconds(10));
+    // redis.expire(key,std::chrono::seconds(600));
     LOGGER->info("set rules {}",rules);
 }
 
