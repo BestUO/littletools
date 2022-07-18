@@ -112,10 +112,11 @@ void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
     });
 }
 
-void PollingQueue()
+int PollingQueue()
 {
     DataCache cache;
     cache.PollingQueue();
+    return 0;
 }
 
 
@@ -138,9 +139,11 @@ int main()
   
     SetApiCallBackHandler(server, threadpool);
 
-    DataCache cache;
-    std::async(std::launch::deferred,PollingQueue);
+   
 
     server.run();
+     std::cout<<"main id = "<<this_thread::get_id()<<endl;
+    auto res = std::async(std::launch::async,PollingQueue);
+    
     return 0;
 }

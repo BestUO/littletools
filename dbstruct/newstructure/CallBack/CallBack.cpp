@@ -246,8 +246,8 @@ void CallBackManage::ParseIntetionAndCallResult(CallBackRules &rules)
     LOGGER->info("ParseIntetionAndCallResult, rules is {}", rules.auto_recall_scenes);
     rapidjson::Value root;
     rapidjson::Document doc;
-    if(doc.Parse(rules.auto_recall_scenes.c_str()))
-    {if (doc.IsObject())
+    doc.Parse(rules.auto_recall_scenes.c_str());
+    if (doc.IsObject())
     {
         if (doc.HasMember("call_result"))
         {
@@ -277,16 +277,16 @@ std::string CallBackManage::SetRulesRedisCache(const CallBackRules &rules)
     rapidjson::Document doc;
     rapidjson::Value val;
     std::string result;
-    std::string api_callback_scene_status = rules.api_callback_scene_status;
+    // std::string api_callback_scene_status = rules.api_callback_scene_status;
     rapidjson::Document::AllocatorType &allocator = doc.GetAllocator();
-
-    doc.AddMember("detail_judge", val.SetString(rules.api_callback_scene_status.c_str(),allocator), allocator);
-    doc.AddMember("global_judge", val.SetInt(rules.global_judge), allocator);
-    doc.AddMember("scope_judge", val.SetInt(rules.scope_judge), allocator);
-    doc.AddMember("uuid", val.SetString(rules.uuid.c_str(),allocator), allocator);
-    doc.AddMember("intention_type_judge", val.SetString(rules.intention_type_judge.c_str(),allocator), allocator);
-    doc.AddMember("call_result_judge", val.SetString(rules.call_result_judge.c_str(),allocator), allocator);
-    doc.AddMember("auto_recall_status", val.SetInt(rules.auto_recall_status), allocator);
+    doc.SetObject();
+    doc.AddMember("detail_judge", rapidjson::StringRef(rules.api_callback_scene_status.c_str()), allocator);
+    doc.AddMember("global_judge", rules.global_judge, allocator);
+    doc.AddMember("scope_judge", rules.scope_judge, allocator);
+    doc.AddMember("uuid", rapidjson::StringRef(rules.uuid.c_str()), allocator);
+    doc.AddMember("intention_type_judge", rapidjson::StringRef(rules.intention_type_judge.c_str()), allocator);
+    doc.AddMember("call_result_judge", rapidjson::StringRef(rules.call_result_judge.c_str()), allocator);
+    doc.AddMember("auto_recall_status", rules.auto_recall_status, allocator);
 
     rapidjson::StringBuffer str_buf;
     rapidjson::Writer<rapidjson::StringBuffer> writer(str_buf);
@@ -382,7 +382,7 @@ std::string CallBackManage::MakeCacheJson(const CallBackData &data)//from code c
     rapidjson::Value data_json;
     rapidjson::Document::AllocatorType &allocator = doc.GetAllocator();
     rapidjson::Value val;
-
+    doc.SetObject();
     doc.AddMember("uuid",val.SetString(data.uuid.c_str(),allocator),allocator);
     root.AddMember("task_id",stoi_s(data.task_id),allocator);
     root.AddMember("call_result",data.call_result,allocator);

@@ -9,7 +9,6 @@ void DataCache::PollingQueue()
     std::deque<std::string> que; // pair: cm_id , is not _sync?
     // RedisOperate *instance = RedisOperate::getInstance();
     RedisOperate instance;
-    LOGGER->info("1111111111111111111");
     // instance->RedisConnect();
     std::string list_name = "cm_id_cluster";
 
@@ -24,7 +23,9 @@ void DataCache::PollingQueue()
                 PushQueue(que,list);
             else 
             {
-                sleep(300);
+                LOGGER->info("PollingQueue  sleep 300s");
+                // sleep(300);
+                LOGGER->info("PollingQueue  wakeup");
                 continue;
             }
         }
