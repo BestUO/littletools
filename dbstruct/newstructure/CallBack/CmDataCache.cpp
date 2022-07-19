@@ -42,11 +42,11 @@ void DataCache::PollingQueue()
                     if (CallBackJudge(rule, data))
                     {
                         // callback
-                        LOGGER->info("polling queue data pass check,begin callback");
+                        
                         instance.DelKey(now_id);
                         instance.LREMForList(list_name, {now_id});
                         std::string caback_data = MergeCacheJson(data, cm_data_cache);
-                        que.pop_front();
+                        LOGGER->info("polling queue data pass check,begin callback caback_data {}",caback_data);
                     }
                 }
                 else
