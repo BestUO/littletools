@@ -13,6 +13,17 @@ int stoi_s(const std::string &str) {
     }
     return i;
 }
+
+void SplitString(const std::string& s, std::vector<std::string>& tokens, const std::string& delimiters = " ")
+{
+    std::string::size_type lastPos = s.find_first_not_of(delimiters, 0);
+    std::string::size_type pos = s.find_first_of(delimiters, lastPos);
+    while (std::string::npos != pos || std::string::npos != lastPos) {
+        tokens.push_back(s.substr(lastPos, pos - lastPos));
+        lastPos = s.find_first_not_of(delimiters, pos);
+        pos = s.find_first_of(delimiters, lastPos);
+    }
+}
 void CallBackManage::CallBackHandle(CallInfo &cm_data, const std::tuple<std::string, std::string, std::string, std::string,std::string> &id_cluster)
 {
     LOGGER->info("begin CallBackHandle");
@@ -491,6 +502,21 @@ std::string CallBackManage::MakeCacheJson(const CallBackData &data)//from code c
 
 std::string CallBackManage::MergeCacheJson(const CallBackData &data,const std::string &redis_cache)//from redis cache  ,add these data
 {
+
+    // std::string clue_no = data.clue_no;
+    // if (!data.alias.empty()) {
+    //     clue_no = clue->alias;
+    //     std::vector<std::string> tokens;
+    //     SplitString(clue->alias, tokens, "||");
+    //     if (tokens.size() == 2) {
+    //         uuid = tokens[0];
+    //         clue_no = tokens[1];
+    //     } else if (tokens.size() == 1 && tokens[0] != clue->alias) {
+    //         uuid = tokens[0];
+    //         clue_no = "";
+    //     }
+    // }
+
     rapidjson::Document doc;
     rapidjson::Value root(rapidjson::kObjectType);
     rapidjson::Value data_json(rapidjson::Type::kArrayType);

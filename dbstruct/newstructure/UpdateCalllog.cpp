@@ -36,15 +36,15 @@ void UpdateMessage::HandleSQL(std::string &s)
 			std::string clue_id = std::to_string(std::get<1>(result[0]));
 			std::string task_id = std::to_string(std::get<2>(result[0]));
 			std::string eid = std::to_string(std::get<3>(result[0]));
-			// UpdateCalllog(mysql, callog);
-			// UpdateOutCallClue(mysql, callog, clue_id);
-			// UpdateAiCalllogExtension(mysql, callog, id);
+			UpdateCalllog(mysql, callog);
+			UpdateOutCallClue(mysql, callog, clue_id);
+			UpdateAiCalllogExtension(mysql, callog, id);
 			
-			std::string call_count = std::to_string(std::get<4>(result[0]));
-			LOGGER->info("calllog_id is {},clue_id is {},task_id is {},eid is {}", id,clue_id,task_id,eid);
-			std::tuple<std::string,std::string,std::string,std::string,std::string> id_cluster = std::make_tuple(id,clue_id,task_id,eid,call_count);
-			CallBackManage data_handle;
-			data_handle.CallBackHandle(callog,id_cluster);
+			// std::string call_count = std::to_string(std::get<4>(result[0]));
+			// LOGGER->info("calllog_id is {},clue_id is {},task_id is {},eid is {}", id,clue_id,task_id,eid);
+			// std::tuple<std::string,std::string,std::string,std::string,std::string> id_cluster = std::make_tuple(id,clue_id,task_id,eid,call_count);
+			// CallBackManage data_handle;
+			// data_handle.CallBackHandle(callog,id_cluster);
 		}
 	}
 	else
