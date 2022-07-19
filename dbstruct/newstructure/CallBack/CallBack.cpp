@@ -59,16 +59,21 @@ void CallBackManage::CallBackHandle(CallInfo &cm_data, const std::tuple<std::str
         LOGGER->info("redis no cache rules,should make it from mysql");
         rule = MakeCallBackRulesFromMySql(id_cluster);
         instance->CacheRules(locate,SetRulesRedisCache(rule));
-        if(CallBackJudge(rule,data))
-        {
+        
+     
             LOGGER->info("pass CallBackJudge");
             if(OC_sync_judge(std::get<static_cast<int>(IdCluster::CalllogId)>(id_cluster)))
             {
                 GetOCSyncData(data);
-                std::string cm_data_json = MakeCacheJson(data);
-                std::string caback_data = MergeCacheJson(data,cm_data_json);
-                //callback
-                LOGGER->info("data is sync ,begin callback");
+                if(CallBackJudge(rule,data))
+                { 
+                    std::string cm_data_json = MakeCacheJson(data);
+                    std::string caback_data = MergeCacheJson(data,cm_data_json);
+                    //callback
+                    LOGGER->info("data is sync ,begin callback");
+                }
+                else
+                    LOGGER->info("do not pass CallBackJudge,cannot callback");
             }
             else
             { 
@@ -77,9 +82,6 @@ void CallBackManage::CallBackHandle(CallInfo &cm_data, const std::tuple<std::str
             }
 
         }
-        else
-        LOGGER->info("do not pass CallBackJudge,cannot callback");
-    }
 }
 
 
@@ -453,13 +455,16 @@ std::string CallBackManage::MakeCacheJson(const CallBackData &data)//from code c
 {
     rapidjson::Document doc;
     rapidjson::Value root(rapidjson::kObjectType);
-    rapidjson::Value data_json;
+    rapidjson::Value data_json(rapidjson::Type::kArrayType);
     rapidjson::Document::AllocatorType &allocator = doc.GetAllocator();
     rapidjson::Value val;
     doc.SetObject();
     
     doc.AddMember("uuid",val.SetString(data.uuid.c_str(),allocator),allocator);
-    root.AddMember("task_id",stoi_s(data.task_id),allocator);
+    // root.AddMember("eid",stoi_s(data.eid),allocator);
+    // root.AddMember("calllog_id",stoi_s(data.calllog_id),allocator);
+    // root.AddMember("clue_id",stoi_s(data.clue_id),allocator);
+    // root.AddMember("task_id",stoi_s(data.task_id),allocator);
     root.AddMember("call_result",data.call_result,allocator);
     root.AddMember("manual_status",data.manual_status,allocator);
     root.AddMember("call_time",data.call_time,allocator);
@@ -469,38 +474,46 @@ std::string CallBackManage::MakeCacheJson(const CallBackData &data)//from code c
     root.AddMember("transfer_number",val.SetString(data.transfer_number.c_str(),allocator),allocator);
     root.AddMember("transfer_duration",data.transfer_duration,allocator);
     root.AddMember("record_url",val.SetString(data.record_url.c_str(),allocator),allocator);
+    root.AddMember("cc_number",val.SetString(data.cc_number.c_str(),allocator),allocator);
 
-    data_json.PushBack(root.move(),allocator);
+    data_json.PushBack(root,allocator);
 
     doc.AddMember("records",data_json,allocator);
 
     rapidjson::StringBuffer strBuffer;
     rapidjson::Writer<rapidjson::StringBuffer> writer(strBuffer);
     doc.Accept(writer);
-    LOGGER->info("oc has not sync,apicallback data is {}",strBuffer.GetString());
-    return strBuffer.GetString();
+    std::string res = strBuffer.GetString();
+    LOGGER->info("oc has not sync,apicallback data is {}",res);
+    
+    return res;
 }
 
 std::string CallBackManage::MergeCacheJson(const CallBackData &data,const std::string &redis_cache)//from redis cache  ,add these data
 {
     rapidjson::Document doc;
-    rapidjson::Value root;
-    rapidjson::Value data_json;
+    rapidjson::Value root(rapidjson::kObjectType);
+    rapidjson::Value data_json(rapidjson::Type::kArrayType);
     rapidjson::Document::AllocatorType &allocator = doc.GetAllocator();
     rapidjson::Value val;
     doc.Parse(redis_cache.c_str());
-
-    root = doc["records"][0];
-    root.AddMember("script_name",val.SetString(data.script_name.c_str(),allocator),allocator);
-    root.AddMember("callee_phone",val.SetString(data.callee_phone.c_str(),allocator),allocator);
-    root.AddMember("calllog_txt",val.SetString(data.calllog_txt.c_str(),allocator),allocator);
-    root.AddMember("intention_type",stoi_s(data.intention_type),allocator);
-    root.AddMember("label",val.SetString(data.label.c_str(),allocator),allocator);
-    root.AddMember("call_count",stoi_s(data.call_count),allocator);
-    root.AddMember("match_global_keyword",val.SetString(data.match_global_keyword.c_str(),allocator),allocator);
-    root.AddMember("clue_no",val.SetString(data.clue_no.c_str(),allocator),allocator);
-    root.AddMember("collect_info",val.SetString(data.collect_info.c_str(),allocator),allocator);
-    root.AddMember("buttons",val.SetString(data.buttons.c_str(),allocator),allocator);
+    if (doc.IsObject()&&doc.HasMember("records"))
+    {
+        root = doc["records"][0];
+        // root.EraseMember("eid");
+        // root.EraseMember("clue_id");
+        // root.EraseMember("calllog_id");
+        root.AddMember("script_name",val.SetString(data.script_name.c_str(),allocator),allocator);
+        root.AddMember("callee_phone",val.SetString(data.callee_phone.c_str(),allocator),allocator);
+        root.AddMember("calllog_txt",val.SetString(data.calllog_txt.c_str(),allocator),allocator);
+        root.AddMember("intention_type",stoi_s(data.intention_type),allocator);
+        root.AddMember("label",val.SetString(data.label.c_str(),allocator),allocator);
+        root.AddMember("call_count",stoi_s(data.call_count),allocator);
+        root.AddMember("match_global_keyword",val.SetString(data.match_global_keyword.c_str(),allocator),allocator);
+        root.AddMember("clue_no",val.SetString(data.clue_no.c_str(),allocator),allocator);
+        root.AddMember("collect_info",val.SetString(data.collect_info.c_str(),allocator),allocator);
+        root.AddMember("buttons",val.SetString(data.buttons.c_str(),allocator),allocator);
+    }
 
     data_json.PushBack(root,allocator);
     doc.EraseMember("records");
@@ -517,21 +530,24 @@ CallBackData  CallBackManage::CacheCmJsonSwitch(const std::string &data)
 {
     CallBackData cm_info;
     rapidjson::Document doc;
-    rapidjson::Value root;
+    rapidjson::Value root(rapidjson::kObjectType);;
     doc.Parse(data.c_str());
-    root = doc["records"][0];
-    cm_info.cc_number = root["cc_number"].GetString();
-    cm_info.call_result = root["call_result"].GetInt();
-    cm_info.duration_time = root["duration_time"].GetInt();
-    cm_info.manual_status = root["manual_type"].GetInt();
-    cm_info.record_url = root["record_url"].GetString();
-    cm_info.answer_time = root["confirm_time"].GetString();
-    cm_info.hangup_time = root["end_time"].GetString();
-    cm_info.switch_number = root["switch_number"].GetString();
-    cm_info.hangup_type = root["hangup_type"].GetInt();
-    cm_info.transfer_number = root["transfer_number"].GetString();
-    cm_info.transfer_duration = root["transfer_duration"].GetInt();
-    cm_info.call_time = root["start_time"].GetInt();
+    if (doc.IsObject()&&doc.HasMember("records"))
+    {
+        root = doc["records"][0];
+        // cm_info.uuid = root["uuid"].GetString();
+        cm_info.task_id = std::to_string(root["task_id"].GetInt());
+        cm_info.call_result = root["call_result"].GetInt();
+        cm_info.manual_status = root["manual_status"].GetInt();
+        cm_info.call_time = root["call_time"].GetInt();
+        cm_info.duration_time = root["duration"].GetInt();
+        cm_info.answer_time = std::to_string(root["answer_time"].GetInt());
+        cm_info.hangup_time = std::to_string(root["hangup_time"].GetInt());
+        cm_info.transfer_number = root["transfer_number"].GetString();
+        cm_info.transfer_duration = root["transfer_duration"].GetInt();
+        cm_info.record_url = root["record_url"].GetString();
+        cm_info.cc_number = root["cc_number"].GetString();
+    }
     return cm_info;
 
 }

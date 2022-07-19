@@ -26,12 +26,7 @@ class DataCache:public CallBackManage{
 public: 
 
     void PollingQueue();
-    void PushQueue(std::deque<std::string> &que,std::vector<std::string> &set);
-    // void MoveQueue(std::deque<std::string> &que);
-    void BackQueue(std::deque<std::string> &que,std::string list_name);
-    // bool DataCache::CheckQueue(const std::deque<std::string> &que, const std::time_t &time_pre, const std::time_t &time_now);
-    // void ManageIdTime( std::vector<std::string> &cm_id);
-    bool CheckIdTime(const IdMuster &muster);
+    bool CheckTimeOut(const IdMuster &muster);
     std::string GetCmDataId(const std::string &id);
     IdMuster ParseCmId(const std::string &cm_id);
 };
