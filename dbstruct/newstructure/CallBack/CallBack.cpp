@@ -303,7 +303,7 @@ void CallBackManage::ParseApiCallbackSceneStatus(CallBackRules &rules)
     {
         if (doc.HasMember("callback_scope"))
         {
-            rules.global_judge = doc["call_record_detail"].GetInt();
+            rules.global_judge = doc["callback_scope"].GetInt();
         }
         if (doc.HasMember("call_record_detail"))
         {
@@ -412,7 +412,7 @@ bool CallBackManage::AutoTaskMatch(const CallBackRules &rules, const CallBackDat
 
 bool CallBackManage::CallBackJudge(const CallBackRules &rules, const CallBackData &data)
 {
-    if (((rules.global_judge) || (rules.uuid != "")) && rules.api_callback_scene_status != "0")
+    if (((rules.global_judge) || (rules.uuid != "")) && rules.callback)
     {
         if ((rules.scope_judge == 1 && rules.auto_recall_status == 1))
         {
