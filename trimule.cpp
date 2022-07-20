@@ -8,7 +8,7 @@
 #include "spdlog/sinks/rotating_file_sink.h"
 #include "spdlog/async.h"
 #include "settingParser/settingParser.h"
-#include "dbstruct/newstructure/UpdateCalllog.h"
+#include "dbstruct/newstructure/UpdateCalllog/UpdateCalllog.h"
 #include "dbstruct/newstructure/CallBack/CallBack.h"
 #include "dbstruct/newstructure/CallBack/CmDataCache.h"
 #include <vector>
@@ -73,12 +73,13 @@ protected:
     //     update_action.HandleSQL(mysql, s);
     // }
     virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
-    DealElement(bool mysql, std::string &&s,const bool &class_judge)
+    DealElement(bool mysql, std::string &&s)
     {
       
         UpdateMessage update_action;
-
-        update_action.HandleSQL(s,const bool &class_judge);
+        bool class_judge =0;
+        std::string calllog_id = "";
+        update_action.HandleSQL(s,class_judge,calllog_id);
     }
     virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
     DealElement(std::string &&s)

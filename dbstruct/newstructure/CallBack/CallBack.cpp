@@ -27,7 +27,7 @@ void SplitString(const std::string &s, std::vector<std::string> &tokens, const s
         pos = s.find_first_of(delimiters, lastPos);
     }
 }
-void CallBackManage::CallBackHandle(CallInfo &cm_data, const std::tuple<std::string, std::string, std::string, std::string, std::string> &id_cluster, const bool &callback_class)
+void CallBackManage::CallBackHandle(CallInfo &cm_data, const std::tuple<std::string, std::string, std::string,std::string, std::string> &id_cluster, const bool &callback_class)
 {
     LOGGER->info("begin CallBackHandle");
     CallBackData data;
@@ -39,12 +39,12 @@ void CallBackManage::CallBackHandle(CallInfo &cm_data, const std::tuple<std::str
     data.call_count = std::get<static_cast<int>(IdCluster::CallCount)>(id_cluster);
     rule.eid = stoi_s(std::get<static_cast<int>(IdCluster::EnterpriseUid)>(id_cluster));
     rule.task_id = stoi_s(std::get<static_cast<int>(IdCluster::TaskId)>(id_cluster));
+    data.url = GetCallBackUrl(data.eid);
     CmDataSwitch(cm_data, data);
-
-    MutipleCallBackManage(data, rule, class_judge);
+    MutipleCallBackManage(data, rule, callback_class,id_cluster,callback_class);
 }
 
-void CallBackManage::MutipleCallBackManage(CallBackData data, CallBackRules rule, const int &class_judge, const std::tuple<std::string, std::string, std::string, std::string, std::string> &id_cluster)
+void CallBackManage::MutipleCallBackManage(CallBackData data, CallBackRules rule, const int &class_judge, const std::tuple<std::string, std::string,std::string, std::string, std::string> &id_cluster, const bool &callback_class)
 {
 
     std::shared_ptr<RedisOperate> instance = std::make_shared<RedisOperate>();
@@ -62,7 +62,7 @@ void CallBackManage::MutipleCallBackManage(CallBackData data, CallBackRules rule
 
     if (CallBackJudge(rule, data))
     {
-        if (OC_sync_judge(stoi_s(data.calllog_id)))
+        if (OC_sync_judge(data.calllog_id))
         {
             GetOCSyncData(data);
             if (CallBackJudge(rule, data))
@@ -71,15 +71,15 @@ void CallBackManage::MutipleCallBackManage(CallBackData data, CallBackRules rule
                 std::string caback_data = MergeCacheJson(data, cm_data_json);
                 // callback
                 LOGGER->info("data is sync ,begin callback");
-                callback_class = 2;
-                CacheCmData(data, caback_data, callback_class);
+                int call_class = 2;
+                CacheCmData(data, caback_data, call_class);
             }
         }
         else
         {
-            callback_class = 0;
-            std::String str = "";
-            CacheCmData(data, str, callback_class);
+            int call_class = 0;
+            std::string str = "";
+            CacheCmData(data, str, call_class);
             LOGGER->info("data is not sync ,donot callback");
         }
     }
@@ -92,6 +92,16 @@ bool CallBackManage::OC_sync_judge(const std::string &calllog_id)
     MySql *instance = MySql::getInstance();
     auto sync_judge = instance->mysqlclient.query<std::tuple<std::string>>("select script_name from calllog where id = " + calllog_id);
     return std::get<0>(sync_judge[0]) == "" ? 0 : 1;
+}
+
+std::string CallBackManage::GetCallBackUrl(const std::string &eid)
+{
+    MySql *instance = MySql::getInstance();
+    auto url = instance->mysqlclient.query<std::tuple<std::string>>("select value from aicall_config where `key` = 'api_callback_domain' and eid = "+eid);
+    if(url.size())
+        return  std::get<0>(url[0]);
+    else
+        return ""; 
 }
 
 void CallBackManage::GetOCSyncData(CallBackData &data)
@@ -122,70 +132,69 @@ void CallBackManage::GetOCSyncData(CallBackData &data)
         LOGGER->info("enterprise {}  clue {}  label , alias no data", data.eid, data.clue_id);
     }
 
-    // calllog
-    std::string db_name_calllog = "calllog";
-    std::vector<std::string> values_calllog = {"task_id", "script_name", "callee_phone", "caller_phone", "calllog_txt",
-                                               "intention_type", "call_count", "match_global_keyword", "buttons", "id","label"};
-    std::vector<std::string> condition_calllog = {data.eid, data.calllog_id};
-    std::vector<std::string> condition_name_calllog{"enterprise_uid", "id"};
-    std::vector<std::string> condition_symbols_calllog = {"=", "="};
+    // // calllog
+    // std::string db_name_calllog = "calllog";
+    // std::vector<std::string> values_calllog = {"task_id", "script_name", "callee_phone", "caller_phone", "calllog_txt",
+    //                                            "intention_type", "call_count", "match_global_keyword", "buttons", "id","label"};
+    // std::vector<std::string> condition_calllog = {data.eid, data.calllog_id};
+    // std::vector<std::string> condition_name_calllog{"enterprise_uid", "id"};
+    // std::vector<std::string> condition_symbols_calllog = {"=", "="};
+    // if (data.cc_number == "")
+    // {
+    //     LOGGER->info("cm no data should get all data from oc");
+    //     std::vector<std::string> calllog_columns = {"duration", "call_result", "transfer_number", "transfer_duration", "call_record_url", "manual_status", "answer_time", "hangup_time", "call_time"};
 
-    if (data.cc_number == "")
-    {
-        LOGGER->info("cm no data should get all data from oc");
-        std::vector<std::string> calllog_columns = {"duration", "call_result", "transfer_number", "transfer_duration", "call_record_url", "manual_status", "answer_time", "hangup_time", "call_time"};
+    //     values_calllog.push_back(calllog_columns.begin(), calllog_columns.end());
+    //     std::string command_calllog = sql_command.MysqlGenerateSelectSQL(db_name_calllog, values_calllog, condition_calllog, condition_name_calllog, condition_symbols_calllog);
+    //     auto result_calllog_ = instance->mysqlclient.query<std::tuple<std::string, std::string, std::string,
+    //                                                                  std::string, std::string, std::string,std::string,
+    //                                                                  std::string, std::string, std::string,std::string,
+    //                                                                  std::string, std::string, std::string,
+    //                                                                  std::string, std::string, std::string,
+    //                                                                  std::string, std::string, std::string>>(command_calllog.c_str());
+    //     LOGGER->info("command_calllog is {}", command_calllog);
+    // }
+    // else
+    // {
+    //     std::string command_calllog = sql_command.MysqlGenerateSelectSQL(db_name_calllog, values_calllog, condition_calllog, condition_name_calllog, condition_symbols_calllog);
+    //     auto result_calllog_ = instance->mysqlclient.query<std::tuple<std::string, std::string, std::string,
+    //                                                                  std::string, std::string, std::string, std::string,
+    //                                                                  std::string, std::string, std::string,std::string>>(command_calllog.c_str());
+    //     LOGGER->info("command_calllog is {}", command_calllog);
+    // }
 
-        values_calllog.push_back(calllog_columns.begin(), calllog_columns.end());
-        std::string command_calllog = sql_command.MysqlGenerateSelectSQL(db_name_calllog, values_calllog, condition_calllog, condition_name_calllog, condition_symbols_calllog);
-        auto result_calllog = instance->mysqlclient.query<std::tuple<std::string, std::string, std::string,
-                                                                     std::string, std::string, std::string,std::string,
-                                                                     std::string, std::string, std::string,std::string,
-                                                                     std::string, std::string, std::string,
-                                                                     std::string, std::string, std::string,
-                                                                     std::string, std::string, std::string>>(command_calllog.c_str());
-        LOGGER->info("command_calllog is {}", command_calllog);
-    }
-    else
-    {
-        std::string command_calllog = sql_command.MysqlGenerateSelectSQL(db_name_calllog, values_calllog, condition_calllog, condition_name_calllog, condition_symbols_calllog);
-        auto result_calllog = instance->mysqlclient.query<std::tuple<std::string, std::string, std::string,
-                                                                     std::string, std::string, std::string, std::string,
-                                                                     std::string, std::string, std::string,std::string>>(command_calllog.c_str());
-        LOGGER->info("command_calllog is {}", command_calllog);
-    }
-
-    if (result_calllog.size())
-    {
-        data.intention_type = std::get<static_cast<int>(calllog_enum::intention_type)>(result_calllog[0]);
-        data.match_global_keyword = std::get<static_cast<int>(calllog_enum::match_global_keyword)>(result_calllog[0]);
-        data.callee_phone = std::get<static_cast<int>(calllog_enum::callee_phone)>(result_calllog[0]);
-        data.calllog_txt = std::get<static_cast<int>(calllog_enum::calllog_txt)>(result_calllog[0]);
-        data.call_count = std::get<static_cast<int>(calllog_enum::call_count)>(result_calllog[0]);
-        data.buttons = std::get<static_cast<int>(calllog_enum::buttons)>(result_calllog[0]);
-        data.script_name = std::get<static_cast<int>(calllog_enum::script_name)>(result_calllog[0]);
-        data.caller_phone = std::get<static_cast<int>(calllog_enum::caller_phone)>(result_calllog[0]);
-        data.collect_info = std::get<static_cast<int>(calllog_enum::calllog_txt)>(result_calllog[0]);
-        data.label = std::get<static_cast<int>(calllog_enum::lebel)>(result_calllog[0]);
-        if (data.cc_number == "")
-        {
-            //         duration, call_result, transfer_number,
-            // transfer_duration, call_record_url, manual_status,
-            // answer_time, hangup_time, call_time
-            data.duration_time = std::get<static_cast<int>(calllog_enum::duration)>(result_calllog[0]);
-            data.call_result = std::get<static_cast<int>(calllog_enum::call_result)>(result_calllog[0]);
-            data.transfer_number = std::get<static_cast<int>(calllog_enum::transfer_number)>(result_calllog[0]);
-            data.transfer_duration = std::get<static_cast<int>(calllog_enum::transfer_duration)>(result_calllog[0]);
-            data.call_record_url = std::get<static_cast<int>(calllog_enum::call_record_url)>(result_calllog[0]);
-            data.manual_status = std::get<static_cast<int>(calllog_enum::manual_status)>(result_calllog[0]);
-            data.answer_time = std::get<static_cast<int>(calllog_enum::answer_time)>(result_calllog[0]);
-            data.hangup_time = std::get<static_cast<int>(calllog_enum::hangup_time)>(result_calllog[0]);
-            data.call_time = std::get<static_cast<int>(calllog_enum::call_time)>(result_calllog[0]);
-        }
-    }
-    else
-    {
-        LOGGER->info("enterprise {}   calllog {}  intention_type,match_global_keyword.... no data", data.eid, data.calllog_id);
-    }
+    // if (result_calllog.size())
+    // {
+    //     data.intention_type = std::get<static_cast<int>(calllog_enum::intention_type)>(result_calllog[0]);
+    //     data.match_global_keyword = std::get<static_cast<int>(calllog_enum::match_global_keyword)>(result_calllog[0]);
+    //     data.callee_phone = std::get<static_cast<int>(calllog_enum::callee_phone)>(result_calllog[0]);
+    //     data.calllog_txt = std::get<static_cast<int>(calllog_enum::calllog_txt)>(result_calllog[0]);
+    //     data.call_count = std::get<static_cast<int>(calllog_enum::call_count)>(result_calllog[0]);
+    //     data.buttons = std::get<static_cast<int>(calllog_enum::buttons)>(result_calllog[0]);
+    //     data.script_name = std::get<static_cast<int>(calllog_enum::script_name)>(result_calllog[0]);
+    //     data.caller_phone = std::get<static_cast<int>(calllog_enum::caller_phone)>(result_calllog[0]);
+    //     data.collect_info = std::get<static_cast<int>(calllog_enum::calllog_txt)>(result_calllog[0]);
+    //     data.label = std::get<static_cast<int>(calllog_enum::lebel)>(result_calllog[0]);
+    //     if (data.cc_number == "")
+    //     {
+    //         //         duration, call_result, transfer_number,
+    //         // transfer_duration, call_record_url, manual_status,
+    //         // answer_time, hangup_time, call_time
+    //         data.duration_time = std::get<static_cast<int>(calllog_enum::duration)>(result_calllog[0]);
+    //         data.call_result = std::get<static_cast<int>(calllog_enum::call_result)>(result_calllog[0]);
+    //         data.transfer_number = std::get<static_cast<int>(calllog_enum::transfer_number)>(result_calllog[0]);
+    //         data.transfer_duration = std::get<static_cast<int>(calllog_enum::transfer_duration)>(result_calllog[0]);
+    //         data.call_record_url = std::get<static_cast<int>(calllog_enum::call_record_url)>(result_calllog[0]);
+    //         data.manual_status = std::get<static_cast<int>(calllog_enum::manual_status)>(result_calllog[0]);
+    //         data.answer_time = std::get<static_cast<int>(calllog_enum::answer_time)>(result_calllog[0]);
+    //         data.hangup_time = std::get<static_cast<int>(calllog_enum::hangup_time)>(result_calllog[0]);
+    //         data.call_time = std::get<static_cast<int>(calllog_enum::call_time)>(result_calllog[0]);
+    //     }
+    // }
+    // else
+    // {
+    //     LOGGER->info("enterprise {}   calllog {}  intention_type,match_global_keyword.... no data", data.eid, data.calllog_id);
+    // }
 
     // task
     std::string db_name_task = "outcall_task";
@@ -471,7 +480,7 @@ bool CallBackManage::CallBackJudge(const CallBackRules &rules, const CallBackDat
     return 0;
 }
 
-void CallBackManage::CacheCmData(const CallBackData &data, const std::string &cache_data, const bool &class_judge)
+void CallBackManage::CacheCmData(const CallBackData &data, std::string &cache_data, const bool &class_judge)
 {
     auto now = time(NULL);
     std::stringstream sstream;
@@ -481,20 +490,20 @@ void CallBackManage::CacheCmData(const CallBackData &data, const std::string &ca
     std::shared_ptr<RedisOperate> instance = std::make_shared<RedisOperate>();
     if (class_judge == 0)
     {
-        id = data.eid + "-" + data.task_id + "-" + data.calllog_id + "-" + time_;
+        id = data.eid + "-" + data.task_id + "-" + data.calllog_id + "-" + time_+"-"+data.url;
         cache_data = MakeCacheJson(data);
     }
     else if (class_judge == 1)
     {
-        id = data.eid + "-" + data.task_id + "-" + data.calllog_id + "-web"; // web callback
+        id = data.eid + "-" + data.task_id + "-" + data.calllog_id + "-web-"+data.url; // web callback
     }
     else if (class_judge == 2)
     {
-        id = data.eid + "-" + data.task_id + "-" + data.calllog_id + "-now"; // cm and oc  must callback now
+        id = data.eid + "-" + data.task_id + "-" + data.calllog_id + "-now-"+data.url; // cm and oc  must callback now
     }
     else if (class_judge == 3)
     {
-        id = data.eid + "-" + data.task_id + "-" + data.calllog_id + "-oc"; // oc callback
+        id = data.eid + "-" + data.task_id + "-" + data.calllog_id + "-oc-"+data.url; // oc callback
     }
     LOGGER->info("cache cm_data,which id is {}", id);
 
@@ -626,4 +635,5 @@ void CallBackManage::CallBackAction(const std::string &data, const std::string &
 
 std::string CallBackManage::GetCallRecordFromCm(const std::string url)
 {
+    return "";
 }

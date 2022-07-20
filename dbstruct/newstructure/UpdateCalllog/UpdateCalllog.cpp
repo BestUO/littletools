@@ -8,10 +8,9 @@
 #include <vector>
 #include <string>
 #include <tuple>
-#include "GetCallRecord.h"
 #include "UpdateCalllog.h"
-#include "../sqlcommand/updatedb.h"
-#include "../dbstruct/dbstruct.h"
+#include "../../sqlcommand/updatedb.h"
+#include "../../dbstruct/dbstruct.h"
 #include "ormpp/dbng.hpp"
 #define SPDLOG_FILENAME "log/TrimuleLogger.log"
 #define SPDLOGGERNAME "TrimuleLogger"
@@ -23,43 +22,45 @@ void UpdateMessage::HandleSQL(std::string &s, const bool &class_judge, const std
 
 	CallRecord record;
 	CallInfo callog = record.GetCallRecord(s, 2);
-	MySql *mysql = MySql::getInstance();
 
 	std::tuple<int, int, int, int, int> result;
 	if (class_judge == 0)
-		result = GetIdFromMysql(callog.cc_number, class_judge);
+		result = GetIdFromMysql(class_judge,callog.cc_number);
 	else
-		result = GetIdFromMysql(calllog_id, class_judge);
+		result = GetIdFromMysql(class_judge,calllog_id);
 
-	if (result.size())
+	if (std::tuple_size<decltype(result)>::value!=0)
 	{
-		std::string id = std::to_string(std::get<0>(result[0]));
-		std::string clue_id = std::to_string(std::get<1>(result[0]));
-		std::string task_id = std::to_string(std::get<2>(result[0]));
-		std::string eid = std::to_string(std::get<3>(result[0]));
-
+		std::string id = std::to_string(std::get<0>(result));
+		std::string clue_id = std::to_string(std::get<1>(result));
+		std::string task_id = std::to_string(std::get<2>(result));
+		std::string eid = std::to_string(std::get<3>(result));
 		UpdateCalllog(callog);
 		UpdateOutCallClue(callog, clue_id);
 		UpdateAiCalllogExtension(callog, id);
 
-		std::string call_count = std::to_string(std::get<4>(result[0]));
+		std::string call_count = std::to_string(std::get<4>(result));
+		// std::string url = std::to_string(std::get<5>(result));
 		LOGGER->info("calllog_id is {},clue_id is {},task_id is {},eid is {}", id, clue_id, task_id, eid);
 		std::tuple<std::string, std::string, std::string, std::string, std::string> id_cluster = std::make_tuple(id, clue_id, task_id, eid, call_count);
 		CallBackManage data_handle;
-		data_handle.CallBackHandle(callog, id_cluster, const bool &class_judge);
+		data_handle.CallBackHandle(callog, id_cluster, class_judge);
 	}
 }
 std::tuple<int, int, int, int, int> UpdateMessage::GetIdFromMysql(const bool &class_judge, const std::string &condition)
 {
+	MySql *mysql = MySql::getInstance();
 	if (class_judge == 0)
 	{
 		std::string cc_ = R"(cc_number = ')" + condition + R"(')";
-		return mysql->mysqlclient.query<std::tuple<int, int, int, int, int>>("select id, clue_id ,task_id,enterprise_uid,call_count from calllog where " + cc_);
+		auto res =  mysql->mysqlclient.query<std::tuple<int, int, int, int, int>>("select id, clue_id ,task_id,enterprise_uid,call_count from calllog where " + cc_);
+		return res[0];
 	}
 	else
 	{
 		std::string calllog_id = R"(id = ')" + condition + R"(')";
-		return mysql->mysqlclient.query<std::tuple<int, int, int, int, int>>("select id, clue_id ,task_id,enterprise_uid,call_count from calllog where " + calllog_id);
+		auto res = mysql->mysqlclient.query<std::tuple<int, int, int, int, int>>("select id, clue_id ,task_id,enterprise_uid,call_count from calllog where " + calllog_id);
+		return res[0];
 	}
 }
 // int UpdateMessage::NewGetHangupCauseFromCallRecord(CallInfo info)

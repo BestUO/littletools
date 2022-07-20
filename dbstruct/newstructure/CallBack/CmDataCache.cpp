@@ -90,8 +90,10 @@ void DataCache::OcWebPollingQueue()
                 if (muster.time == "web")
                 data = GetCallRecordFromCm(muster.url);
                 UpdateMessage update_action;
-                bool class_judge = 2;
-                update_action.HandleSQL(s,class_judge);
+                bool class_judge = 5;
+                update_action.HandleSQL(data,class_judge,muster.calllog_id);
+                instance.DelKey(now_id);
+                instance.LREMForList(list_name, {now_id});
             }
         }
         list.clear();
@@ -124,7 +126,7 @@ void DataCache::CallBackActionQueue()
             if (muster.time == "now")
             {
                 std::string data_cache = instance.SearchRules(now_id);
-                CallBackAction(const std::string &data,const std::string &url);
+                CallBackAction(data_cache,muster.url);
                 instance.DelKey(now_id);
                 instance.LREMForList(list_name, {now_id});
             }

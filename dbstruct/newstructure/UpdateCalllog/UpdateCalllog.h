@@ -1,3 +1,5 @@
+#ifndef UPDATE_H
+#define UPDATE_H
 
 #include "cinatra.hpp"
 #include "ormpp/dbng.hpp"
@@ -7,15 +9,15 @@
 #include "spdlog/async.h"
 #include <vector>
 #include <string>
-#include "GetCallRecord.h"
-#include "CallBack/CallBack.h"
+#include "../GetCallRecord/GetCallRecord.h"
+#include "../CallBack/CallBack.h"
 #define SPDLOG_FILENAME "log/TrimuleLogger.log"
 #define SPDLOGGERNAME "TrimuleLogger"
 #define LOGGER spdlog::get(SPDLOGGERNAME)
 class UpdateMessage
 {
 public:
-    void UpdateMessage::HandleSQL(std::string &s,const bool &class_judge,const std::string &calllog_id)
+    void HandleSQL(std::string &s,const bool &class_judge,const std::string &calllog_id);
  
 private: 
     void UpdateCalllog(CallInfo callog);
@@ -27,3 +29,5 @@ private:
     std::string CalculateTransferManualCost(CallInfo callog);
     std::tuple<int, int,int,int,int> GetIdFromMysql(const bool &class_judge,const std::string &condition);
 };
+
+#endif
