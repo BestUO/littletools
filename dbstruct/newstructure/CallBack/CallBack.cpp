@@ -4,8 +4,8 @@
 #include <vector>
 
 
-int stoi_s(const std::string &str, int defval) {
-    int i = defval;
+int stoi_s(const std::string &str) {
+    int i = 0;
     try {
         i = std::stoi(str);
     } catch (...) {
@@ -23,6 +23,8 @@ void CallBackManage::CallBackHandle(CallInfo &cm_data, const std::tuple<std::str
     data.clue_id = std::get<static_cast<int>(IdCluster::ClueId)>(id_cluster);
     data.calllog_id = std::get<static_cast<int>(IdCluster::CalllogId)>(id_cluster);
     data.call_count = std::get<static_cast<int>(IdCluster::CallCount)>(id_cluster);
+    rule.eid = stoi_s(std::get<static_cast<int>(IdCluster::EnterpriseUid)>(id_cluster));
+    rule.task_id = stoi_s(std::get<static_cast<int>(IdCluster::TaskId)>(id_cluster));
     CmDataSwitch(cm_data, data);
 
 
@@ -35,39 +37,51 @@ void CallBackManage::CallBackHandle(CallInfo &cm_data, const std::tuple<std::str
         if(CallBackJudge(rule,data))
         {
             //callback
+            LOGGER->info("pass CallBackJudge");
             if(OC_sync_judge(std::get<static_cast<int>(IdCluster::CalllogId)>(id_cluster)))
             {
                 GetOCSyncData(data);
+                LOGGER->info("data is sync ,begin callback");
                 std::string cm_data_json = MakeCacheJson(data);
                 std::string caback_data = MergeCacheJson(data,cm_data_json);
             }
             else
             { 
                CacheCmData(data);
+               LOGGER->info("data is not sync ,donot callback");
             }
 
-        }
+        } 
+        else 
+        LOGGER->info("do not pass CallBackJudge,cannot callback");
 
     } else {
+        LOGGER->info("redis no cache rules,should make it from mysql");
         rule = MakeCallBackRulesFromMySql(id_cluster);
         instance->CacheRules(locate,SetRulesRedisCache(rule));
-        if(CallBackJudge(rule,data))
-        {
-
+        
+     
+            LOGGER->info("pass CallBackJudge");
             if(OC_sync_judge(std::get<static_cast<int>(IdCluster::CalllogId)>(id_cluster)))
             {
                 GetOCSyncData(data);
-                std::string cm_data_json = MakeCacheJson(data);
-                std::string caback_data = MergeCacheJson(data,cm_data_json);
-                //callback
+                if(CallBackJudge(rule,data))
+                { 
+                    std::string cm_data_json = MakeCacheJson(data);
+                    std::string caback_data = MergeCacheJson(data,cm_data_json);
+                    //callback
+                    LOGGER->info("data is sync ,begin callback");
+                }
+                else
+                    LOGGER->info("do not pass CallBackJudge,cannot callback");
             }
             else
             { 
                CacheCmData(data);    
+               LOGGER->info("data is not sync ,donot callback");
             }
 
         }
-    }
 }
 
 
@@ -79,6 +93,7 @@ bool CallBackManage::OC_sync_judge(const std::string &calllog_id)
 }
 
 
+
 void CallBackManage::GetOCSyncData(CallBackData &data)
 {
     MySql * instance = MySql::getInstance();
@@ -87,9 +102,9 @@ void CallBackManage::GetOCSyncData(CallBackData &data)
     //clue
     std::string db_name_clue = "outcall_clue";
     std::vector<std::string> values_clue = {"label","alias"};
-    std::vector<std::string> condition_clue = {data.eid,data.clue_id};
-    std::vector<std::string> condition_name_clue{"enterprise_uid","id"};
-    std::vector<std::string> condition_symbols_clue = {"=","="};
+    std::vector<std::string> condition_clue = {data.clue_id};
+    std::vector<std::string> condition_name_clue{"id"};
+    std::vector<std::string> condition_symbols_clue = {"="};
 
     std::string command_clue = sql_command.MysqlGenerateSelectSQL(db_name_clue,values_clue,condition_clue,condition_name_clue,condition_symbols_clue);
     auto result_outcall_clue = instance->mysqlclient.query<std::tuple<std::string,std::string>>(command_clue.c_str());
@@ -98,14 +113,14 @@ void CallBackManage::GetOCSyncData(CallBackData &data)
     //calllog
     std::string db_name_calllog = "calllog";
     std::vector<std::string> values_calllog = {"task_id","script_name","callee_phone","caller_phone","calllog_txt",
-                                        "intention_type","call_count","match_global_keyword","collect_info","buttons","id"};
+                                        "intention_type","call_count","match_global_keyword","buttons","id"};
     std::vector<std::string> condition_calllog = {data.eid,data.calllog_id};
     std::vector<std::string> condition_name_calllog{"enterprise_uid","id"};
     std::vector<std::string> condition_symbols_calllog = {"=","="};
     std::string command_calllog = sql_command.MysqlGenerateSelectSQL(db_name_calllog,values_calllog,condition_calllog,condition_name_calllog,condition_symbols_calllog);
     auto result_calllog = instance->mysqlclient.query<std::tuple<std::string,std::string,std::string,
                                                     std::string,std::string,std::string,std::string,
-                                                    std::string,std::string,std::string,std::string>>(command_calllog.c_str());
+                                                    std::string,std::string,std::string>>(command_calllog.c_str());
     LOGGER->info("command_calllog is {}",command_calllog);
 
     //task 
@@ -142,6 +157,8 @@ void CallBackManage::GetOCSyncData(CallBackData &data)
         data.buttons = std::get<static_cast<int>(calllog_enum::buttons)>(result_calllog[0]);
         data.script_name = std::get<static_cast<int>(calllog_enum::script_name)>(result_calllog[0]);
         data.caller_phone = std::get<static_cast<int>(calllog_enum::caller_phone)>(result_calllog[0]);
+        // data.collect_info = CollectInfoXML2JSON(std::get<static_cast<int>(calllog_enum::calllog_txt)>(result_calllog[0]));
+        data.collect_info = std::get<static_cast<int>(calllog_enum::calllog_txt)>(result_calllog[0]);
     }
        else 
     {
@@ -211,10 +228,10 @@ CallBackRules CallBackManage::MakeCallBackRulesFromMySql(const std::tuple<std::s
 
     //aicall_config
     std::string db_name_aicall_config = "aicall_config";
-    std::vector<std::string> values_aicall_config = {"api_callback_scene_status"};
-    std::vector<std::string> condition_name_aicall_config= {"eid"};
-    std::vector<std::string> condition_aicall_config= {std::get<int(IdCluster::EnterpriseUid)>(id_cluster)};
-    std::vector<std::string> condition_symbols_aicall_config= {"="};
+    std::vector<std::string> values_aicall_config = {"`value`"};
+    std::vector<std::string> condition_name_aicall_config= {"eid","`key`"};
+    std::vector<std::string> condition_aicall_config= {std::get<int(IdCluster::EnterpriseUid)>(id_cluster),"api_callback_scene_status"};
+    std::vector<std::string> condition_symbols_aicall_config= {"=","="};
     std::string aicall_config_rule = general_sql.MysqlGenerateSelectSQL(db_name_aicall_config,values_aicall_config,condition_aicall_config, condition_name_aicall_config, condition_symbols_aicall_config);
     auto result_aicall_config = instance->mysqlclient.query<std::tuple<std::string>>(aicall_config_rule);
     LOGGER->info("command is {}",aicall_config_rule);
@@ -239,11 +256,69 @@ CallBackRules CallBackManage::MakeCallBackRulesFromMySql(const std::tuple<std::s
         LOGGER->info("enterprise {} auto_recall_scenes.... no data",rules.eid);
     }
     ParseIntetionAndCallResult(rules);
+    ParseApiCallbackSceneStatus(rules);
     return rules;
+}
+
+// std::string CallBackManage::CollectInfoXML2JSON(const std::string xml)
+// {
+//     std::string jsonstr = "[]";
+//     tinyxml2::XMLDocument doc;
+//     tinyxml2::XMLError error = doc.Parse(xml.c_str());
+//     auto root = doc.RootElement();
+//     if(root)
+//     {
+//         auto collect_info_element = root->FirstChildElement("collect_info");
+//         if(collect_info_element)
+//         {
+//             rapidjson::StringBuffer buffer;
+//             rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+//             writer.StartArray();
+//             auto child = collect_info_element->FirstChildElement("item");
+//             while(child)
+//             {
+//                 writer.StartObject();
+//                 writer.Key("question_name");
+//                 writer.String(child->Attribute("match_standard_question"));
+//                 writer.Key("match_result");
+//                 writer.String(child->Attribute("match_cluster_name"));
+//                 writer.Key("real_answer");
+//                 writer.String(child->GetText()==nullptr?"":child->GetText());
+//                 writer.EndObject();
+//                 child = child->NextSiblingElement("item");
+//             }
+//             writer.EndArray();
+//             jsonstr = buffer.GetString();
+//         }
+//     }
+//     return jsonstr;
+// }
+
+void CallBackManage::ParseApiCallbackSceneStatus(CallBackRules &rules)
+{
+     LOGGER->info("ParseIntetionAndCallResult, api_callback_scene_status is {}", rules.api_callback_scene_status);
+    rapidjson::Document doc;
+    doc.Parse(rules.api_callback_scene_status.c_str());
+    if (doc.IsObject())
+    {
+        if (doc.HasMember("callback_scope"))
+        {
+            rules.global_judge = doc["callback_scope"].GetInt();
+        }
+        if (doc.HasMember("call_record_detail"))
+        {
+            rules.callback = doc["call_record_detail"].GetInt();
+        }
+        if (doc.HasMember("call_record_detail_occasion"))
+        {
+            rules.scope_judge = doc["call_record_detail_occasion"].GetInt();
+        }
+        
+    }
 }
 void CallBackManage::ParseIntetionAndCallResult(CallBackRules &rules)
 {
-    LOGGER->info("ParseIntetionAndCallResult, rules is {}", rules.auto_recall_scenes);
+    LOGGER->info("ParseIntetionAndCallResult, auto_recall_scenes is {}", rules.auto_recall_scenes);
     rapidjson::Value root;
     rapidjson::Document doc;
     doc.Parse(rules.auto_recall_scenes.c_str());
@@ -298,7 +373,7 @@ bool CallBackManage::GetRulesFromRedis(CallBackRules &rules)
 {
 
     std::string location = std::to_string(rules.eid) + '-' + std::to_string(rules.task_id);
-
+    // LOGGER->info("eid is {} ,task_id is {} ",rules.eid,rules.task_id);
     std::shared_ptr<RedisOperate> instance = std::make_shared<RedisOperate>();
     // instance->RedisConnect();
     std::string rule = instance->SearchRules(location);
@@ -337,7 +412,7 @@ bool CallBackManage::AutoTaskMatch(const CallBackRules &rules, const CallBackDat
 
 bool CallBackManage::CallBackJudge(const CallBackRules &rules, const CallBackData &data)
 {
-    if (((rules.global_judge) || (rules.uuid != "")) && rules.api_callback_scene_status != "0")
+    if (((rules.global_judge) || (rules.uuid != "")) && rules.callback)
     {
         if ((rules.scope_judge == 1 && rules.auto_recall_status == 1))
         {
@@ -354,6 +429,7 @@ bool CallBackManage::CallBackJudge(const CallBackRules &rules, const CallBackDat
         else
             return 1;
     }
+    return 0;
 }
 
 void CallBackManage::CacheCmData(const CallBackData &data)
@@ -378,13 +454,17 @@ void CallBackManage::CacheCmData(const CallBackData &data)
 std::string CallBackManage::MakeCacheJson(const CallBackData &data)//from code cache
 {
     rapidjson::Document doc;
-    rapidjson::Value root;
-    rapidjson::Value data_json;
+    rapidjson::Value root(rapidjson::kObjectType);
+    rapidjson::Value data_json(rapidjson::Type::kArrayType);
     rapidjson::Document::AllocatorType &allocator = doc.GetAllocator();
     rapidjson::Value val;
     doc.SetObject();
+    
     doc.AddMember("uuid",val.SetString(data.uuid.c_str(),allocator),allocator);
-    root.AddMember("task_id",stoi_s(data.task_id),allocator);
+    // root.AddMember("eid",stoi_s(data.eid),allocator);
+    // root.AddMember("calllog_id",stoi_s(data.calllog_id),allocator);
+    // root.AddMember("clue_id",stoi_s(data.clue_id),allocator);
+    // root.AddMember("task_id",stoi_s(data.task_id),allocator);
     root.AddMember("call_result",data.call_result,allocator);
     root.AddMember("manual_status",data.manual_status,allocator);
     root.AddMember("call_time",data.call_time,allocator);
@@ -394,6 +474,7 @@ std::string CallBackManage::MakeCacheJson(const CallBackData &data)//from code c
     root.AddMember("transfer_number",val.SetString(data.transfer_number.c_str(),allocator),allocator);
     root.AddMember("transfer_duration",data.transfer_duration,allocator);
     root.AddMember("record_url",val.SetString(data.record_url.c_str(),allocator),allocator);
+    root.AddMember("cc_number",val.SetString(data.cc_number.c_str(),allocator),allocator);
 
     data_json.PushBack(root,allocator);
 
@@ -402,30 +483,37 @@ std::string CallBackManage::MakeCacheJson(const CallBackData &data)//from code c
     rapidjson::StringBuffer strBuffer;
     rapidjson::Writer<rapidjson::StringBuffer> writer(strBuffer);
     doc.Accept(writer);
-    LOGGER->info("oc has not sync,apicallback data is {}",strBuffer.GetString());
-    return strBuffer.GetString();
+    std::string res = strBuffer.GetString();
+    LOGGER->info("oc has not sync,apicallback data is {}",res);
+    
+    return res;
 }
 
 std::string CallBackManage::MergeCacheJson(const CallBackData &data,const std::string &redis_cache)//from redis cache  ,add these data
 {
     rapidjson::Document doc;
-    rapidjson::Value root;
-    rapidjson::Value data_json;
+    rapidjson::Value root(rapidjson::kObjectType);
+    rapidjson::Value data_json(rapidjson::Type::kArrayType);
     rapidjson::Document::AllocatorType &allocator = doc.GetAllocator();
     rapidjson::Value val;
     doc.Parse(redis_cache.c_str());
-
-    root = doc["records"][0];
-    root.AddMember("script_name",val.SetString(data.script_name.c_str(),allocator),allocator);
-    root.AddMember("callee_phone",val.SetString(data.callee_phone.c_str(),allocator),allocator);
-    root.AddMember("calllog_txt",val.SetString(data.calllog_txt.c_str(),allocator),allocator);
-    root.AddMember("intention_type",stoi_s(data.intention_type),allocator);
-    root.AddMember("label",val.SetString(data.label.c_str(),allocator),allocator);
-    root.AddMember("call_count",stoi_s(data.call_count),allocator);
-    root.AddMember("match_global_keyword",val.SetString(data.match_global_keyword.c_str(),allocator),allocator);
-    root.AddMember("clue_no",val.SetString(data.clue_no.c_str(),allocator),allocator);
-    root.AddMember("collect_info",val.SetString(data.collect_info.c_str(),allocator),allocator);
-    root.AddMember("buttons",val.SetString(data.buttons.c_str(),allocator),allocator);
+    if (doc.IsObject()&&doc.HasMember("records"))
+    {
+        root = doc["records"][0];
+        // root.EraseMember("eid");
+        // root.EraseMember("clue_id");
+        // root.EraseMember("calllog_id");
+        root.AddMember("script_name",val.SetString(data.script_name.c_str(),allocator),allocator);
+        root.AddMember("callee_phone",val.SetString(data.callee_phone.c_str(),allocator),allocator);
+        root.AddMember("calllog_txt",val.SetString(data.calllog_txt.c_str(),allocator),allocator);
+        root.AddMember("intention_type",stoi_s(data.intention_type),allocator);
+        root.AddMember("label",val.SetString(data.label.c_str(),allocator),allocator);
+        root.AddMember("call_count",stoi_s(data.call_count),allocator);
+        root.AddMember("match_global_keyword",val.SetString(data.match_global_keyword.c_str(),allocator),allocator);
+        root.AddMember("clue_no",val.SetString(data.clue_no.c_str(),allocator),allocator);
+        root.AddMember("collect_info",val.SetString(data.collect_info.c_str(),allocator),allocator);
+        root.AddMember("buttons",val.SetString(data.buttons.c_str(),allocator),allocator);
+    }
 
     data_json.PushBack(root,allocator);
     doc.EraseMember("records");
@@ -442,21 +530,24 @@ CallBackData  CallBackManage::CacheCmJsonSwitch(const std::string &data)
 {
     CallBackData cm_info;
     rapidjson::Document doc;
-    rapidjson::Value root;
+    rapidjson::Value root(rapidjson::kObjectType);;
     doc.Parse(data.c_str());
-    root = doc["records"][0];
-    cm_info.cc_number = root["cc_number"].GetString();
-    cm_info.call_result = root["call_result"].GetInt();
-    cm_info.duration_time = root["duration_time"].GetInt();
-    cm_info.manual_status = root["manual_type"].GetInt();
-    cm_info.record_url = root["record_url"].GetString();
-    cm_info.answer_time = root["confirm_time"].GetString();
-    cm_info.hangup_time = root["end_time"].GetString();
-    cm_info.switch_number = root["switch_number"].GetString();
-    cm_info.hangup_type = root["hangup_type"].GetInt();
-    cm_info.transfer_number = root["transfer_number"].GetString();
-    cm_info.transfer_duration = root["transfer_duration"].GetInt();
-    cm_info.call_time = root["start_time"].GetInt();
+    if (doc.IsObject()&&doc.HasMember("records"))
+    {
+        root = doc["records"][0];
+        // cm_info.uuid = root["uuid"].GetString();
+        cm_info.task_id = std::to_string(root["task_id"].GetInt());
+        cm_info.call_result = root["call_result"].GetInt();
+        cm_info.manual_status = root["manual_status"].GetInt();
+        cm_info.call_time = root["call_time"].GetInt();
+        cm_info.duration_time = root["duration"].GetInt();
+        cm_info.answer_time = std::to_string(root["answer_time"].GetInt());
+        cm_info.hangup_time = std::to_string(root["hangup_time"].GetInt());
+        cm_info.transfer_number = root["transfer_number"].GetString();
+        cm_info.transfer_duration = root["transfer_duration"].GetInt();
+        cm_info.record_url = root["record_url"].GetString();
+        cm_info.cc_number = root["cc_number"].GetString();
+    }
     return cm_info;
 
 }

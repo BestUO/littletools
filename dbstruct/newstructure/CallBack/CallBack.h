@@ -4,7 +4,6 @@
 #include <iostream>
 #include <string>
 #include <json/json.h>
-#include "../../common/src/common_define.h"
 #include "../../dbstruct/dbstruct.h"
 #include "../GetCallRecord.h"
 #include "ormpp/dbng.hpp"
@@ -30,11 +29,11 @@ struct CallBackRules{
     int eid;
     
     int callback;//0:donot callback,1:callback
-    int global_judge;//0 :all  1:auto_task should use rules
+    int global_judge;//1 :all  0:just api data
     int call_count;
     int auto_recall_max_times;
     int auto_recall_status;
-    int scope_judge;
+    int scope_judge;//tcallback every time :0,if autorecall lasttime 1
     std::string uuid;
     std::string api_callback_scene_status;
     std::string intention_type_judge;
@@ -135,7 +134,7 @@ struct calllog{
 enum  class calllog_enum{
     task_id,script_name,callee_phone,caller_phone,
     calllog_txt,intention_type,call_count,match_global_keyword,
-    collect_info,buttons,id
+    buttons,id
 };
 // struct outcall_task{
 //         std::string	uuid;
@@ -208,6 +207,8 @@ private:
     bool AutoTaskMatch(const CallBackRules &rules,const CallBackData &data);
     void CacheCmData(const CallBackData &data);
     std::string MakeCacheJson(const CallBackData &data);
+    void ParseApiCallbackSceneStatus(CallBackRules &rules);
+    // std::string CollectInfoXML2JSON(const std::string xml)
 
 };      
 
