@@ -73,12 +73,12 @@ protected:
     //     update_action.HandleSQL(mysql, s);
     // }
     virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
-    DealElement(bool mysql, std::string &&s)
+    DealElement(bool mysql, std::string &&s,const bool &class_judge)
     {
       
         UpdateMessage update_action;
 
-        update_action.HandleSQL(s);
+        update_action.HandleSQL(s,const bool &class_judge);
     }
     virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
     DealElement(std::string &&s)
@@ -101,7 +101,7 @@ void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
     });
 
 
-       server.set_http_handler<cinatra::GET, cinatra::POST>("/GetCallRecord/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
+    server.set_http_handler<cinatra::GET, cinatra::POST>("/GetCallRecord/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
     {
         LOGGER->info("message is {}",std::string(req.body()));
         CallRecord check;

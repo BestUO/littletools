@@ -18,7 +18,8 @@ struct IdMuster{
     std::string calllog_id;
     std::string eid;
     std::string task_id;
-    int time;
+    std::string time;
+    std::string url;
 };
 
 class DataCache:public CallBackManage{
@@ -26,6 +27,8 @@ class DataCache:public CallBackManage{
 public: 
 
     void PollingQueue();
+    void OcWebPollingQueue();
+    void CallBackActionQueue();
     bool CheckTimeOut(const IdMuster &muster);
     std::string GetCmDataId(const std::string &id);
     IdMuster ParseCmId(const std::string &cm_id);

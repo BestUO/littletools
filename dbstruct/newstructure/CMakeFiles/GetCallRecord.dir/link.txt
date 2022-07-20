@@ -1,2 +1,0 @@
-/usr/bin/ar qc libGetCallRecord.a CMakeFiles/GetCallRecord.dir/GetCallRecord.cpp.o CMakeFiles/GetCallRecord.dir/UpdateCalllog.cpp.o
-/usr/bin/ranlib libGetCallRecord.a

@@ -1,5 +1,4 @@
 #include "GetCallRecord.h"
-#include "../dbstruct/dbstruct.h"
 #include <iostream>
 #include <json/json.h>
 #include <string>

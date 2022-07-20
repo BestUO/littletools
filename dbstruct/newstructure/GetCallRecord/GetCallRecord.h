@@ -4,7 +4,7 @@
 #include <iostream>
 #include <string>
 #include <json/json.h>
-#include "../dbstruct/dbstruct.h"
+#include "../../dbstruct/dbstruct.h"
 
     struct CallInfo {
         std::string record_url;

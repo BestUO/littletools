@@ -15,13 +15,13 @@
 class UpdateMessage
 {
 public:
-    void HandleSQL(std::string &s);
+    void HandleSQL(std::string &s,const bool &class_judge);
  
 private: 
-    void UpdateCalllog( ormpp::dbng<ormpp::mysql> &mysql,CallInfo callog);
-    void UpdateOutCallClue( ormpp::dbng<ormpp::mysql> &mysql,CallInfo callog,std::string clue_id);
-    void UpdateAiCalllogExtension(ormpp::dbng<ormpp::mysql> &mysql, CallInfo callog,std::string calllog_id);
-    void ExecuteCommand(ormpp::dbng<ormpp::mysql> &mysql, std::string &s,std::string children_db_name);
+    void UpdateCalllog(CallInfo callog);
+    void UpdateOutCallClue(CallInfo callog,std::string clue_id);
+    void UpdateAiCalllogExtension(CallInfo callog,std::string calllog_id);
+    void ExecuteCommand(std::string &s,std::string children_db_name);
     // int  NewGetHangupCauseFromCallRecord(CallInfo info);
     // int  GetCallResult(int cause); 
     std::string CalculateTransferManualCost(CallInfo callog);

@@ -1,6 +1,6 @@
 #ifndef CALLBACK_H
 #define CALLBACK_H
-
+#include "cinatra.hpp"
 #include <iostream>
 #include <string>
 #include <json/json.h>
@@ -191,7 +191,7 @@ class CallBackManage:public CallRecord{
 
 public:
     
-    void CallBackHandle(CallInfo & cm_data,const std::tuple<std::string,std::string,std::string,std::string,std::string> &id_cluster);
+    void CallBackHandle(CallInfo & cm_data,const std::tuple<std::string,std::string,std::string,std::string,std::string> &id_cluster,const bool &class_judge);
     void CmDataSwitch(CallInfo & cm_data,CallBackData &data);
     void GetOCSyncData(CallBackData &data);
     void ParseIntetionAndCallResult(CallBackRules &rules);
@@ -202,10 +202,11 @@ public:
     bool OC_sync_judge(const std::string &calllog_id);
     CallBackData CacheCmJsonSwitch(const std::string &cm_data);
     std::string MergeCacheJson(const CallBackData &data,const std::string &redis_cache);
+    std::string GetCallRecordFromCm(const std::string url);
 private:
-    void CallBackAction();
+    void CallBackAction(CallBackAction(const std::string &data,const std::string &url));
     bool AutoTaskMatch(const CallBackRules &rules,const CallBackData &data);
-    void CacheCmData(const CallBackData &data);
+    void CacheCmData(const CallBackData &data,const std::string &result,const bool &class_judge);
     std::string MakeCacheJson(const CallBackData &data);
     void ParseApiCallbackSceneStatus(CallBackRules &rules);
     // std::string CollectInfoXML2JSON(const std::string xml)
