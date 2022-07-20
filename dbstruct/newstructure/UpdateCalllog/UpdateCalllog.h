@@ -15,7 +15,7 @@
 class UpdateMessage
 {
 public:
-    void HandleSQL(std::string &s,const bool &class_judge);
+    void UpdateMessage::HandleSQL(std::string &s,const bool &class_judge,const std::string &calllog_id)
  
 private: 
     void UpdateCalllog(CallInfo callog);
@@ -25,4 +25,5 @@ private:
     // int  NewGetHangupCauseFromCallRecord(CallInfo info);
     // int  GetCallResult(int cause); 
     std::string CalculateTransferManualCost(CallInfo callog);
+    std::tuple<int, int,int,int,int> GetIdFromMysql(const bool &class_judge,const std::string &condition);
 };

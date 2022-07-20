@@ -47,8 +47,6 @@ void DataCache::PollingQueue()
                             instance.DelKey(now_id);
                             instance.LREMForList(list_name, {now_id});
                             std::string caback_data = MergeCacheJson(data, cm_data_cache);
-                            LOGGER->info("polling queue data pass check,begin callback caback_data {}", caback_data);
-                            CallBackAction(caback_data);
                         }
                     }
                     else
@@ -76,9 +74,9 @@ void DataCache::OcWebPollingQueue()
             list = instance.GetListFromRedis(list_name);
             if (list.empty())
             {
-                LOGGER->info("no cache data,PollingQueue  sleep 300s");
+                LOGGER->info("no cache data,OcWebPollingQueue  sleep 300s");
                 sleep(300);
-                // LOGGER->info("PollingQueue  wakeup");
+                LOGGER->info("OcWebPollingQueue  wakeup");
                 continue;
             }
         }
@@ -92,22 +90,54 @@ void DataCache::OcWebPollingQueue()
                 if (muster.time == "web")
                 data = GetCallRecordFromCm(muster.url);
                 UpdateMessage update_action;
-                update_action.HandleSQL(s,const bool &class_judge);
-
+                bool class_judge = 2;
+                update_action.HandleSQL(s,class_judge);
             }
         }
         list.clear();
     }
 }
+
 void DataCache::CallBackActionQueue()
 {
+    std::vector<std::string> list;
+    RedisOperate instance;
+    std::string list_name = "cm_id_cluster";
+    
+    while (true)
+    {
+        if (list.empty())
+        {
+            list = instance.GetListFromRedis(list_name);
+            if (list.empty())
+            {
+                LOGGER->info("no cache data,CallBackActionQueue  sleep 300s");
+                sleep(300);
+                LOGGER->info("CallBackActionQueue  wakeup");
+                continue;
+            }
+        }
+        for (auto &now_id : list)
+        {
+            IdMuster muster = ParseCmId(now_id);
+            
+            if (muster.time == "now")
+            {
+                std::string data_cache = instance.SearchRules(now_id);
+                CallBackAction(const std::string &data,const std::string &url);
+                instance.DelKey(now_id);
+                instance.LREMForList(list_name, {now_id});
+            }
+        }
+        list.clear();
+    }
 }
 
 IdMuster DataCache::ParseCmId(const std::string &cm_id)
 {
     IdMuster muster;
     int id_num = 0;
-    int pos1 = 0, pos2 = 0, pos3;
+    int pos1 = 0, pos2 = 0, pos3=0,pos4=0;
     for (int i = 0; i < cm_id.size(); i++)
     {
         if (cm_id[i] == '-')
@@ -123,6 +153,10 @@ IdMuster DataCache::ParseCmId(const std::string &cm_id)
             else if (pos3 == 0)
             {
                 pos3 = i;
+            }
+            else if (pos4 == 0)
+            {
+                pos4 = i;
                 break;
             }
         }
@@ -131,7 +165,8 @@ IdMuster DataCache::ParseCmId(const std::string &cm_id)
     muster.eid = cm_id.substr(0, pos1 + 1);
     muster.task_id = cm_id.substr(pos1 + 1, (pos2 - pos1 - 1));
     muster.calllog_id = cm_id.substr(pos2 + 1, pos3 - pos2 - 1);
-    muster.time = cm_id.substr(pos3 + 1, (cm_id.size() - pos3 - 2));
+    muster.time = cm_id.substr(pos3 + 1, pos4 - pos3 - 1);
+    muster.url = cm_id.substr(pos3 + 1, (cm_id.size() - pos4 - 2));
     return muster;
 }
 

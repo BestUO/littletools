@@ -4,8 +4,8 @@
 #include <iostream>
 #include <string>
 #include <json/json.h>
-#include "../../dbstruct/dbstruct.h"
-#include "../GetCallRecord.h"
+#include "../../../dbstruct/dbstruct.h"
+#include "../../GetCallRecord/GetCallRecord.h"
 #include "ormpp/dbng.hpp"
 #include "ormpp/mysql.hpp"
 #include "ormpp/connection_pool.hpp"
@@ -19,7 +19,7 @@ using namespace std::string_literals;
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/rotating_file_sink.h"
 #include "spdlog/async.h"
-#include  "../../../redispool/redisclient.h"
+#include  "../../../../redispool/redisclient.h"
 #define SPDLOG_FILENAME "log/TrimuleLogger.log"
 #define SPDLOGGERNAME "TrimuleLogger"
 #define LOGGER spdlog::get(SPDLOGGERNAME)
@@ -76,11 +76,12 @@ struct CallBackData{
         std::string	collect_info;
         std::string	buttons;
 
+        std::string call_progress;
         CallBackData() : eid(""),clue_id(""),record_url(""),answer_time(""),hangup_time(""),duration_time(0),transfer_number(""),
                          transfer_duration(0),switch_number(""),manual_status(0),cc_number(""),call_result(0),
                         hangup_type(0),call_time(0), uuid(""),task_id(""),script_name(""),callee_phone(""),caller_phone(""),
                         calllog_txt(""),intention_type("0"),label(""),call_count("0"),match_global_keyword(""),
-                        clue_no(""),collect_info(""),buttons(""),calllog_id(""){}
+                        clue_no(""),collect_info(""),buttons(""),calllog_id(""),call_progress(""){}
 };
 
 struct OC_data{
@@ -134,7 +135,9 @@ struct calllog{
 enum  class calllog_enum{
     task_id,script_name,callee_phone,caller_phone,
     calllog_txt,intention_type,call_count,match_global_keyword,
-    buttons,id
+    buttons,id,label,duration, call_result, transfer_number,
+    transfer_duration, call_record_url, manual_status, 
+    answer_time, hangup_time, call_time
 };
 // struct outcall_task{
 //         std::string	uuid;
@@ -203,8 +206,9 @@ public:
     CallBackData CacheCmJsonSwitch(const std::string &cm_data);
     std::string MergeCacheJson(const CallBackData &data,const std::string &redis_cache);
     std::string GetCallRecordFromCm(const std::string url);
+    void MutipleCallBackManage( CallBackData data,CallBackRules rule);
 private:
-    void CallBackAction(CallBackAction(const std::string &data,const std::string &url));
+    void CallBackAction(const std::string &data,const std::string &url);
     bool AutoTaskMatch(const CallBackRules &rules,const CallBackData &data);
     void CacheCmData(const CallBackData &data,const std::string &result,const bool &class_judge);
     std::string MakeCacheJson(const CallBackData &data);
