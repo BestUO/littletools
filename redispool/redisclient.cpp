@@ -95,7 +95,7 @@ std::vector<std::string> RedisOperate::GetListFromRedis(const std::string & list
     std::vector<std::string> vec;
     if(len!=0)
     {
-        redis.lrange(list_name,0,len-1,std::back_inserter(vec));
+        redis.lrange(list_name,0,len,std::back_inserter(vec));
     }
     return vec;
 }
