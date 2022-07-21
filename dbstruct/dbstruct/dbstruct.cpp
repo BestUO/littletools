@@ -17,6 +17,16 @@ void MySql::connect()
     mysqlclient.ping();
 }
 
+void MySql::ReSetStatus()
+{
+    if(!mysqlclient.ping())
+    {
+        LOGGER->info("mysql out of sync ,reconnect");
+        connect();
+    }
+
+}
+
 MySql::~MySql()
 {
     LOGGER->info("delete mysql");

@@ -30,6 +30,7 @@ public:
     ormpp::dbng<ormpp::mysql> mysqlclient;
 	static MySql * getInstance();
 	void connect();
+    void ReSetStatus();
     static MySql *instance;
 private:
     // void RedisConnect();

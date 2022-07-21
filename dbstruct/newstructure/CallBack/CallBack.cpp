@@ -90,6 +90,7 @@ void CallBackManage::MutipleCallBackManage(CallBackData data, CallBackRules rule
 bool CallBackManage::OC_sync_judge(const std::string &calllog_id)
 {
     MySql *instance = MySql::getInstance();
+    instance->ReSetStatus();
     auto sync_judge = instance->mysqlclient.query<std::tuple<std::string>>("select script_name from calllog where id = " + calllog_id);
     return std::get<0>(sync_judge[0]) == "" ? 0 : 1;
 }
@@ -97,6 +98,7 @@ bool CallBackManage::OC_sync_judge(const std::string &calllog_id)
 std::string CallBackManage::GetCallBackUrl(const std::string &eid)
 {
     MySql *instance = MySql::getInstance();
+    instance->ReSetStatus();
     auto url = instance->mysqlclient.query<std::tuple<std::string>>("select value from aicall_config where `key` = 'api_callback_domain' and eid = " + eid);
     if (url.size())
         return std::get<0>(url[0]);
@@ -107,6 +109,8 @@ std::string CallBackManage::GetCallBackUrl(const std::string &eid)
 void CallBackManage::GetOCSyncData(CallBackData &data)
 {
     MySql *instance = MySql::getInstance();
+    instance->ReSetStatus();
+
     LOGGER->info("GetOCSyncData eid is {}", data.eid);
     GenerateSQL sql_command;
 
@@ -260,6 +264,7 @@ void CallBackManage::CmDataSwitch(CallInfo &cm_data, CallBackData &data)
 CallBackRules CallBackManage::MakeCallBackRulesFromMySql(const std::tuple<std::string, std::string, std::string, std::string, std::string> &id_cluster)
 {
     MySql *instance = MySql::getInstance();
+    instance->ReSetStatus();
     CallBackRules rules;
     rules.eid = stoi_s(std::get<static_cast<int>(IdCluster::EnterpriseUid)>(id_cluster));
     rules.task_id = stoi_s(std::get<static_cast<int>(IdCluster::TaskId)>(id_cluster));

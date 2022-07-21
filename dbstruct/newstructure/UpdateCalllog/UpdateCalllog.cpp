@@ -51,6 +51,7 @@ void UpdateMessage::HandleSQL(std::string &s, const bool &class_judge, const std
 std::tuple<std::string, std::string, std::string, std::string, std::string> UpdateMessage::GetIdFromMysql(const bool &class_judge, const std::string &condition)
 {
 	MySql *mysql = MySql::getInstance();
+	mysql->ReSetStatus();
 	std::tuple<std::string, std::string, std::string, std::string, std::string> null_tu = std::make_tuple("","","","","");
 	if (class_judge == 0)
 	{
@@ -142,7 +143,7 @@ void UpdateMessage::UpdateAiCalllogExtension(CallInfo calllog, std::string calll
 void UpdateMessage::ExecuteCommand(std::string &sql_command, std::string children_db_name)
 {
 	MySql *mysql = MySql::getInstance();
-
+	mysql->ReSetStatus();
 	if (sql_command == "no command")
 		LOGGER->info("{}", children_db_name + " update failed ,no command");
 	else if (mysql->mysqlclient.execute(sql_command))
