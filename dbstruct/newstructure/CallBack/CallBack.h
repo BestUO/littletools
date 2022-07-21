@@ -5,6 +5,7 @@
 #include <string>
 #include <json/json.h>
 #include "../../dbstruct/dbstruct.h"
+#include "../UpdateCalllog/UpdateCalllog.h"
 #include "../GetCallRecord/GetCallRecord.h"
 #include "ormpp/dbng.hpp"
 #include "ormpp/mysql.hpp"
@@ -192,10 +193,21 @@ enum  class IntentionType
     IntentionI,
     IntentionJ //J is not used, just use as sentinel
 };
+
+
+struct WebOcApiData
+{
+    int type;
+    std::vector<std::string> calllog_id_array;
+
+    WebOcApiData():type(0),calllog_id_array({}){}
+};
+
 class CallBackManage:public CallRecord{
 
 public:
-    
+    WebOcApiData ParsePostData(const std::string &str);
+    void MakeQueueCache(const std::string &str);
     void CallBackHandle(CallInfo & cm_data,const std::tuple<std::string,std::string,std::string,std::string,std::string> &id_cluster,const bool &class_judge);
     void CmDataSwitch(CallInfo & cm_data,CallBackData &data);
     void GetOCSyncData(CallBackData &data);
@@ -211,6 +223,7 @@ public:
     void MutipleCallBackManage(CallBackData data, CallBackRules rule, const int &class_judge, const std::tuple<std::string,std::string, std::string, std::string, std::string> &id_cluster, const bool &callback_class);
     std::string GetCallBackUrl(const std::string &eid);
     void CallBackAction(const std::string &data,const std::string &url);
+    void PrepareId(CallBackData &data,CallBackRules &rule,const int &class_judge,const std::string &id);
 private:
     
     bool AutoTaskMatch(const CallBackRules &rules,const CallBackData &data);

@@ -21,7 +21,7 @@
 #define LOGGER spdlog::get(SPDLOGGERNAME)
 
 void initspdlog()
-{ 
+{
     spdlog::flush_every(std::chrono::seconds(5));
     auto file_logger = spdlog::rotating_logger_mt<spdlog::async_factory>(SPDLOGGERNAME, SPDLOG_FILENAME, 1024 * 1024 * 200, 5);
     LOGGER->set_level(spdlog::level::info); // Set global log level to info
@@ -37,11 +37,6 @@ public:
 protected:
     virtual void WorkerRun(bool original)
     {
-        // ormpp::dbng<ormpp::mysql> mysqlclient;
-        // settingParser mysql_example;
-        // sqlconnect conne = mysql_example.GetSettinghParser("conf/config.json");
-
-        // mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str());
 
         while (!Worker<T>::_stop)
         {
@@ -50,8 +45,7 @@ protected:
             {
                 while (!e->empty())
                 {
-                    bool mysqlclient=0;
-                    DealElement(mysqlclient, std::move(e->front()));
+                    DealElement(std::move(e->front()));
                     e->pop();
                 }
             }
@@ -64,53 +58,58 @@ protected:
         }
     }
 
-    // virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
-    // DealElement(ormpp::dbng<ormpp::mysql> &mysql, std::string &&s)
-    // {
-    //     mysql.ping();
-    //     UpdateMessage update_action;
-
-    //     update_action.HandleSQL(mysql, s);
-    // }
-    virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
-    DealElement(bool mysql, std::string &&s)
-    {
-      
-        UpdateMessage update_action;
-        bool class_judge =0;
-        std::string calllog_id = "";
-        update_action.HandleSQL(s,class_judge,calllog_id);
-    }
     virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
     DealElement(std::string &&s)
-    {
-        return;
+    {   
+
+        std::string real_data = s.substr(1,s.size()-1);
+        
+        if (s[0] == '0')//cm ctive
+        {
+            UpdateMessage update_action;
+            update_action.HandleSQL(real_data);
+        }
+        else  //oc  web
+        {
+            CallBackManage cache_action;
+            cache_action.MakeQueueCache(real_data);
+        }
     }
+
+    // virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
+    // DealElement(std::string &&s)
+    // {
+    //     return;
+    // }
 };
 
 template <class T>
 void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
-{
+{   
     server.set_http_handler<cinatra::GET, cinatra::POST>("/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
-    {
+                                                         {
         LOGGER->info("message is {}",std::string(req.body()));
         CallRecord check;
         std::string check_res = check.CheckInfo(std::string(req.body()));
+        std::string que_str ="0"+std::string(req.body());
+        int type = 0;
         if(check_res!="900"&&check_res!="901")
-        {threadpool->EnqueueStr(std::string(req.body()));}
-		res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+check_res+"\"}");
-    });
+        {threadpool->EnqueueStr(que_str);}
+		res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+check_res+"\"}"); });
 
 
     server.set_http_handler<cinatra::GET, cinatra::POST>("/GetCallRecord/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
-    {
+                                                         {
+
+                                    //checkweboc data
         LOGGER->info("message is {}",std::string(req.body()));
         CallRecord check;
         std::string check_res = check.CheckInfo(std::string(req.body()));
+        std::string que_str ="1"+std::string(req.body());
+        int type = 1;
         if(check_res!="900"&&check_res!="901")
-        {threadpool->EnqueueStr(std::string(req.body()));}
-		res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+check_res+"\"}");
-    });
+        {threadpool->EnqueueStr(que_str);}
+		res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+check_res+"\"}"); });
 }
 
 int PollingQueue()
@@ -119,14 +118,24 @@ int PollingQueue()
     cache.PollingQueue();
     return 0;
 }
-
+int OcWebPollingQueue()
+{
+    DataCache cache;
+    cache.OcWebPollingQueue();
+    return 0;
+}
+int CallBackActionQueue()
+{
+    DataCache cache;
+    cache.CallBackActionQueue();
+    return 0;
+}
 
 int main()
 {
     initspdlog();
     MySql *mysql_ = MySql::getInstance();
     mysql_->connect();
-
 
     auto config = JsonSimpleWrap::GetPaser("conf/config.json");
     int max_thread_num = 1;
@@ -137,13 +146,16 @@ int main()
     auto queuetask = std::shared_ptr<QueueType>(new QueueType);
     std::shared_ptr<Worker<QueueType>> worker = std::make_shared<WorkerForHttp<QueueType>>(queuetask);
     std::shared_ptr<ThreadPool<QueueType>> threadpool(new ThreadPool(queuetask, worker, 2, 2));
-  
+
     SetApiCallBackHandler(server, threadpool);
 
-
-    std::thread queue(PollingQueue);
+    std::thread polling_queue(PollingQueue);
+    std::thread oc_web_polling_queue(OcWebPollingQueue);
+    std::thread call_back_action_queue(CallBackActionQueue);
     server.run();
-    queue.join();
-    
+    polling_queue.join();
+    oc_web_polling_queue.join();
+    call_back_action_queue.join();
+
     return 0;
 }

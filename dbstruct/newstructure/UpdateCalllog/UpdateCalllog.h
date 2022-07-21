@@ -14,11 +14,12 @@
 #define SPDLOG_FILENAME "log/TrimuleLogger.log"
 #define SPDLOGGERNAME "TrimuleLogger"
 #define LOGGER spdlog::get(SPDLOGGERNAME)
+
 class UpdateMessage
 {
 public:
-    void HandleSQL(std::string &s,const bool &class_judge,const std::string &calllog_id);
- 
+    void HandleSQL(std::string &s,const bool &class_judge = 0,const std::string &calllog_id="");
+    std::tuple<std::string, std::string,std::string,std::string,std::string> GetIdFromMysql(const bool &class_judge,const std::string &condition);
 private: 
     void UpdateCalllog(CallInfo callog);
     void UpdateOutCallClue(CallInfo callog,std::string clue_id);
@@ -27,7 +28,8 @@ private:
     // int  NewGetHangupCauseFromCallRecord(CallInfo info);
     // int  GetCallResult(int cause); 
     std::string CalculateTransferManualCost(CallInfo callog);
-    std::tuple<int, int,int,int,int> GetIdFromMysql(const bool &class_judge,const std::string &condition);
+
+
 };
 
 #endif

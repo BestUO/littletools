@@ -23,23 +23,24 @@ void UpdateMessage::HandleSQL(std::string &s, const bool &class_judge, const std
 	CallRecord record;
 	CallInfo callog = record.GetCallRecord(s, 2);
 
-	std::tuple<int, int, int, int, int> result;
+	std::tuple<std::string, std::string, std::string, std::string, std::string> result;
 	if (class_judge == 0)
 		result = GetIdFromMysql(class_judge,callog.cc_number);
 	else
 		result = GetIdFromMysql(class_judge,calllog_id);
 
-	if (std::tuple_size<decltype(result)>::value!=0)
+
+	if (std::get<0>(result)!="")
 	{
-		std::string id = std::to_string(std::get<0>(result));
-		std::string clue_id = std::to_string(std::get<1>(result));
-		std::string task_id = std::to_string(std::get<2>(result));
-		std::string eid = std::to_string(std::get<3>(result));
+		std::string id = std::get<0>(result);
+		std::string clue_id = std::get<1>(result);
+		std::string task_id = std::get<2>(result);
+		std::string eid = std::get<3>(result);
 		UpdateCalllog(callog);
 		UpdateOutCallClue(callog, clue_id);
 		UpdateAiCalllogExtension(callog, id);
 
-		std::string call_count = std::to_string(std::get<4>(result));
+		std::string call_count = std::get<4>(result);
 		// std::string url = std::to_string(std::get<5>(result));
 		LOGGER->info("calllog_id is {},clue_id is {},task_id is {},eid is {}", id, clue_id, task_id, eid);
 		std::tuple<std::string, std::string, std::string, std::string, std::string> id_cluster = std::make_tuple(id, clue_id, task_id, eid, call_count);
@@ -47,52 +48,28 @@ void UpdateMessage::HandleSQL(std::string &s, const bool &class_judge, const std
 		data_handle.CallBackHandle(callog, id_cluster, class_judge);
 	}
 }
-std::tuple<int, int, int, int, int> UpdateMessage::GetIdFromMysql(const bool &class_judge, const std::string &condition)
+std::tuple<std::string, std::string, std::string, std::string, std::string> UpdateMessage::GetIdFromMysql(const bool &class_judge, const std::string &condition)
 {
 	MySql *mysql = MySql::getInstance();
+	std::tuple<std::string, std::string, std::string, std::string, std::string> null_tu = std::make_tuple("","","","","");
 	if (class_judge == 0)
 	{
 		std::string cc_ = R"(cc_number = ')" + condition + R"(')";
-		auto res =  mysql->mysqlclient.query<std::tuple<int, int, int, int, int>>("select id, clue_id ,task_id,enterprise_uid,call_count from calllog where " + cc_);
-		return res[0];
+		auto res =  mysql->mysqlclient.query<std::tuple<std::string, std::string, std::string, std::string, std::string>>("select id, clue_id ,task_id,enterprise_uid,call_count from calllog where " + cc_);
+		if(res.size())
+			return res[0];
+
 	}
 	else
 	{
 		std::string calllog_id = R"(id = ')" + condition + R"(')";
-		auto res = mysql->mysqlclient.query<std::tuple<int, int, int, int, int>>("select id, clue_id ,task_id,enterprise_uid,call_count from calllog where " + calllog_id);
-		return res[0];
+		auto res = mysql->mysqlclient.query<std::tuple<std::string, std::string, std::string, std::string, std::string>>("select id, clue_id ,task_id,enterprise_uid,call_count from calllog where " + calllog_id);
+		if(res.size())
+			return res[0];
 	}
+	return null_tu;
 }
-// int UpdateMessage::NewGetHangupCauseFromCallRecord(CallInfo info)
-// {
-// 	int cause = 3; // NOT_CONNECTED
-// 	if (info.call_type == -1 || info.end_time == "0")
-// 	{
-// 		return 0; // NO_HANGUP_CAUSE
-// 	}
-// 	else if (info.stop_reason == 1 || info.stop_reason == 2 || info.stop_reason == 3 || info.stop_reason == 16 || info.stop_reason == 18 ||
-// 			 info.stop_reason == 21 || info.stop_reason == 22 || info.stop_reason == 23 || info.stop_reason == 24 ||
-// 			 info.stop_reason == 34 || info.stop_reason == 37 || info.stop_reason == 41)
-// 		cause = 3; // fail
-// 	else if (info.stop_reason == 25)
-// 		cause = 2; // USER_HANGUP
-// 	// else if (info.stop_reason == 9 || info.stop_reason == 7|| info.stop_reason == 10 || info.stop_reason == 11 || info.stop_reason == 27 ||
-// 	// 		 info.stop_reason == 28 || info.stop_reason == 29 || info.stop_reason == 31 || info.stop_reason == 33 || info.stop_reason == 26)
-// 	// 	cause = 1; // AI_HANGUP
-// 	else
-// 		cause = 1;
-// 	return cause;
-// }
 
-// int UpdateMessage::GetCallResult(int hangup_cause_)
-// {
-// 	if (hangup_cause_ == 1 || hangup_cause_ == 2)
-// 		return 2;				 //通话成功
-// 	else if (hangup_cause_ == 0) //未接听
-// 		return 3;
-// 	else
-// 		return 4;
-// }
 void UpdateMessage::UpdateCalllog(CallInfo calllog)
 {
 
