@@ -1,11 +1,11 @@
 #ifndef CALLBACK_H
 #define CALLBACK_H
-
+#include "cinatra.hpp"
 #include <iostream>
 #include <string>
 #include <json/json.h>
 #include "../../dbstruct/dbstruct.h"
-#include "../GetCallRecord.h"
+#include "../GetCallRecord/GetCallRecord.h"
 #include "ormpp/dbng.hpp"
 #include "ormpp/mysql.hpp"
 #include "ormpp/connection_pool.hpp"
@@ -76,11 +76,13 @@ struct CallBackData{
         std::string	collect_info;
         std::string	buttons;
 
+        std::string call_progress;
+        std::string url;
         CallBackData() : eid(""),clue_id(""),record_url(""),answer_time(""),hangup_time(""),duration_time(0),transfer_number(""),
                          transfer_duration(0),switch_number(""),manual_status(0),cc_number(""),call_result(0),
                         hangup_type(0),call_time(0), uuid(""),task_id(""),script_name(""),callee_phone(""),caller_phone(""),
                         calllog_txt(""),intention_type("0"),label(""),call_count("0"),match_global_keyword(""),
-                        clue_no(""),collect_info(""),buttons(""),calllog_id(""){}
+                        clue_no(""),collect_info(""),buttons(""),calllog_id(""),call_progress(""),url(""){}
 };
 
 struct OC_data{
@@ -134,7 +136,9 @@ struct calllog{
 enum  class calllog_enum{
     task_id,script_name,callee_phone,caller_phone,
     calllog_txt,intention_type,call_count,match_global_keyword,
-    buttons,id
+    buttons,id,label,duration, call_result, transfer_number,
+    transfer_duration, call_record_url, manual_status, 
+    answer_time, hangup_time, call_time
 };
 // struct outcall_task{
 //         std::string	uuid;
@@ -171,7 +175,8 @@ enum  class IdCluster{
     ClueId,
     TaskId,
     EnterpriseUid,
-    CallCount
+    CallCount,
+    Url
 };
 
 enum  class IntentionType
@@ -191,7 +196,7 @@ class CallBackManage:public CallRecord{
 
 public:
     
-    void CallBackHandle(CallInfo & cm_data,const std::tuple<std::string,std::string,std::string,std::string,std::string> &id_cluster);
+    void CallBackHandle(CallInfo & cm_data,const std::tuple<std::string,std::string,std::string,std::string,std::string> &id_cluster,const bool &class_judge);
     void CmDataSwitch(CallInfo & cm_data,CallBackData &data);
     void GetOCSyncData(CallBackData &data);
     void ParseIntetionAndCallResult(CallBackRules &rules);
@@ -202,10 +207,14 @@ public:
     bool OC_sync_judge(const std::string &calllog_id);
     CallBackData CacheCmJsonSwitch(const std::string &cm_data);
     std::string MergeCacheJson(const CallBackData &data,const std::string &redis_cache);
+    std::string GetCallRecordFromCm(const std::string url);
+    void MutipleCallBackManage(CallBackData data, CallBackRules rule, const int &class_judge, const std::tuple<std::string,std::string, std::string, std::string, std::string> &id_cluster, const bool &callback_class);
+    std::string GetCallBackUrl(const std::string &eid);
+    void CallBackAction(const std::string &data,const std::string &url);
 private:
-    void CallBackAction();
+    
     bool AutoTaskMatch(const CallBackRules &rules,const CallBackData &data);
-    void CacheCmData(const CallBackData &data);
+    void CacheCmData(const CallBackData &data, std::string &result,const bool &class_judge);
     std::string MakeCacheJson(const CallBackData &data);
     void ParseApiCallbackSceneStatus(CallBackRules &rules);
     // std::string CollectInfoXML2JSON(const std::string xml)

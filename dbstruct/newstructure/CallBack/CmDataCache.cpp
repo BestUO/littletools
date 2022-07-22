@@ -23,36 +23,37 @@ void DataCache::PollingQueue()
                 continue;
             }
         }
-        for(auto& now_id:list)
+        for (auto &now_id : list)
         {
             IdMuster muster = ParseCmId(now_id);
-            CallBackRules rule;
-            CallBackData data;
-            data.task_id = muster.task_id;
-            data.eid = muster.eid;
-            data.calllog_id = muster.calllog_id;
-            std::string cm_data_cache = instance.SearchRules(now_id);
-            if (cm_data_cache != "null")
+            if (muster.time != "oc"&&muster.time != "web" && muster.time != "now")
             {
-                data = CacheCmJsonSwitch(cm_data_cache);
-                GetRulesFromRedis(rule);
-                if (OC_sync_judge(muster.calllog_id) || CheckTimeOut(muster))
+                CallBackRules rule;
+                CallBackData data;
+                data.task_id = muster.task_id;
+                data.eid = muster.eid;
+                data.calllog_id = muster.calllog_id;
+                std::string cm_data_cache = instance.SearchRules(now_id);
+                if (cm_data_cache != "null")
                 {
-                    GetOCSyncData(data);
-                    if (CallBackJudge(rule, data))
+                    data = CacheCmJsonSwitch(cm_data_cache);
+                    GetRulesFromRedis(rule);
+                    if (OC_sync_judge(muster.calllog_id) || CheckTimeOut(muster))
                     {
-                        // callback
-                        
-                        instance.DelKey(now_id);
-                        instance.LREMForList(list_name, {now_id});
-                        std::string caback_data = MergeCacheJson(data, cm_data_cache);
-                        LOGGER->info("polling queue data pass check,begin callback caback_data {}",caback_data);
+                        GetOCSyncData(data);
+                        if (CallBackJudge(rule, data))
+                        {
+                            // callback
+                            instance.DelKey(now_id);
+                            instance.LREMForList(list_name, {now_id});
+                            std::string caback_data = MergeCacheJson(data, cm_data_cache);
+                        }
                     }
-                }
-                else
-                {
-                     LOGGER->info("oc not sync,back to redis,and sleep 300s");
-                     sleep(300);
+                    else
+                    {
+                        LOGGER->info("oc not sync,back to redis,and sleep 300s");
+                        sleep(300);
+                    }
                 }
             }
         }
@@ -60,12 +61,85 @@ void DataCache::PollingQueue()
     }
 }
 
+void DataCache::OcWebPollingQueue()
+{
+    std::vector<std::string> list;
+    RedisOperate instance;
+    std::string list_name = "cm_id_cluster";
+
+    while (true)
+    {
+        if (list.empty())
+        {
+            list = instance.GetListFromRedis(list_name);
+            if (list.empty())
+            {
+                LOGGER->info("no cache data,OcWebPollingQueue  sleep 300s");
+                sleep(300);
+                LOGGER->info("OcWebPollingQueue  wakeup");
+                continue;
+            }
+        }
+        for (auto &now_id : list)
+        {
+            IdMuster muster = ParseCmId(now_id);
+            
+            if (muster.time == "oc"||muster.time == "web")
+            {
+                std::string data = "";
+                if (muster.time == "web")
+                data = GetCallRecordFromCm(muster.url);
+                UpdateMessage update_action;
+                bool class_judge = 5;
+                update_action.HandleSQL(data,class_judge,muster.calllog_id);
+                instance.DelKey(now_id);
+                instance.LREMForList(list_name, {now_id});
+            }
+        }
+        list.clear();
+    }
+}
+
+void DataCache::CallBackActionQueue()
+{
+    std::vector<std::string> list;
+    RedisOperate instance;
+    std::string list_name = "cm_id_cluster";
+    
+    while (true)
+    {
+        if (list.empty())
+        {
+            list = instance.GetListFromRedis(list_name);
+            if (list.empty())
+            {
+                LOGGER->info("no cache data,CallBackActionQueue  sleep 300s");
+                sleep(300);
+                LOGGER->info("CallBackActionQueue  wakeup");
+                continue;
+            }
+        }
+        for (auto &now_id : list)
+        {
+            IdMuster muster = ParseCmId(now_id);
+            
+            if (muster.time == "now")
+            {
+                std::string data_cache = instance.SearchRules(now_id);
+                CallBackAction(data_cache,muster.url);
+                instance.DelKey(now_id);
+                instance.LREMForList(list_name, {now_id});
+            }
+        }
+        list.clear();
+    }
+}
 
 IdMuster DataCache::ParseCmId(const std::string &cm_id)
 {
     IdMuster muster;
     int id_num = 0;
-    int pos1 = 0, pos2 = 0, pos3;
+    int pos1 = 0, pos2 = 0, pos3=0,pos4=0;
     for (int i = 0; i < cm_id.size(); i++)
     {
         if (cm_id[i] == '-')
@@ -81,6 +155,10 @@ IdMuster DataCache::ParseCmId(const std::string &cm_id)
             else if (pos3 == 0)
             {
                 pos3 = i;
+            }
+            else if (pos4 == 0)
+            {
+                pos4 = i;
                 break;
             }
         }
@@ -89,11 +167,10 @@ IdMuster DataCache::ParseCmId(const std::string &cm_id)
     muster.eid = cm_id.substr(0, pos1 + 1);
     muster.task_id = cm_id.substr(pos1 + 1, (pos2 - pos1 - 1));
     muster.calllog_id = cm_id.substr(pos2 + 1, pos3 - pos2 - 1);
-    muster.time = stoi(cm_id.substr(pos3 + 1, (cm_id.size() - pos3 - 2)));
+    muster.time = cm_id.substr(pos3 + 1, pos4 - pos3 - 1);
+    muster.url = cm_id.substr(pos3 + 1, (cm_id.size() - pos4 - 2));
     return muster;
 }
-
-
 
 bool DataCache::CheckTimeOut(const IdMuster &muster)
 {
@@ -101,7 +178,7 @@ bool DataCache::CheckTimeOut(const IdMuster &muster)
     std::stringstream sstream;
     sstream << now;
     std::string time_ = sstream.str();
-    if (stoi(time_) - muster.time >= 600)
+    if (stoi(time_) - stoi(muster.time) >= 600)
     {
         LOGGER->info("Callback_data is timeout,force callback");
         return 1;
@@ -109,10 +186,6 @@ bool DataCache::CheckTimeOut(const IdMuster &muster)
     else
         return 0;
 }
-
-
-
-
 
 // void DataCache::MoveQueue(std::deque<std::string> &que)
 // {

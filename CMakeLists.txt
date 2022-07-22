@@ -4,6 +4,7 @@ project(UO_TOOLS)
 # NOTE: you must build redis-plus-plus and your application code with the same standard.
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 set(THIRD_PARTY_PATH ${PROJECT_SOURCE_DIR}/3rdparty)
 
 add_definitions(-DASIO_STANDALONE)
