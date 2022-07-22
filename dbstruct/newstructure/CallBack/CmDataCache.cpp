@@ -37,6 +37,7 @@ void DataCache::PollingQueue()
         }
         for (auto &now_id : list)
         {
+            LOGGER->info("PollingQueue  id is {}",now_id);
             IdMuster muster = ParseCmId(now_id);
             if (muster.time != "oc" && muster.time != "web" && muster.time != "now")
             {
@@ -77,7 +78,7 @@ void DataCache::OcWebPollingQueue()
 {
     std::vector<std::string> list;
     RedisOperate instance;
-    std::string list_name = "cm_id_cluster";
+    std::string list_name = "cm_id_cluster_ocweb";
 
     while (true)
     {
@@ -102,11 +103,18 @@ void DataCache::OcWebPollingQueue()
             PrepareId(data,rule,calllog_or_cc_number,muster.calllog_id);
             if (muster.time == "oc" || muster.time == "web")
             {
+
+                bool class_judge = 0; // whatever just not  0
                 std::string data = "";
                 if (muster.time == "web")
+                {    
                     data = GetCallRecordFromCm(muster.url);
+                    class_judge = 1;
+                }
+                else  
+                    class_judge = 3;
                 UpdateMessage update_action;
-                bool class_judge = 5; // whatever just not  0
+                
                 update_action.HandleSQL(data, class_judge, muster.calllog_id);
                 instance.DelKey(now_id);
                 instance.LREMForList(list_name, {now_id});
@@ -120,7 +128,7 @@ void DataCache::CallBackActionQueue()
 {
     std::vector<std::string> list;
     RedisOperate instance;
-    std::string list_name = "cm_id_cluster";
+    std::string list_name = "cm_id_cluster_now";
 
     while (true)
     {
@@ -138,10 +146,11 @@ void DataCache::CallBackActionQueue()
         for (auto &now_id : list)
         {
             IdMuster muster = ParseCmId(now_id);
-
+            
             if (muster.time == "now")
             {
                 std::string data_cache = instance.SearchRules(now_id);
+                LOGGER->info("begin call back!!!  data is {}",data_cache);
                 CallBackAction(data_cache, muster.url);
                 instance.DelKey(now_id);
                 instance.LREMForList(list_name, {now_id});
@@ -177,7 +186,7 @@ IdMuster DataCache::ParseCmId(const std::string &cm_id)
         pos1 = cm_id.find('-');
         muster.calllog_id = cm_id.substr(0, pos1);
         muster.time = cm_id.substr(pos1 + 1, (cm_id.size() - pos1 - 1));
-        LOGGER->info("calllog_id is {},type is {}", muster.calllog_id, muster.time);
+        // LOGGER->info("calllog_id is {},type is {}", muster.calllog_id, muster.time);
     }
     else
     {

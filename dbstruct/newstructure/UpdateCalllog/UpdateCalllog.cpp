@@ -1,4 +1,5 @@
-
+#ifndef DATACACHE_H
+#define DATACACHE_H
 #include "cinatra.hpp"
 #include "ormpp/dbng.hpp"
 #include "ormpp/mysql.hpp"
@@ -16,7 +17,7 @@
 #define SPDLOGGERNAME "TrimuleLogger"
 #define LOGGER spdlog::get(SPDLOGGERNAME)
 
-void UpdateMessage::HandleSQL(std::string &s, const bool &class_judge, const std::string &calllog_id)
+void UpdateMessage::HandleSQL(std::string &s, const int &class_judge, const std::string &calllog_id)
 {
 	LOGGER->info("handle coming message {}", s);
 
@@ -48,7 +49,7 @@ void UpdateMessage::HandleSQL(std::string &s, const bool &class_judge, const std
 		data_handle.CallBackHandle(callog, id_cluster, class_judge);
 	}
 }
-std::tuple<std::string, std::string, std::string, std::string, std::string> UpdateMessage::GetIdFromMysql(const bool &class_judge, const std::string &condition)
+std::tuple<std::string, std::string, std::string, std::string, std::string> UpdateMessage::GetIdFromMysql(const int &class_judge, const std::string &condition)
 {
 	MySql *mysql = MySql::getInstance();
 	mysql->ReSetStatus();
@@ -151,3 +152,5 @@ void UpdateMessage::ExecuteCommand(std::string &sql_command, std::string childre
 	else
 		LOGGER->info("{}", children_db_name + " update failed ");
 }
+
+#endif

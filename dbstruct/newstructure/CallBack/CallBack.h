@@ -208,7 +208,7 @@ class CallBackManage:public CallRecord{
 public:
     WebOcApiData ParsePostData(const std::string &str);
     void MakeQueueCache(const std::string &str);
-    void CallBackHandle(CallInfo & cm_data,const std::tuple<std::string,std::string,std::string,std::string,std::string> &id_cluster,const bool &class_judge);
+    void CallBackHandle(CallInfo & cm_data,const std::tuple<std::string,std::string,std::string,std::string,std::string> &id_cluster,const int &class_judge);
     void CmDataSwitch(CallInfo & cm_data,CallBackData &data);
     void GetOCSyncData(CallBackData &data);
     void ParseIntetionAndCallResult(CallBackRules &rules);
@@ -227,7 +227,7 @@ public:
 private:
     
     bool AutoTaskMatch(const CallBackRules &rules,const CallBackData &data);
-    void CacheCmData(const CallBackData &data, std::string &result,const bool &class_judge);
+    void CacheCmData(const CallBackData &data, std::string &result,const int &class_judge);
     std::string MakeCacheJson(const CallBackData &data);
     void ParseApiCallbackSceneStatus(CallBackRules &rules);
     // std::string CollectInfoXML2JSON(const std::string xml)

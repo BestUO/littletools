@@ -27,7 +27,7 @@ void SplitString(const std::string &s, std::vector<std::string> &tokens, const s
         pos = s.find_first_of(delimiters, lastPos);
     }
 }
-void CallBackManage::CallBackHandle(CallInfo &cm_data, const std::tuple<std::string, std::string, std::string, std::string, std::string> &id_cluster, const bool &callback_class)
+void CallBackManage::CallBackHandle(CallInfo &cm_data, const std::tuple<std::string, std::string, std::string, std::string, std::string> &id_cluster, const int &callback_class)
 {
     LOGGER->info("begin CallBackHandle");
     CallBackData data;
@@ -488,7 +488,7 @@ bool CallBackManage::CallBackJudge(const CallBackRules &rules, const CallBackDat
     return 0;
 }
 
-void CallBackManage::CacheCmData(const CallBackData &data, std::string &cache_data, const bool &class_judge)
+void CallBackManage::CacheCmData(const CallBackData &data, std::string &cache_data, const int &class_judge)
 {
     auto now = time(NULL);
     std::stringstream sstream;
@@ -496,6 +496,7 @@ void CallBackManage::CacheCmData(const CallBackData &data, std::string &cache_da
     std::string time_ = sstream.str();
     std::string id;
     std::shared_ptr<RedisOperate> instance = std::make_shared<RedisOperate>();
+    std::string set_name = "cm_id_cluster";
     if (class_judge == 0)
     {
         id = data.calllog_id + "-" + time_; // cm active touch
@@ -504,20 +505,23 @@ void CallBackManage::CacheCmData(const CallBackData &data, std::string &cache_da
     else if (class_judge == 1)
     {
         id = data.calllog_id + "-web"; // web callback
+        set_name = "cm_id_cluster_ocweb";
     }
     else if (class_judge == 2)
     {
         id = data.calllog_id + "-now"; // cm and oc  must callback now
+        set_name = "cm_id_cluster_now";
     }
     else if (class_judge == 3)
     {
         id = data.calllog_id + "-oc"; // oc callback
+        set_name = "cm_id_cluster_ocweb";
     }
     LOGGER->info("cache cm_data,which id is {}", id);
 
     // instance->RedisConnect();
     std::vector<std::string> list{id};
-    std::string set_name = "cm_id_cluster";
+   
     instance->CacheData(id, cache_data);
     instance->Rpush(set_name, list);
 }

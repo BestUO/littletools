@@ -18,8 +18,8 @@
 class UpdateMessage
 {
 public:
-    void HandleSQL(std::string &s,const bool &class_judge = 0,const std::string &calllog_id="");
-    std::tuple<std::string, std::string,std::string,std::string,std::string> GetIdFromMysql(const bool &class_judge,const std::string &condition);
+    void HandleSQL(std::string &s,const int &class_judge = 0,const std::string &calllog_id="");
+    std::tuple<std::string, std::string,std::string,std::string,std::string> GetIdFromMysql(const int &class_judge,const std::string &condition);
 private: 
     void UpdateCalllog(CallInfo callog);
     void UpdateOutCallClue(CallInfo callog,std::string clue_id);
