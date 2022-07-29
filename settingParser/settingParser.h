@@ -14,11 +14,16 @@ struct sqlconnect{
     std::string host;
     std::string db;
 };
+struct redis_account{
+    std::string host;
+    std::string port;
+    std::string password;
+};
 class settingParser
 {
 public:
     sqlconnect GetSettinghParser(std::string filepath);
-
+    redis_account  GetRedisSetting(std::string filepath);
 };
 
 //。。。
