@@ -17,18 +17,18 @@
 #define SPDLOGGERNAME "TrimuleLogger"
 #define LOGGER spdlog::get(SPDLOGGERNAME)
 
-void UpdateMessage::HandleSQL(std::string &s, const int &class_judge, const std::string &calllog_id)
+void UpdateMessage::HandleSQL(std::string &s,ormpp::dbng<ormpp::mysql> &mysqlclient, const int &class_judge, const std::string &calllog_id)
 {
 	LOGGER->info("handle coming message {}", s);
 
 	CallRecord record;
 	CallInfo callog = record.GetCallRecord(s, 2);
 
-	std::tuple<std::string, std::string, std::string, std::string, std::string> result;
+	std::tuple<std::string, std::string, std::string, std::string, std::string,std::string> result;
 	if (class_judge == 0)
-		result = GetIdFromMysql(class_judge,callog.cc_number);
+		result = GetIdFromMysql(class_judge,callog.cc_number,mysqlclient);
 	else
-		result = GetIdFromMysql(class_judge,calllog_id);
+		result = GetIdFromMysql(class_judge,calllog_id,mysqlclient);
 
 
 	if (std::get<0>(result)!="")
@@ -37,42 +37,46 @@ void UpdateMessage::HandleSQL(std::string &s, const int &class_judge, const std:
 		std::string clue_id = std::get<1>(result);
 		std::string task_id = std::get<2>(result);
 		std::string eid = std::get<3>(result);
-		UpdateCalllog(callog);
-		UpdateOutCallClue(callog, clue_id);
-		UpdateAiCalllogExtension(callog, id);
+		std::string caller_phone = std::get<5>(result);
+		UpdateCalllog(callog,id,mysqlclient);
+		UpdateOutCallClue(callog, clue_id,mysqlclient);
+		UpdateAiCalllogExtension(callog, id,mysqlclient);
 
 		std::string call_count = std::get<4>(result);
 		// std::string url = std::to_string(std::get<5>(result));
 		LOGGER->info("calllog_id is {},clue_id is {},task_id is {},eid is {}", id, clue_id, task_id, eid);
-		std::tuple<std::string, std::string, std::string, std::string, std::string> id_cluster = std::make_tuple(id, clue_id, task_id, eid, call_count);
+		std::tuple<std::string, std::string, std::string, std::string, std::string,std::string> id_cluster = std::make_tuple(id, clue_id, task_id, eid, call_count,caller_phone);
 		CallBackManage data_handle;
-		data_handle.CallBackHandle(callog, id_cluster, class_judge);
+		data_handle.CallBackHandle(callog, id_cluster, class_judge,mysqlclient);
 	}
 }
-std::tuple<std::string, std::string, std::string, std::string, std::string> UpdateMessage::GetIdFromMysql(const int &class_judge, const std::string &condition)
+std::tuple<std::string, std::string, std::string, std::string,std::string, std::string> UpdateMessage::GetIdFromMysql(const int &class_judge, const std::string &condition,ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
-	MySql *mysql = MySql::getInstance();
-	mysql->ReSetStatus();
-	std::tuple<std::string, std::string, std::string, std::string, std::string> null_tu = std::make_tuple("","","","","");
+	
+	std::tuple<std::string, std::string, std::string, std::string, std::string,std::string> null_tu = std::make_tuple("","","","","","");
 	if (class_judge == 0)
 	{
 		std::string cc_ = R"(cc_number = ')" + condition + R"(')";
-		auto res =  mysql->mysqlclient.query<std::tuple<std::string, std::string, std::string, std::string, std::string>>("select id, clue_id ,task_id,enterprise_uid,call_count from calllog where " + cc_);
+		auto res =  mysqlclient.query<std::tuple<std::string, std::string, std::string, std::string, std::string,std::string>>("select id, clue_id ,task_id,enterprise_uid,call_count,caller_phone from calllog where " + cc_);
+		LOGGER->info("GetIdFromMysql  use cc_number select,command is,select id, clue_id ,task_id,enterprise_uid,call_count,caller_phone from calllog where {}",cc_);
 		if(res.size())
 			return res[0];
-
 	}
 	else
 	{
 		std::string calllog_id = R"(id = ')" + condition + R"(')";
-		auto res = mysql->mysqlclient.query<std::tuple<std::string, std::string, std::string, std::string, std::string>>("select id, clue_id ,task_id,enterprise_uid,call_count from calllog where " + calllog_id);
+		auto res = mysqlclient.query<std::tuple<std::string, std::string,std::string, std::string, std::string, std::string>>("select id, clue_id ,task_id,enterprise_uid,call_count,caller_phone from calllog where " + calllog_id);
+		LOGGER->info("GetIdFromMysql  use calllog_id select,command is,select id, clue_id ,task_id,enterprise_uid,call_count,caller_phone from calllog where {}",calllog_id);
+
 		if(res.size())
 			return res[0];
+		
 	}
+	LOGGER->info("GetIdFromMysql id illegal");
 	return null_tu;
 }
 
-void UpdateMessage::UpdateCalllog(CallInfo calllog)
+void UpdateMessage::UpdateCalllog(CallInfo calllog,const std::string & id,ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
 
 	std::string call_result = calllog.call_result == 0 ? "" : std::to_string(calllog.call_result);
@@ -82,16 +86,22 @@ void UpdateMessage::UpdateCalllog(CallInfo calllog)
 	std::vector<std::string> condition(1);
 	condition[0] = calllog.cc_number;
 	std::vector<std::string> condition_name(1);
+	if(calllog.cc_number!="")
 	condition_name[0] = "cc_number";
+	else
+	{
+		condition_name[0] = "id";
+		condition[0] = id;
+	}
 	std::vector<std::string> condition_symbols(1);
 	condition_symbols[0] = " = ";
 
 	GenerateSQL command;
 	std::string sql_command = command.MysqlGenerateUpdateSQL(" calllog ", values, columns, condition, condition_name, condition_symbols);
-	ExecuteCommand(sql_command, "UpdateCalllog");
+	ExecuteCommand(sql_command, "UpdateCalllog",mysqlclient);
 }
 
-void UpdateMessage::UpdateOutCallClue(CallInfo calllog, std::string clue_id)
+void UpdateMessage::UpdateOutCallClue(CallInfo calllog, std::string clue_id,ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
 	std::vector<std::string> columns = {"call_result", "manual_status", "call_time", "call_duration"};
 
@@ -108,7 +118,7 @@ void UpdateMessage::UpdateOutCallClue(CallInfo calllog, std::string clue_id)
 
 	GenerateSQL command;
 	std::string sql_command = command.MysqlGenerateUpdateSQL(" outcall_clue ", values, columns, condition, condition_name, condition_symbols);
-	ExecuteCommand(sql_command, "UpdateOutCallClue");
+	ExecuteCommand(sql_command, "UpdateOutCallClue",mysqlclient);
 }
 
 std::string UpdateMessage::CalculateTransferManualCost(CallInfo calllog)
@@ -121,7 +131,7 @@ std::string UpdateMessage::CalculateTransferManualCost(CallInfo calllog)
 	return transfer_manual_cost;
 }
 
-void UpdateMessage::UpdateAiCalllogExtension(CallInfo calllog, std::string calllog_id)
+void UpdateMessage::UpdateAiCalllogExtension(CallInfo calllog, std::string calllog_id,ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
 	std::vector<std::string> columns = {"transfer_manual_cost", "ring_duration", "call_state", "switch_number", "hangup_type", "manual_incoming", "manual_confirm", "manual_disconnect"};
 
@@ -139,15 +149,15 @@ void UpdateMessage::UpdateAiCalllogExtension(CallInfo calllog, std::string calll
 
 	GenerateSQL command;
 	std::string sql_command = command.MysqlGenerateUpdateSQL(" aicall_calllog_extension ", values, columns, condition, condition_name, condition_symbols);
-	ExecuteCommand(sql_command, "UpdateAiCalllogExtension");
+	ExecuteCommand(sql_command, "UpdateAiCalllogExtension",mysqlclient);
 }
-void UpdateMessage::ExecuteCommand(std::string &sql_command, std::string children_db_name)
+void UpdateMessage::ExecuteCommand(std::string &sql_command, std::string children_db_name,ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
-	MySql *mysql = MySql::getInstance();
-	mysql->ReSetStatus();
+
+	LOGGER->info("update command is {}",sql_command);
 	if (sql_command == "no command")
 		LOGGER->info("{}", children_db_name + " update failed ,no command");
-	else if (mysql->mysqlclient.execute(sql_command))
+	else if (mysqlclient.execute(sql_command))
 		LOGGER->info("{}", children_db_name + " update success ");
 	else
 		LOGGER->info("{}", children_db_name + " update failed ");

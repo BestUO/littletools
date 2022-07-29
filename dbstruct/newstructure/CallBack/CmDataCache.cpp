@@ -20,7 +20,10 @@ void DataCache::PollingQueue()
     std::vector<std::string> list;
     RedisOperate instance;
     std::string list_name = "cm_id_cluster";
-
+    ormpp::dbng<ormpp::mysql> mysqlclient;
+    settingParser mysql_example;
+    sqlconnect conne = mysql_example.GetSettinghParser("conf/config.json");
+    mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str());
     int sleep_judge = 0;
     while (true)
     {
@@ -37,7 +40,7 @@ void DataCache::PollingQueue()
         }
         for (auto &now_id : list)
         {
-            LOGGER->info("PollingQueue  id is {}",now_id);
+            LOGGER->info("PollingQueue  id is {}", now_id);
             IdMuster muster = ParseCmId(now_id);
             if (muster.time != "oc" && muster.time != "web" && muster.time != "now")
             {
@@ -45,21 +48,32 @@ void DataCache::PollingQueue()
                 CallBackData data;
                 std::string cm_data_cache = instance.SearchRules(now_id);
                 int calllog_or_cc_number = 1;
-                PrepareId(data,rule,calllog_or_cc_number,muster.calllog_id);
+                std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> id_cluster;
 
                 if (cm_data_cache != "null")
                 {
                     data = CacheCmJsonSwitch(cm_data_cache);
+                    PrepareId(data, rule, calllog_or_cc_number, muster.calllog_id, id_cluster, mysqlclient);
                     GetRulesFromRedis(rule);
-                    if (OC_sync_judge(muster.calllog_id) || CheckTimeOut(muster))
+                    if (OC_sync_judge(muster.calllog_id, mysqlclient) || CheckTimeOut(muster))
                     {
-                        GetOCSyncData(data);
+                        GetOCSyncData(data, mysqlclient);
                         if (CallBackJudge(rule, data))
                         {
                             // callback
                             instance.DelKey(now_id);
                             instance.LREMForList(list_name, {now_id});
                             std::string caback_data = MergeCacheJson(data, cm_data_cache);
+                            CallBackManage begin_callback;
+                            int class_judge = 2;
+                            begin_callback.CacheCmData(data, caback_data, class_judge, mysqlclient);
+                            LOGGER->info("pull actionqueue");
+                        }
+                        else
+                        {
+                            instance.DelKey(now_id);
+                            instance.LREMForList(list_name, {now_id});
+                            LOGGER->info("donot pass rules judge,donot callback");
                         }
                     }
                     else
@@ -67,6 +81,11 @@ void DataCache::PollingQueue()
                         LOGGER->info("oc not sync,back to redis,and sleep 300s");
                         sleep(300);
                     }
+                }
+                else
+                {
+                    instance.LREMForList(list_name, {now_id});
+                    LOGGER->info("bull cm_data_cache ,donot callback");
                 }
             }
         }
@@ -79,7 +98,10 @@ void DataCache::OcWebPollingQueue()
     std::vector<std::string> list;
     RedisOperate instance;
     std::string list_name = "cm_id_cluster_ocweb";
-
+    ormpp::dbng<ormpp::mysql> mysqlclient;
+    settingParser mysql_example;
+    sqlconnect conne = mysql_example.GetSettinghParser("conf/config.json");
+    mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str());
     while (true)
     {
         if (list.empty())
@@ -99,26 +121,39 @@ void DataCache::OcWebPollingQueue()
             CallBackData data;
 
             IdMuster muster = ParseCmId(now_id);
-            int calllog_or_cc_number = 1;
-            PrepareId(data,rule,calllog_or_cc_number,muster.calllog_id);
-            if (muster.time == "oc" || muster.time == "web")
-            {
+            std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> id_cluster;
+            int calllog_or_cc_number;
+            if (muster.time == "cm_whole")
+                calllog_or_cc_number = 0; // 0:use cc_number ,1:use calllog_id
+            else
+                calllog_or_cc_number = 1;
+            if (muster.calllog_id != "")
+                PrepareId(data, rule, calllog_or_cc_number, muster.calllog_id, id_cluster, mysqlclient); // muster.calllog_id  maybe  cc_number
 
-                bool class_judge = 0; // whatever just not  0
-                std::string data = "";
-                if (muster.time == "web")
-                {    
-                    data = GetCallRecordFromCm(muster.url);
-                    class_judge = 1;
-                }
-                else  
-                    class_judge = 3;
-                UpdateMessage update_action;
-                
-                update_action.HandleSQL(data, class_judge, muster.calllog_id);
-                instance.DelKey(now_id);
-                instance.LREMForList(list_name, {now_id});
+            bool class_judge = 0; // whatever just not  0
+            std::string data_ = "";
+            if (muster.time == "web")
+            {
+                data_ = GetCallRecordFromCm(data,mysqlclient);
+                class_judge = 1;
             }
+            else if (muster.time == "oc")
+                class_judge = 3;
+            else if (muster.time == "cm_whole")
+            {
+                data_ = instance.SearchRules(now_id);
+                class_judge = 0;
+            }
+
+            // CallBackManage update_action;
+
+            // update_action.CallBackHandle(data,id_cluster,class_judge);
+            UpdateMessage update_action;
+            if (data.calllog_id != "")
+                update_action.HandleSQL(data_,mysqlclient, class_judge, data.calllog_id);
+
+            instance.DelKey(now_id);
+            instance.LREMForList(list_name, {now_id});
         }
         list.clear();
     }
@@ -146,12 +181,17 @@ void DataCache::CallBackActionQueue()
         for (auto &now_id : list)
         {
             IdMuster muster = ParseCmId(now_id);
-            
+
             if (muster.time == "now")
             {
                 std::string data_cache = instance.SearchRules(now_id);
-                LOGGER->info("begin call back!!!  data is {}",data_cache);
+                LOGGER->info("begin call back!!!  data is {}", data_cache);
                 CallBackAction(data_cache, muster.url);
+                instance.DelKey(now_id);
+                instance.LREMForList(list_name, {now_id});
+            }
+            else
+            {
                 instance.DelKey(now_id);
                 instance.LREMForList(list_name, {now_id});
             }
@@ -181,12 +221,21 @@ IdMuster DataCache::ParseCmId(const std::string &cm_id)
     //         }
     //     }
     // }
-    if (cm_id.find('-') != std::string::npos)
+    if (count(cm_id.begin(), cm_id.end(), '-') == 1)
     {
+
         pos1 = cm_id.find('-');
         muster.calllog_id = cm_id.substr(0, pos1);
         muster.time = cm_id.substr(pos1 + 1, (cm_id.size() - pos1 - 1));
         // LOGGER->info("calllog_id is {},type is {}", muster.calllog_id, muster.time);
+    }
+    else if (count(cm_id.begin(), cm_id.end(), '-') == 2)
+    {
+        pos1 = cm_id.find('-');
+        int pos2 = cm_id.find('-', pos1 + 1);
+        muster.calllog_id = cm_id.substr(0, pos1);
+        muster.url = cm_id.substr(pos1 + 1, pos2 - pos1 - 1);
+        muster.time = cm_id.substr(pos2 + 1, (cm_id.size() - pos2 - 1));
     }
     else
     {
@@ -209,4 +258,3 @@ bool DataCache::CheckTimeOut(const IdMuster &muster)
     else
         return 0;
 }
-

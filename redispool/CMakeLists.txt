@@ -16,7 +16,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(REDIS redis)
-set(REDIS_SOURCE redisclient.cpp  redisclient.h)
+set(REDIS_SOURCE  all_example.cpp redisclient.cpp  redisclient.h )
 
 add_executable(redis ${REDIS_SOURCE})
 
@@ -33,4 +33,4 @@ target_include_directories(redis PUBLIC ${REDIS_PLUS_PLUS_HEADER})
 
 find_library(REDIS_PLUS_PLUS_LIB redis++)
 add_library(redisclient redisclient.cpp redisclient.h)
-target_link_libraries(redis ${REDIS_PLUS_PLUS_LIB} pthread)
+target_link_libraries(redis ${REDIS_PLUS_PLUS_LIB} pthread settingParser)

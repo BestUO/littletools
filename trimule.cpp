@@ -16,6 +16,7 @@
 #include "dbstruct/dbstruct/dbstruct.h"
 #include <thread>
 #include <future>
+
 #define SPDLOG_FILENAME "log/TrimuleLogger.log"
 #define SPDLOGGERNAME "TrimuleLogger"
 #define LOGGER spdlog::get(SPDLOGGERNAME)
@@ -37,7 +38,6 @@ public:
 protected:
     virtual void WorkerRun(bool original)
     {
-
         while (!Worker<T>::_stop)
         {
             auto e = Worker<T>::_queue->GetObjBulk();
@@ -60,19 +60,28 @@ protected:
 
     virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
     DealElement(std::string &&s)
-    {   
+    {
+        if (s.size() > 1)
+        {
+            std::string real_data = s.substr(1, s.size() - 1);
 
-        std::string real_data = s.substr(1,s.size()-1);
-        
-        if (s[0] == '0')//cm ctive
-        {
-            UpdateMessage update_action;
-            update_action.HandleSQL(real_data);
-        }
-        else  //oc  web
-        {
-            CallBackManage cache_action;
-            cache_action.MakeQueueCache(real_data);
+            if (s[0] == '0') // cm ctive
+            {
+                ormpp::dbng<ormpp::mysql> mysqlclient;
+                CallBackData callog;
+                CallBackManage cache_action;
+                std::string str = real_data;
+                int class_judge = 4;
+                CallRecord record;
+                CallInfo data = record.GetCallRecord(real_data, 2);
+                callog.cc_number = data.cc_number;
+                cache_action.CacheCmData(callog, str, class_judge,mysqlclient);
+            }
+            else // oc  web
+            {
+                CallBackManage cache_action;
+                cache_action.MakeQueueCache(real_data);
+            }
         }
     }
 
@@ -85,18 +94,17 @@ protected:
 
 template <class T>
 void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
-{   
+{
     server.set_http_handler<cinatra::GET, cinatra::POST>("/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
                                                          {
         LOGGER->info("message is {}",std::string(req.body()));
         CallRecord check;
         std::string check_res = check.CheckInfo(std::string(req.body()));
-        std::string que_str ="0"+std::string(req.body());
+        std::string que_str ='0'+std::string(req.body());
         int type = 0;
         if(check_res!="900"&&check_res!="901")
         {threadpool->EnqueueStr(que_str);}
 		res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+check_res+"\"}"); });
-
 
     server.set_http_handler<cinatra::GET, cinatra::POST>("/GetCallRecord/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
                                                          {
@@ -104,11 +112,10 @@ void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
                                     //checkweboc data
         LOGGER->info("message is {}",std::string(req.body()));
         CallRecord check;
-        std::string check_res = check.CheckInfo(std::string(req.body()));
-        std::string que_str ="1"+std::string(req.body());
+        std::string check_res = check.CheckWebOcInfo(std::string(req.body()));
+        std::string que_str ='1'+std::string(req.body());
         int type = 1;
-        if(check_res!="900"&&check_res!="901")
-        {threadpool->EnqueueStr(que_str);}
+        threadpool->EnqueueStr(que_str);
 		res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+check_res+"\"}"); });
 }
 
@@ -134,8 +141,7 @@ int CallBackActionQueue()
 int main()
 {
     initspdlog();
-    MySql *mysql_ = MySql::getInstance();
-    mysql_->connect();
+
 
     auto config = JsonSimpleWrap::GetPaser("conf/config.json");
     int max_thread_num = 1;

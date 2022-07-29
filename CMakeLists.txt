@@ -15,15 +15,21 @@ include_directories(${PROJECT_SOURCE_DIR}/kafka)
 include_directories(${PROJECT_SOURCE_DIR}/net/include)
 include_directories(${PROJECT_SOURCE_DIR}/tools)
 
+# include_directories("/usr/include/mysql")
+# link_directories("usr/lib/x86_64-linux-gnu")
+
 link_directories(${THIRD_PARTY_PATH}/lib)
 link_directories(${THIRD_PARTY_PATH}/lib/json)
 link_directories(${THIRD_PARTY_PATH}/lib/rdkafka)
 
+ADD_SUBDIRECTORY(redispool)
+ADD_SUBDIRECTORY(tinyxml2)
 ADD_SUBDIRECTORY(kafka)
 ADD_SUBDIRECTORY(queue)
 ADD_SUBDIRECTORY(settingParser)
 ADD_SUBDIRECTORY(dbstruct)
-ADD_SUBDIRECTORY(redispool)
+
+
 set(OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/Trimule)
 
 ADD_CUSTOM_TARGET(trimule_copyfile ALL
@@ -38,10 +44,16 @@ COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/docker_run.s
 COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/README.md ${OUTPUT_PATH}/README.md
 ) 
 
+find_package(CURL REQUIRED) 
+include_directories(${CURL_INCLUDE_DIR})
+
+find_package(OpenSSL REQUIRED)
+
 set(TOOL_TEST tooltest)
 set(TOOL_TEST_SOURCE tooltest.cpp)
 add_executable(${TOOL_TEST} ${TOOL_TEST_SOURCE})
-target_link_libraries(${TOOL_TEST} uoqueue pthread uokafka rdkafka++ uuid jsoncpp atomic mysqlclient)
+target_include_directories(${TOOL_TEST} PUBLIC ${OPENSSL_INCLUDE_DIR})
+target_link_libraries(${TOOL_TEST}   ${CURL_LIBRARIES}   OpenSSL::SSL OpenSSL::Crypto  uoqueue pthread uokafka rdkafka++ uuid jsoncpp atomic  tinyxml)
 
 set(TOOL_COMPOSE trimule)
 set(TOOL_COMPOSE_SOURCE trimule.cpp)
@@ -62,9 +74,8 @@ target_include_directories(${TOOL_COMPOSE} PUBLIC ${REDIS_PLUS_PLUS_HEADER})
 
 find_library(REDIS_PLUS_PLUS_LIB redis++)
 
-
-
-target_link_libraries(${TOOL_COMPOSE}  ${REDIS_PLUS_PLUS_LIB}    pthread   mysqlclient jsoncpp  dbstruct settingParser GetCallRecord redisclient CallBack )
+target_include_directories(${TOOL_COMPOSE} PUBLIC ${OPENSSL_INCLUDE_DIR})
+target_link_libraries(${TOOL_COMPOSE}     ${REDIS_PLUS_PLUS_LIB}  ${CURL_LIBRARIES}   OpenSSL::SSL OpenSSL::Crypto    pthread   mysqlclient jsoncpp  dbstruct settingParser GetCallRecord redisclient CallBack )
 
 
 

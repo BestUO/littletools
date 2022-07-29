@@ -209,6 +209,24 @@ std::string CallRecord::CheckInfo(std::string info)
     return "900"; // style error
 }
 
+
+std::string CallRecord::CheckWebOcInfo(const std::string &info)
+{
+    Json::Reader reader;
+    Json::Value root;
+
+    if (reader.parse(info, root))
+    {
+
+        auto records = root["data"];
+        if (records.isArray() && records.size() > 0 && !root["type"].isNull())
+        {
+            return "902";
+        }
+    }
+    return "900"; // style error
+}
+
 int CallRecord::GetManualType(int stop_reason, int customer_fail_reason)
 {
     if (customer_fail_reason == 9)
