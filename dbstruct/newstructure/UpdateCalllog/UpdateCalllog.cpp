@@ -22,7 +22,8 @@ void UpdateMessage::HandleSQL(std::string &s,ormpp::dbng<ormpp::mysql> &mysqlcli
 	LOGGER->info("handle coming message {}", s);
 
 	CallRecord record;
-	CallInfo callog = record.GetCallRecord(s, 2);
+	int a=2;
+	CallInfo callog = record.GetCallRecord(s, a);
 
 	std::tuple<std::string, std::string, std::string, std::string, std::string,std::string> result;
 	if (class_judge == 0)

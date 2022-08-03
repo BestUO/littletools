@@ -3,7 +3,7 @@
 #include <json/json.h>
 #include <string>
 using namespace std;
-CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
+CallInfo CallRecord::GetCallRecord(std::string &s, int &framework_class)
 {
     CallInfo result;
     Json::Reader reader;
@@ -182,7 +182,7 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
     return result;
 }
 
-std::string CallRecord::CheckInfo(std::string info)
+std::string CallRecord::CheckInfo(std::string &info)
 {
     Json::Reader reader;
     Json::Value root;
@@ -227,7 +227,7 @@ std::string CallRecord::CheckWebOcInfo(const std::string &info)
     return "900"; // style error
 }
 
-int CallRecord::GetManualType(int stop_reason, int customer_fail_reason)
+int CallRecord::GetManualType(int &stop_reason, int &customer_fail_reason)
 {
     if (customer_fail_reason == 9)
 
@@ -257,14 +257,14 @@ int CallRecord::GetManualType(int stop_reason, int customer_fail_reason)
     }
 }
 
-int CallRecord::GetHangupType(int stop_reason, int customer_fail_reason)
+int CallRecord::GetHangupType(int &stop_reason, int &customer_fail_reason)
 {
     if (stop_reason == 25)
         return HangUpType::UserHangUp;
     else
         return HangUpType::AiHangUp;
 }
-int CallRecord::GetCallResult(int stop_reason, int customer_fail_reason)
+int CallRecord::GetCallResult(int &stop_reason, int &customer_fail_reason)
 {
 
     switch (customer_fail_reason)

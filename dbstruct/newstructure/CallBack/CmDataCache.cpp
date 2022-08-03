@@ -23,6 +23,7 @@ void DataCache::PollingQueue()
     ormpp::dbng<ormpp::mysql> mysqlclient;
     settingParser mysql_example;
     sqlconnect conne = mysql_example.GetSettinghParser("conf/config.json");
+    std::string port = "3306";
     mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str());
     int sleep_judge = 0;
     while (true)
@@ -85,7 +86,7 @@ void DataCache::PollingQueue()
                 else
                 {
                     instance.LREMForList(list_name, {now_id});
-                    LOGGER->info("bull cm_data_cache ,donot callback");
+                    LOGGER->info("null cm_data_cache ,donot callback");
                 }
             }
         }

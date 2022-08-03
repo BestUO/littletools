@@ -70,14 +70,14 @@ enum CallResult
 
 class CallRecord{
     public:     
-        CallInfo GetCallRecord(std::string s,int framework_class);
-        std::string CheckInfo(std::string info);
+        CallInfo GetCallRecord(std::string &s,int &framework_class);
+        std::string CheckInfo(std::string &info);
         std::string CheckWebOcInfo(const std::string &info);
 
     private: 
-         int GetManualType(int stop_reason,int customer_fail_reason);
-         int GetHangupType(int stop_reason,int customer_fail_reason);
-         int GetCallResult(int stop_reason,int customer_fail_reason);
+         int GetManualType(int &stop_reason,int &customer_fail_reason);
+         int GetHangupType(int &stop_reason,int &customer_fail_reason);
+         int GetCallResult(int &stop_reason,int &customer_fail_reason);
          
  };
 
