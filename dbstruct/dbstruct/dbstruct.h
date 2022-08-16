@@ -25,18 +25,19 @@
 
 // REFLECTION(aicall_tts_file_cache, id, TTS_text, TTS_version_code, tts_src, tts_duration, create_time, access_time, extension)
 
-class MySql{
-public:
-    ormpp::dbng<ormpp::mysql> mysqlclient;
-	static MySql * getInstance();
-	void connect();
-    static MySql *instance;
-private:
-    // void RedisConnect();
-    MySql(){};
-    MySql(const MySql &){};
-    MySql &operator=(const MySql &){};
-    ~MySql();
-};
+// class MySql{
+// public:
+//     ormpp::dbng<ormpp::mysql> mysqlclient;
+// 	static MySql * getInstance();
+// 	void connect();
+//     void ReSetStatus();
+//     static MySql *instance;
+// private:
+//     // void RedisConnect();
+//     MySql(){};
+//     MySql(const MySql &){};
+//     MySql &operator=(const MySql &){};
+//     ~MySql();
+// };
 
 #endif

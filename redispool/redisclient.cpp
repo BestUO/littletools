@@ -32,7 +32,7 @@
 void RedisOperate::CacheRules(const std::string &key,const std::string &rules)
 {
     redis.set(key,rules);
-    // redis.expire(key,std::chrono::seconds(600));
+    redis.expire(key,std::chrono::seconds(600));
     LOGGER->info("set rules {}",rules);
 }
 
@@ -103,6 +103,7 @@ void RedisOperate::LREMForList(const std::string &list_name,const std::vector<st
 {
     for(int i=0;i<values.size();i++)
     {
+        LOGGER->info("lrem one element,values is {}",values[i]);
         redis.lrem(list_name,1,values[i]);
     }
 }
