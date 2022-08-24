@@ -92,6 +92,8 @@ void RedisOperate::InsertSet(const std::string &set_name,const std::unordered_se
 std::vector<std::string> RedisOperate::GetListFromRedis(const std::string & list_name)
 {
     int len = redis.llen(list_name)>1000?1000:redis.llen(list_name);
+
+    // redis.k
     std::vector<std::string> vec;
     if(len!=0)
     {

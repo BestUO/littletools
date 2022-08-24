@@ -24,8 +24,10 @@ void DataCache::PollingQueue()
     settingParser mysql_example;
     sqlconnect conne = mysql_example.GetSettinghParser("conf/config.json");
     std::string port = "3306";
-    mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str());
+    mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str(),conne.db_timeout,conne.db_port);
     int sleep_judge = 0;
+    int time = mysql_example.GetSleepTime("conf/config.json");
+    LOGGER->info("PollingQueue  sleep time is {} second",time);
     while (true)
     {
         if (list.empty())
@@ -33,9 +35,7 @@ void DataCache::PollingQueue()
             list = instance.GetListFromRedis(list_name);
             if (list.empty())
             {
-                LOGGER->info("no cache data,PollingQueue  sleep 300s");
-                sleep(300);
-                LOGGER->info("PollingQueue  wakeup");
+                sleep(time);
                 continue;
             }
         }
@@ -103,6 +103,8 @@ void DataCache::OcWebPollingQueue()
     settingParser mysql_example;
     sqlconnect conne = mysql_example.GetSettinghParser("conf/config.json");
     mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str());
+    int time = mysql_example.GetSleepTime("conf/config.json");
+    LOGGER->info("OcWebPollingQueue  sleep time is {} second",time);
     while (true)
     {
         if (list.empty())
@@ -110,9 +112,7 @@ void DataCache::OcWebPollingQueue()
             list = instance.GetListFromRedis(list_name);
             if (list.empty())
             {
-                LOGGER->info("no cache data,OcWebPollingQueue  sleep 300s");
-                sleep(300);
-                LOGGER->info("OcWebPollingQueue  wakeup");
+                sleep(time);
                 continue;
             }
         }
@@ -165,7 +165,9 @@ void DataCache::CallBackActionQueue()
     std::vector<std::string> list;
     RedisOperate instance;
     std::string list_name = "cm_id_cluster_now";
-
+    settingParser mysql_example;
+    int time = mysql_example.GetSleepTime("conf/config.json");
+    LOGGER->info("CallBackActionQueue  sleep time is {} second",time);
     while (true)
     {
         if (list.empty())
@@ -173,9 +175,7 @@ void DataCache::CallBackActionQueue()
             list = instance.GetListFromRedis(list_name);
             if (list.empty())
             {
-                LOGGER->info("no cache data,CallBackActionQueue  sleep 300s");
-                sleep(300);
-                LOGGER->info("CallBackActionQueue  wakeup");
+                sleep(time);
                 continue;
             }
         }
@@ -258,4 +258,32 @@ bool DataCache::CheckTimeOut(const IdMuster &muster)
     }
     else
         return 0;
+}
+
+
+void DataCache::CheckUnUpdateId(const std::string &eid,const std::string &mini_time,const std::string &max_time)
+{
+    RedisOperate instance;
+    std::string list_name = "cm_id_cluster_ocweb";
+    ormpp::dbng<ormpp::mysql> mysqlclient;
+    settingParser mysql_example;
+    sqlconnect conne = mysql_example.GetSettinghParser("conf/config.json");
+    mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str());
+
+    auto res = mysqlclient.query<std::tuple<std::string>>("SELECT id from calllog WHERE enterprise_uid = " + eid +  " and create_time >= "+ mini_time +" and create_time <= "+ max_time +" and id in (select calllog_id from aicall_calllog_subsidiary where update_status = 0) ");
+
+    LOGGER->info("Trimule may has core,so we has found {} calllog has not update now.",res.size());
+
+    for (int i = 0; i < res.size(); i++)
+    {
+        int a = 1;
+        CallBackData data;
+        data.calllog_id = std::get<0>(res[i]);
+        std::string nu = "";
+        int type = 1;
+        LOGGER->info("calllog is {}",data.calllog_id);
+        CacheCmData(data, nu, type,mysqlclient);
+    }
+
+
 }

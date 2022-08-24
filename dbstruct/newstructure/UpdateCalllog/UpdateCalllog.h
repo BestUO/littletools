@@ -24,6 +24,7 @@ private:
     void UpdateCalllog(CallInfo callog,const std::string &id,ormpp::dbng<ormpp::mysql> &mysqlclient);
     void UpdateOutCallClue(CallInfo callog,std::string clue_id,ormpp::dbng<ormpp::mysql> &mysqlclient);
     void UpdateAiCalllogExtension(CallInfo callog,std::string calllog_id,ormpp::dbng<ormpp::mysql> &mysqlclient);
+    void UpdateAicallCalllogSubsidiary(const std::string &calllog_id,ormpp::dbng<ormpp::mysql> &mysqlclient);
     void ExecuteCommand(std::string &s,std::string children_db_name,ormpp::dbng<ormpp::mysql> &mysqlclient);
     // int  NewGetHangupCauseFromCallRecord(CallInfo info);
     // int  GetCallResult(int cause); 

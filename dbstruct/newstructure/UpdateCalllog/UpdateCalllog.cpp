@@ -42,7 +42,7 @@ void UpdateMessage::HandleSQL(std::string &s,ormpp::dbng<ormpp::mysql> &mysqlcli
 		UpdateCalllog(callog,id,mysqlclient);
 		UpdateOutCallClue(callog, clue_id,mysqlclient);
 		UpdateAiCalllogExtension(callog, id,mysqlclient);
-
+		UpdateAicallCalllogSubsidiary(id,mysqlclient);
 		std::string call_count = std::get<4>(result);
 		// std::string url = std::to_string(std::get<5>(result));
 		LOGGER->info("calllog_id is {},clue_id is {},task_id is {},eid is {}", id, clue_id, task_id, eid);
@@ -140,7 +140,7 @@ void UpdateMessage::UpdateAiCalllogExtension(CallInfo calllog, std::string calll
 	std::string hangup_cause_ = calllog.hangup_type == 0 ? "" : std::to_string(calllog.hangup_type);
 	std::string switch_number = calllog.switch_number;
 	std::string call_state = std::to_string(calllog.call_state);
-	std::vector<std::string> values = {calllog.transfer_manual_cost, calllog.ring_time, call_state, switch_number, hangup_cause_, calllog.start_time, calllog.transfer_confirm_time, calllog.end_time};
+	std::vector<std::string> values = {calllog.transfer_manual_cost, calllog.ring_time, call_state, switch_number, hangup_cause_, calllog.transfer_start_time, calllog.transfer_confirm_time, calllog.transfer_end_time};
 	std::vector<std::string> condition(1);
 	condition[0] = calllog_id;
 	std::vector<std::string> condition_name(1);
@@ -151,6 +151,24 @@ void UpdateMessage::UpdateAiCalllogExtension(CallInfo calllog, std::string calll
 	GenerateSQL command;
 	std::string sql_command = command.MysqlGenerateUpdateSQL(" aicall_calllog_extension ", values, columns, condition, condition_name, condition_symbols);
 	ExecuteCommand(sql_command, "UpdateAiCalllogExtension",mysqlclient);
+}
+
+void UpdateMessage::UpdateAicallCalllogSubsidiary(const std::string &calllog_id,ormpp::dbng<ormpp::mysql> &mysqlclient)
+{
+
+	std::vector<std::string> columns = {"update_status"};
+	std::vector<std::string> values = {"1"};
+	std::vector<std::string> condition(1);
+	condition[0] = calllog_id;
+	std::vector<std::string> condition_name(1);
+	condition_name[0] = " calllog_id ";
+	std::vector<std::string> condition_symbols(1);
+	condition_symbols[0] = " = ";
+
+
+	GenerateSQL command;
+	std::string sql_command = command.MysqlGenerateUpdateSQL(" aicall_calllog_subsidiary ", values, columns, condition, condition_name, condition_symbols);
+	ExecuteCommand(sql_command, "aicall_calllog_subsidiary",mysqlclient);
 }
 void UpdateMessage::ExecuteCommand(std::string &sql_command, std::string children_db_name,ormpp::dbng<ormpp::mysql> &mysqlclient)
 {

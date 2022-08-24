@@ -53,7 +53,7 @@ set(TOOL_TEST tooltest)
 set(TOOL_TEST_SOURCE tooltest.cpp)
 add_executable(${TOOL_TEST} ${TOOL_TEST_SOURCE})
 target_include_directories(${TOOL_TEST} PUBLIC ${OPENSSL_INCLUDE_DIR})
-target_link_libraries(${TOOL_TEST}   ${CURL_LIBRARIES}   OpenSSL::SSL OpenSSL::Crypto  uoqueue pthread uokafka rdkafka++ uuid jsoncpp atomic  tinyxml)
+target_link_libraries(${TOOL_TEST}   ${CURL_LIBRARIES}    mysqlclient OpenSSL::SSL OpenSSL::Crypto  uoqueue pthread uokafka rdkafka++ uuid jsoncpp atomic  tinyxml)
 
 set(TOOL_COMPOSE trimule)
 set(TOOL_COMPOSE_SOURCE trimule.cpp)
