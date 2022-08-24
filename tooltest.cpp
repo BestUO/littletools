@@ -619,8 +619,7 @@ void testPThreadPool()
 
 // void testormpp()
 // {
-//     ormpp::dbng<ormpp::mysql> mysql;
-//     mysql.connect("rm-2ze4h4gd92r731iapeo.mysql.rds.aliyuncs.com", "emi_ai", "Sinicnet123456", "ai");
+//    
 
 //     // auto res = mysql.query<aicall_tts_file_cache>("id = 5622");
 //     auto res = mysql.query<user>(" id = 1 ");
