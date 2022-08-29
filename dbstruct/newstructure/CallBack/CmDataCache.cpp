@@ -58,6 +58,7 @@ void DataCache::PollingQueue()
                     GetRulesFromRedis(rule);
                     if (OC_sync_judge(muster.calllog_id, mysqlclient) || CheckTimeOut(muster))
                     {
+                        LOGGER->info("data is sync");
                         GetOCSyncData(data, mysqlclient);
                         if (CallBackJudge(rule, data))
                         {
@@ -146,9 +147,6 @@ void DataCache::OcWebPollingQueue()
                 class_judge = 0;
             }
 
-            // CallBackManage update_action;
-
-            // update_action.CallBackHandle(data,id_cluster,class_judge);
             UpdateMessage update_action;
             if (data.calllog_id != "")
                 update_action.HandleSQL(data_,mysqlclient, class_judge, data.calllog_id);
