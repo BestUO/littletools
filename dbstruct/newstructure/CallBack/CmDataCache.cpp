@@ -269,6 +269,8 @@ void DataCache::CheckUnUpdateId(const std::string &eid,const std::string &mini_t
     mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str());
 
     auto res = mysqlclient.query<std::tuple<std::string>>("SELECT id from calllog WHERE enterprise_uid = " + eid +  " and create_time >= "+ mini_time +" and create_time <= "+ max_time +" and id in (select calllog_id from aicall_calllog_subsidiary where update_status = 0) ");
+    
+    LOGGER->info("code is SELECT id from calllog WHERE enterprise_uid =  {}  and create_time >= {} and create_time <= {} and id in (select calllog_id from aicall_calllog_subsidiary where update_status = 0) ",eid,mini_time,max_time);
 
     LOGGER->info("Trimule may has core,so we has found {} calllog has not update now.",res.size());
 
