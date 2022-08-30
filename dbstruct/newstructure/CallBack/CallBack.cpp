@@ -93,10 +93,10 @@ void CallBackManage::MutipleCallBackManage(CallBackData data, CallBackRules rule
 
 bool CallBackManage::OC_sync_judge(const std::string &calllog_id, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
-    auto sync_judge = mysqlclient.query<std::tuple<std::string, std::string>>("select call_result from calllog where id = " + calllog_id);
+    auto sync_judge = mysqlclient.query<std::tuple<std::string, std::string>>("select call_result,cc_number  from calllog where id = " + calllog_id);
     LOGGER->info("command is select call_result,cc_number from calllog where id =  {}", calllog_id);
-    std::string cc_number = std::get<0>(sync_judge[1]);
-    int call_result = stoi_s(std::get<0>(sync_judge[1]));
+    std::string cc_number = std::get<1>(sync_judge[0]);
+    int call_result = stoi_s(std::get<0>(sync_judge[0]));
     if (sync_judge.size() && (call_result == 4 || (call_result > 0 && cc_number != "")))
         return 1;
     else
@@ -861,8 +861,22 @@ std::string CallBackManage::GetCallRecordFromCm(CallBackData &data, ormpp::dbng<
         if (!pair.first.empty())
         {
             std::string response = PostUrl2(pair.first, pair.second, url, post_param, false);
-            LOGGER->info("cm response is {}", response);
-            return response;
+            std::string real_response;
+            WebOcApiData result;
+            rapidjson::Document doc;
+            rapidjson::Value root(rapidjson::kObjectType);
+            doc.Parse(response.c_str());
+
+            if (doc.IsObject() && doc.HasMember("data"))
+            {
+                rapidjson::StringBuffer str_buf;
+                rapidjson::Writer<rapidjson::StringBuffer> writer(str_buf);
+                doc["data"].Accept(writer);
+                real_response = std::move(str_buf.GetString());
+            }
+
+            LOGGER->info("cm response is {}  parse data is {}", response, real_response);
+            return real_response;
         }
     }
     LOGGER->info("no response");
