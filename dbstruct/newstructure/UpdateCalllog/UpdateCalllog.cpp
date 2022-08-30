@@ -77,7 +77,7 @@ std::tuple<std::string, std::string, std::string, std::string,std::string, std::
 	return null_tu;
 }
 
-void UpdateMessage::UpdateCalllog(CallInfo calllog,const std::string & id,ormpp::dbng<ormpp::mysql> &mysqlclient)
+void UpdateMessage::UpdateCalllog(CallInfo &calllog,const std::string & id,ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
 
 	std::string call_result = calllog.call_result == 0 ? "" : std::to_string(calllog.call_result);
@@ -100,9 +100,10 @@ void UpdateMessage::UpdateCalllog(CallInfo calllog,const std::string & id,ormpp:
 	GenerateSQL command;
 	std::string sql_command = command.MysqlGenerateUpdateSQL(" calllog ", values, columns, condition, condition_name, condition_symbols);
 	ExecuteCommand(sql_command, "UpdateCalllog",mysqlclient);
+
 }
 
-void UpdateMessage::UpdateOutCallClue(CallInfo calllog, std::string clue_id,ormpp::dbng<ormpp::mysql> &mysqlclient)
+void UpdateMessage::UpdateOutCallClue(CallInfo &calllog, std::string &clue_id,ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
 	std::vector<std::string> columns = {"call_result", "manual_status", "call_time", "call_duration"};
 
@@ -122,7 +123,7 @@ void UpdateMessage::UpdateOutCallClue(CallInfo calllog, std::string clue_id,ormp
 	ExecuteCommand(sql_command, "UpdateOutCallClue",mysqlclient);
 }
 
-std::string UpdateMessage::CalculateTransferManualCost(CallInfo calllog)
+std::string UpdateMessage::CalculateTransferManualCost(CallInfo &calllog)
 {
 	std::string transfer_manual_cost = "0";
 	if (calllog.transfer_start_time == "0")
@@ -132,7 +133,7 @@ std::string UpdateMessage::CalculateTransferManualCost(CallInfo calllog)
 	return transfer_manual_cost;
 }
 
-void UpdateMessage::UpdateAiCalllogExtension(CallInfo calllog, std::string calllog_id,ormpp::dbng<ormpp::mysql> &mysqlclient)
+void UpdateMessage::UpdateAiCalllogExtension(CallInfo &calllog, std::string &calllog_id,ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
 	std::vector<std::string> columns = {"transfer_manual_cost", "ring_duration", "call_state", "switch_number", "hangup_type", "manual_incoming", "manual_confirm", "manual_disconnect"};
 
