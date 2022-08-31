@@ -137,6 +137,7 @@ void DataCache::OcWebPollingQueue()
             if (!OC_sync_judge(data.calllog_id, mysqlclient))
             {
                 LOGGER->info("calllog {} not sync ", data.calllog_id);
+                sleep(time);
                 continue;
             }
 
