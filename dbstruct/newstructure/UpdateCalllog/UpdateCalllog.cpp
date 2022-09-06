@@ -78,7 +78,7 @@ std::tuple<std::string, std::string, std::string, std::string, std::string, std:
 void UpdateMessage::UpdateCalllog(CallInfo &calllog, const std::string &id, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
 
-	std::string call_result = calllog.call_result == 0 ? "" : std::to_string(calllog.call_result);
+	std::string call_result = calllog.call_result == 0 ? " 0 " : std::to_string(calllog.call_result);
 	std::vector<std::string> columns = {"duration", "call_result", "transfer_number", "transfer_duration", "call_record_url", "manual_status", "answer_time", "hangup_time"};
 	std::string manual_status = calllog.manual_type == 0 ? "" : std::to_string(calllog.manual_type);
 	std::vector<std::string> values = {std::to_string(calllog.duration_time), call_result, calllog.transfer_number, std::to_string(calllog.transfer_duration), calllog.record_url, manual_status, calllog.confirm_time, calllog.end_time};
@@ -105,8 +105,8 @@ void UpdateMessage::UpdateOutCallClue(CallInfo &calllog, std::string &clue_id, o
 {
 	std::vector<std::string> columns = {"call_result", "manual_status", "call_time", "call_duration"};
 
-	std::string call_result = calllog.call_result == 0 ? "" : std::to_string(calllog.call_result);
-	std::string manual_status = calllog.manual_type == 0 ? "" : std::to_string(calllog.manual_type);
+	std::string call_result = calllog.call_result == 0 ? " 0 " : std::to_string(calllog.call_result);
+	std::string manual_status = calllog.manual_type == 0 ? " 0 " : std::to_string(calllog.manual_type);
 	std::vector<std::string> values = {call_result, manual_status, calllog.start_time, std::to_string(calllog.duration_time)};
 	std::vector<std::string> condition(1);
 	condition[0] = clue_id;
@@ -141,7 +141,7 @@ void UpdateMessage::CheckAndUpdateAicallCalllogContinuousSync(CallInfo &calllog,
 										"call_state", "switch_number", "ring_duration", "hangup_type", "manual_incoming", "manual_confirm",
 										"manual_disconnect", "duration", "call_time", "answer_time", "hangup_time",
 										"manual_status", "transfer_number"};
-	std::string manual_status = calllog.manual_type == 0 ? "" : std::to_string(calllog.manual_type);
+	std::string manual_status = calllog.manual_type == 0 ? " 0 " : std::to_string(calllog.manual_type);
 	std::vector<std::string> values = {calllog.record_url, call_result, intention_type, calllog.transfer_manual_cost, std::to_string(calllog.call_state), 
 										calllog.switch_number, calllog.ring_time, std::to_string(calllog.hangup_type), calllog.transfer_start_time, calllog.transfer_confirm_time, 
 										calllog.transfer_end_time, std::to_string(calllog.duration_time), calllog.start_time, calllog.confirm_time, calllog.end_time, manual_status, calllog.transfer_number};
