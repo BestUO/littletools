@@ -78,7 +78,7 @@ std::tuple<std::string, std::string, std::string, std::string, std::string, std:
 void UpdateMessage::UpdateCalllog(CallInfo &calllog, const std::string &id, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
 
-	std::string call_result = calllog.call_result == 0 ? " 0 " : std::to_string(calllog.call_result);
+	std::string call_result = calllog.call_result == 0 ? "" : std::to_string(calllog.call_result);
 	std::vector<std::string> columns = {"duration", "call_result", "transfer_number", "transfer_duration", "call_record_url", "manual_status", "answer_time", "hangup_time"};
 	std::string manual_status = calllog.manual_type == 0 ? "" : std::to_string(calllog.manual_type);
 	std::vector<std::string> values = {std::to_string(calllog.duration_time), call_result, calllog.transfer_number, std::to_string(calllog.transfer_duration), calllog.record_url, manual_status, calllog.confirm_time, calllog.end_time};
