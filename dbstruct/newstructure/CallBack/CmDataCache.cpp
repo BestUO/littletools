@@ -134,7 +134,7 @@ void DataCache::OcWebPollingQueue()
                 PrepareId(data, rule, calllog_or_cc_number, muster.calllog_id, id_cluster, mysqlclient); // muster.calllog_id  maybe  cc_number
             else
                 continue;
-            if (!OC_sync_judge(data.calllog_id, mysqlclient))
+            if (!OC_sync_judge(data.calllog_id, mysqlclient) || CheckTimeOut(muster))
             {
                 LOGGER->info("calllog {} not sync ", data.calllog_id);
                 sleep(time);

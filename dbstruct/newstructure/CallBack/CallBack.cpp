@@ -97,7 +97,7 @@ bool CallBackManage::OC_sync_judge(const std::string &calllog_id, ormpp::dbng<or
     LOGGER->info("command is select call_result,cc_number from calllog where id =  {}", calllog_id);
     std::string cc_number = std::get<1>(sync_judge[0]);
     int call_result = stoi_s(std::get<0>(sync_judge[0]));
-    if (sync_judge.size() && (call_result == 4 || (call_result > 0 && cc_number != "")))
+    if (sync_judge.size() && (call_result == (4 || 13|| 14) || (call_result > 0 && cc_number != "")))
         return 1;
     else
         return 0;

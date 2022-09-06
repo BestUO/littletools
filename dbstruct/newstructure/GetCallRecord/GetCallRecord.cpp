@@ -77,7 +77,7 @@ CallInfo CallRecord::GetCallRecord(std::string &s, int &framework_class)
 
                 if (record["cc_number"].isString())
                     result.cc_number = record["cc_number"].asString();
-      
+
                 if (record["customer_fail_reason"].asString() != "0")
                     result.customer_fail_reason = stoi(record["customer_fail_reason"].asString());
 
@@ -85,18 +85,32 @@ CallInfo CallRecord::GetCallRecord(std::string &s, int &framework_class)
 
                 result.flow_number = record["flow_number"].isNull() ? -1 : record["flow_number"].asInt();
 
-                if (result.flow_number != 0 && result.flow_number>= now_flow) // transfer_manual
+                if (result.flow_number != 0 && result.flow_number >= now_flow) // transfer_manual
                 {
                     now_flow = result.flow_number;
-                    result.manual_type = GetManualType(result.stop_reason, result.customer_fail_reason);
+
                     auto &dialing = record["dialing"];
                     auto &transfer_confirm_time = record["confirm_timestamp"];
                     auto &send_query_msg_timestamp = record["query_msg_time"];
                     auto &send_invite_timestamp = record["invite_time"];
                     auto &transfer_manual_cost = record["seat_ring_duration"];
+                    auto &conversation_time = record["conversation_time"];
+
+                    int conversation_type = conversation_time.asString() == "" || "0" ? 0 : 1;
+
+                    result.manual_type = GetManualType(result.stop_reason, result.customer_fail_reason, conversation_type);
+
+                    int motinor_duration = 0;
+                    if (conversation_time.asString() != "" && conversation_time.asString() != "0" && transfer_confirm_time.asString() != "" && transfer_confirm_time.asString() != "0")
+                    {
+                        motinor_duration = stoi(conversation_time.asString()) - stoi(transfer_confirm_time.asString());
+                    }
 
                     if (transfer_manual_cost.isString())
-                        result.transfer_manual_cost = transfer_manual_cost.asString();
+                    {
+                        int duration = transfer_manual_cost.asString() == "" || "0" ? 0 : stoi(transfer_manual_cost.asString());//oc transfer_duration = ring_duration + monitor_duration
+                        result.transfer_manual_cost = std::to_string(duration + motinor_duration);
+                    }
 
                     if (dialing.isString())
                         result.transfer_number = dialing.asString();
@@ -116,6 +130,9 @@ CallInfo CallRecord::GetCallRecord(std::string &s, int &framework_class)
                         result.send_query_msg_timestamp = std::string(send_query_msg_timestamp.asString());
                     if (send_invite_timestamp.isString())
                         result.send_invite_timestamp = std::string(send_invite_timestamp.asString());
+
+                    // int monitor_duration = 0;
+                    // if(stoi)
                 }
                 else // ai_
                 {
@@ -247,12 +264,14 @@ std::vector<std::string> CallRecord::ParseUnSync(const std::string &info)
         vec.emplace_back(std::to_string(root["min_time"].asInt()));
         vec.emplace_back(std::to_string(root["max_time"].asInt()));
     }
-    return vec; 
+    return vec;
 }
 
-
-int CallRecord::GetManualType(int &stop_reason, int &customer_fail_reason)
+int CallRecord::GetManualType(int &stop_reason, int &customer_fail_reason, int &conversation_type)
 {
+    if (conversation_type == 1)
+        return ManualType::ManualNotAnswered;
+
     if (customer_fail_reason == 9)
 
         return ManualType::ManualRefuse;
@@ -324,4 +343,3 @@ int CallRecord::GetCallResult(int &stop_reason, int &customer_fail_reason)
         return CallResult::CALL_FAIL;
     }
 }
-
