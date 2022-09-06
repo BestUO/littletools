@@ -40,9 +40,9 @@ CallInfo CallRecord::GetCallRecord(std::string &s, int &framework_class)
             }
             return stoi(str);
         };
-        if (!data.isObject() || data["enterprise_type"].isNull() || data["record_url"].isNull() ||
-            data["records"].isNull())
-            return result;
+        // if (!data.isObject() || data["enterprise_type"].isNull() || data["record_url"].isNull() ||
+        //     data["records"].isNull())
+        //     return result;
         auto enterprise_type = (data)["enterprise_type"];
         auto record_url = (data)["record_url"];
         auto records = (data)["records"];
@@ -59,13 +59,7 @@ CallInfo CallRecord::GetCallRecord(std::string &s, int &framework_class)
             for (unsigned int i = 0; i < records.size(); ++i)
             {
                 auto &record = records[i];
-                if (!record.isObject() || record["confirm_timestamp"].isNull() ||
-                    record["end_time"].isNull() ||
-                    record["duration_time"].isNull() ||
-                    record["call_type"].isNull() ||
-                    (record["call_state"].isNull() && record["stop_reason"].isNull() &&
-                     record["customer_fail_reason"].isNull()) ||
-                    record["dialing"].isNull())
+                if (!record.isObject())
                     return result;
 
                 auto &call_type = record["call_type"];
