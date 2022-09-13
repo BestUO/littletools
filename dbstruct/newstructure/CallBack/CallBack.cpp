@@ -16,6 +16,7 @@ int stoi_s(const std::string &str)
     return i;
 }
 
+
 void SplitString(const std::string &s, std::vector<std::string> &tokens, const std::string &delimiters = " ")
 {
     std::string::size_type lastPos = s.find_first_not_of(delimiters, 0);
@@ -97,7 +98,7 @@ bool CallBackManage::OC_sync_judge(const std::string &calllog_id, ormpp::dbng<or
     LOGGER->info("command is select call_result,cc_number from calllog where id =  {}", calllog_id);
     std::string cc_number = std::get<1>(sync_judge[0]);
     int call_result = stoi_s(std::get<0>(sync_judge[0]));
-    if (sync_judge.size() && (call_result == (4 || 13|| 14) || (call_result > 0 && cc_number != "")))
+    if ((call_result == 4 || call_result == 13|| call_result == 14 || (call_result > 0 && cc_number != "")))
         return 1;
     else
         return 0;
@@ -372,6 +373,10 @@ CallBackRules CallBackManage::MakeCallBackRulesFromMySql(const std::tuple<std::s
 void CallBackManage::ParseApiCallbackSceneStatus(CallBackRules &rules)
 {
     LOGGER->info("ParseIntetionAndCallResult, api_callback_scene_status is {}", rules.api_callback_scene_status);
+
+    if(rules.api_callback_scene_status==""||rules.api_callback_scene_status=="0")
+        return ;
+
     rapidjson::Document doc;
     doc.Parse(rules.api_callback_scene_status.c_str());
     if (doc.IsObject())
@@ -393,6 +398,9 @@ void CallBackManage::ParseApiCallbackSceneStatus(CallBackRules &rules)
 void CallBackManage::ParseIntetionAndCallResult(CallBackRules &rules)
 {
     LOGGER->info("ParseIntetionAndCallResult, auto_recall_scenes is {}", rules.auto_recall_scenes);
+    if(rules.auto_recall_scenes==""||rules.auto_recall_scenes=="0")
+        return ;
+
     rapidjson::Value root(rapidjson::Type::kArrayType);
     rapidjson::Document doc;
     doc.Parse(rules.auto_recall_scenes.c_str());
