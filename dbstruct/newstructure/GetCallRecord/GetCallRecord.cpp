@@ -90,7 +90,7 @@ CallInfo CallRecord::GetCallRecord(std::string &s, int &framework_class)
                     auto &transfer_manual_cost = record["seat_ring_duration"];
                     auto &conversation_time = record["conversation_time"];
 
-                    int conversation_type = conversation_time.asString() == "" || "0" ? 0 : 1;
+                    int conversation_type = conversation_time.asString() == "" ? 1 : (conversation_time.asString() == "0"?1:0);
 
                     result.manual_type = GetManualType(result.stop_reason, result.customer_fail_reason, conversation_type);
 
@@ -102,7 +102,10 @@ CallInfo CallRecord::GetCallRecord(std::string &s, int &framework_class)
 
                     if (transfer_manual_cost.isString())
                     {
-                        int duration = transfer_manual_cost.asString() == "" || "0" ? 0 : stoi(transfer_manual_cost.asString());//oc transfer_duration = ring_duration + monitor_duration
+                        int duration = 0;
+                        if(transfer_manual_cost.asString() != "" && transfer_manual_cost.asString() != "0")
+                            duration = stoi(transfer_manual_cost.asString());//oc transfer_manual_cost = ring_duration + monitor_duration
+                        
                         result.transfer_manual_cost = std::to_string(duration + motinor_duration);
                     }
 
