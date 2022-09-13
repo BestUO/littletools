@@ -131,7 +131,7 @@ CallInfo CallRecord::GetCallRecord(std::string &s, int &framework_class)
                     // int monitor_duration = 0;
                     // if(stoi)
                 }
-                else // ai_
+                else if(result.flow_number == 0 )// ai_
                 {
                     result.call_result = GetCallResult(result.stop_reason, result.customer_fail_reason);
                     result.hangup_type = GetHangupType(result.stop_reason, result.customer_fail_reason);
