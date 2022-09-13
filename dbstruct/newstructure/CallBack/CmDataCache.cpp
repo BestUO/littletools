@@ -130,11 +130,16 @@ void DataCache::OcWebPollingQueue()
             } // 0:use cc_number ,1:use calllog_id}
             else
                 calllog_or_cc_number = 1;
+
             if (muster.calllog_id != "")
                 PrepareId(data, rule, calllog_or_cc_number, muster.calllog_id, id_cluster, mysqlclient); // muster.calllog_id  maybe  cc_number
             else
-                continue;
-            if (!OC_sync_judge(data.calllog_id, mysqlclient) || CheckTimeOut(muster))
+                {
+                    LOGGER->info("cc_number or calllog_id is null ,now_id is {} ,delete it",now_id);
+                    instance.DelKey(now_id);
+                    instance.LREMForList(list_name, {now_id});
+                }
+            if (!OC_sync_judge(data.calllog_id, mysqlclient) || !CheckTimeOut(muster))
             {
                 LOGGER->info("calllog {} not sync ", data.calllog_id);
                 sleep(time);
@@ -252,13 +257,28 @@ IdMuster DataCache::ParseCmId(const std::string &cm_id)
     return muster;
 }
 
+int stoi_l(const std::string &str)
+{
+    int i = 0;
+    try
+    {
+        i = std::stoi(str);
+    }
+    catch (...)
+    {
+    }
+    return i;
+}
+
+
 bool DataCache::CheckTimeOut(const IdMuster &muster)
 {
     auto now = time(NULL);
     std::stringstream sstream;
     sstream << now;
     std::string time_ = sstream.str();
-    if (stoi(time_) - stoi(muster.time) >= 600)
+    
+    if (stoi(time_) - stoi_l(muster.time) >= 600)
     {
         LOGGER->info("Callback_data is timeout,force callback");
         return 1;
