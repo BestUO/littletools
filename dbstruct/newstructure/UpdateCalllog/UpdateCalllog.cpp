@@ -27,9 +27,9 @@ void UpdateMessage::HandleSQL(std::string &s, ormpp::dbng<ormpp::mysql> &mysqlcl
 
 	std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> result;
 	if (class_judge == 0)
-		result = GetIdFromMysql(class_judge, callog.cc_number, mysqlclient);
+		{result = GetIdFromMysql(class_judge, callog.cc_number, mysqlclient);CheckCallResultSilence(callog,mysqlclient,class_judge,callog.cc_number);}
 	else
-		result = GetIdFromMysql(class_judge, calllog_id, mysqlclient);
+		{result = GetIdFromMysql(class_judge, calllog_id, mysqlclient);CheckCallResultSilence(callog,mysqlclient,class_judge,calllog_id);}
 
 	if (std::get<0>(result) != "")
 	{
@@ -50,6 +50,34 @@ void UpdateMessage::HandleSQL(std::string &s, ormpp::dbng<ormpp::mysql> &mysqlcl
 		data_handle.CallBackHandle(callog, id_cluster, class_judge, mysqlclient);
 	}
 }
+
+void UpdateMessage::CheckCallResultSilence(CallInfo &callog,ormpp::dbng<ormpp::mysql> &mysqlclient,const int &class_judge,const std::string &condition)
+{
+std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> null_tu = std::make_tuple("", "", "", "", "", "");
+	if (class_judge == 0)
+	{
+		std::string cc_ = R"(cc_number = ')" + condition + R"(')";
+		auto res = mysqlclient.query<std::tuple<std::string, std::string, std::string, std::string, std::string, std::string>>("select call_result from calllog where " + cc_);
+		LOGGER->info("GetIdFromMysql  use cc_number select,command is,select call_result from calllog where {}", cc_);
+		if (res.size()&&stoi(std::get<0>(res[0]))==1)
+			{
+				callog.call_result = 0;
+				LOGGER->info("{} hangup with noinput",cc_);
+			}
+	}
+	else
+	{
+		std::string calllog_id = R"(id = ')" + condition + R"(')";
+		auto res = mysqlclient.query<std::tuple<std::string, std::string, std::string, std::string, std::string, std::string>>("select call_result from calllog where " + calllog_id);
+		LOGGER->info("GetIdFromMysql  use calllog_id select,command is,select call_result from calllog where {}", calllog_id);
+
+		if (res.size()&&stoi(std::get<0>(res[0]))==1)
+			{callog.call_result = 0;
+			LOGGER->info("{} hangup with noinput",calllog_id);}
+	}
+
+}
+
 std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> UpdateMessage::GetIdFromMysql(const int &class_judge, const std::string &condition, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
 
