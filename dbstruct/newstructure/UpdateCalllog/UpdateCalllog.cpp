@@ -58,7 +58,7 @@ std::tuple<std::string, std::string, std::string, std::string, std::string, std:
 	{
 		std::string cc_ = R"(cc_number = ')" + condition + R"(')";
 		auto res = mysqlclient.query<std::tuple<std::string, std::string, std::string, std::string, std::string, std::string>>("select call_result from calllog where " + cc_);
-		LOGGER->info("GetIdFromMysql  use cc_number select,command is,select call_result from calllog where {}", cc_);
+		LOGGER->info("CheckCallResultSilence  use cc_number select,command is,select call_result from calllog where {}", cc_);
 		if (res.size()&&stoi(std::get<0>(res[0]))==1)
 			{
 				callog.call_result = 0;
@@ -69,7 +69,7 @@ std::tuple<std::string, std::string, std::string, std::string, std::string, std:
 	{
 		std::string calllog_id = R"(id = ')" + condition + R"(')";
 		auto res = mysqlclient.query<std::tuple<std::string, std::string, std::string, std::string, std::string, std::string>>("select call_result from calllog where " + calllog_id);
-		LOGGER->info("GetIdFromMysql  use calllog_id select,command is,select call_result from calllog where {}", calllog_id);
+		LOGGER->info("CheckCallResultSilence  use calllog_id select,command is,select call_result from calllog where {}", calllog_id);
 
 		if (res.size()&&stoi(std::get<0>(res[0]))==1)
 			{callog.call_result = 0;
@@ -133,8 +133,8 @@ void UpdateMessage::UpdateOutCallClue(CallInfo &calllog, std::string &clue_id, o
 {
 	std::vector<std::string> columns = {"call_result", "manual_status", "call_time", "call_duration"};
 
-	std::string call_result = calllog.call_result == 0 ? " 0 " : std::to_string(calllog.call_result);
-	std::string manual_status = calllog.manual_type == 0 ? " 0 " : std::to_string(calllog.manual_type);
+	std::string call_result = calllog.call_result == 0 ? "" : std::to_string(calllog.call_result);
+	std::string manual_status = calllog.manual_type == 0 ? "" : std::to_string(calllog.manual_type);
 	std::vector<std::string> values = {call_result, manual_status, calllog.start_time, std::to_string(calllog.duration_time)};
 	std::vector<std::string> condition(1);
 	condition[0] = clue_id;
