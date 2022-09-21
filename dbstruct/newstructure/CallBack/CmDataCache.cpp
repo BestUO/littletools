@@ -139,7 +139,7 @@ void DataCache::OcWebPollingQueue()
                     instance.DelKey(now_id);
                     instance.LREMForList(list_name, {now_id});
                 }
-            if (!OC_sync_judge(data.calllog_id, mysqlclient) || !CheckTimeOut(muster))
+            if (!OC_sync_judge(data.calllog_id, mysqlclient) && !CheckTimeOut(muster))
             {
                 LOGGER->info("calllog {} not sync ", data.calllog_id);
                 sleep(time);
@@ -237,15 +237,15 @@ IdMuster DataCache::ParseCmId(const std::string &cm_id)
     if (count(cm_id.begin(), cm_id.end(), '-') == 1)
     {
 
-        pos1 = cm_id.find('-');
+        pos1 = cm_id.rfind('-');
         muster.calllog_id = cm_id.substr(0, pos1);
         muster.time = cm_id.substr(pos1 + 1, (cm_id.size() - pos1 - 1));
         // LOGGER->info("calllog_id is {},type is {}", muster.calllog_id, muster.time);
     }
     else if (count(cm_id.begin(), cm_id.end(), '-') == 2)
     {
-        pos1 = cm_id.find('-');
-        int pos2 = cm_id.find('-', pos1 + 1);
+        pos1 = cm_id.rfind('-');
+        int pos2 = cm_id.rfind('-', pos1 + 1);
         muster.calllog_id = cm_id.substr(0, pos1);
         muster.url = cm_id.substr(pos1 + 1, pos2 - pos1 - 1);
         muster.time = cm_id.substr(pos2 + 1, (cm_id.size() - pos2 - 1));

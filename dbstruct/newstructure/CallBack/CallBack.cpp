@@ -96,6 +96,8 @@ bool CallBackManage::OC_sync_judge(const std::string &calllog_id, ormpp::dbng<or
 {
     auto sync_judge = mysqlclient.query<std::tuple<std::string, std::string>>("select call_result,cc_number  from calllog where id = " + calllog_id);
     LOGGER->info("command is select call_result,cc_number from calllog where id =  {}", calllog_id);
+    if(!sync_judge.size())
+        return false;
     std::string cc_number = std::get<1>(sync_judge[0]);
     int call_result = stoi_s(std::get<0>(sync_judge[0]));
     if ((call_result == 4 || call_result == 13|| call_result == 14 || (call_result > 0 && cc_number != "")))
