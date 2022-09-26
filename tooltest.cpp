@@ -107,8 +107,7 @@ void testfreelock()
                               int num = aaa.rte_ring_mc_dequeue_bulk(&ptr, 1, nullptr);
                               if (num)
                                   total += *(int *)ptr;
-                          }
-                      });
+                          } });
         vc.emplace_back(std::move(t));
     }
 
@@ -620,8 +619,7 @@ void testPThreadPool()
 
 // void testormpp()
 // {
-//     ormpp::dbng<ormpp::mysql> mysql;
-//     mysql.connect("rm-2ze4h4gd92r731iapeo.mysql.rds.aliyuncs.com", "emi_ai", "Sinicnet123456", "ai");
+//    
 
 //     // auto res = mysql.query<aicall_tts_file_cache>("id = 5622");
 //     auto res = mysql.query<user>(" id = 1 ");
@@ -884,40 +882,40 @@ void testtinyxml()
 
     if (eResult != XML_SUCCESS)
         cout << "error\n";
-    cout<<"sssssssssssss"<<endl;
-
-    
+    cout << "sssssssssssss" << endl;
 }
 
 #include <curl/curl.h>
 void testwd_testcurl()
 {
-    const std::string &url="";
-     const std::string &post_param = "";
-      bool json_type=0; curl_slist *header; std::string authorization ="";
+    const std::string &url = "";
+    const std::string &post_param = "";
+    bool json_type = 0;
+    curl_slist *header;
+    std::string authorization = "";
 
-   CURL *curl;
+    CURL *curl;
     CURLcode res;
     curl = curl_easy_init();
 
     std::string response;
 
-    struct curl_slist* headers = header;
+    struct curl_slist *headers = header;
     if (curl)
     {
-        if(json_type)
-            headers=curl_slist_append(headers, "Content-Type:application/json;charset=UTF-8");
-        if(!authorization.empty())
-            curl_slist_append(headers, ("Authorization:Bearer "+authorization).c_str());
+        if (json_type)
+            headers = curl_slist_append(headers, "Content-Type:application/json;charset=UTF-8");
+        if (!authorization.empty())
+            curl_slist_append(headers, ("Authorization:Bearer " + authorization).c_str());
 
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_param.c_str());
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-        //do not verify ssl certificate
+        // do not verify ssl certificate
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
 
-        //timeout
+        // timeout
         curl_easy_setopt(curl, CURLOPT_TIMEOUT, 0.5);
         curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 0.5);
 
@@ -925,7 +923,7 @@ void testwd_testcurl()
         // curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 
         res = curl_easy_perform(curl);
-        LOGGER->info("post url : {}  ,{}  rescode :  {}",url,post_param,res);
+        LOGGER->info("post url : {}  ,{}  rescode :  {}", url, post_param, res);
     }
 
     curl_slist_free_all(headers);
@@ -940,24 +938,51 @@ void testwd_testcurl()
 void tset_opsnssl()
 {
     std::string src = "123";
-        MD5_CTX ctx;
+    MD5_CTX ctx;
 
     std::string md5_string;
-    unsigned char md[16] = { 0 };
-    char tmp[33] = { 0 };
+    unsigned char md[16] = {0};
+    char tmp[33] = {0};
 
-    MD5_Init( &ctx );
-    MD5_Update( &ctx, src.c_str(), src.size() );
-    MD5_Final( md, &ctx );
+    MD5_Init(&ctx);
+    MD5_Update(&ctx, src.c_str(), src.size());
+    MD5_Final(md, &ctx);
 
-    for( int i = 0; i < 16; ++i )
+    for (int i = 0; i < 16; ++i)
     {
-        memset( tmp, 0x00, sizeof( tmp ) );
-        sprintf( tmp, "%02x", md[i] );
+        memset(tmp, 0x00, sizeof(tmp));
+        sprintf(tmp, "%02x", md[i]);
         md5_string += tmp;
     }
-    std::cout<<md5_string;
+    std::cout << md5_string;
 }
+
+#include "ormpp/dbng.hpp"
+#include "ormpp/mysql.hpp"
+void wdtest_ormpp()
+{
+    // "mysql_setting": {
+    //     "mysql_user": "emi_ai",
+    //     "mysql_password": "Sinicnet123456",
+    //     "mysql_db": "ai",
+    //     "mysql_host": "rm-2ze4h4gd92r731iapeo.mysql.rds.aliyuncs.com",
+    //     "mysql_port":3306,
+    //     "mysql_timeout":5
+    // },
+
+    ormpp::dbng<ormpp::mysql> mysqlclient;
+    // settingParser mysql_example;
+    // sqlconnect conne = mysql_example.GetSettinghParser("conf/config.json");
+
+    mysqlclient.connect("", "", "Sinicnet123456", "ai", 5, 3306);
+
+     auto res = mysqlclient.query<std::tuple<std::string>>("SELECT create_time from calllog WHERE enterprise_uid = 19 and id in (select calllog_id from aicall_calllog_extension where hangup_type = 2) limit 1");
+
+    std::cout << std::get<0>(res[0]) << std::endl;
+}
+
+
+
 int main()
 {
     // testQueueTypeThreadPool();
@@ -980,6 +1005,8 @@ int main()
     // wdtestormpp();
     // testtinyxml();
     // testwd_testcurl();
-    tset_opsnssl();
+    // tset_opsnssl();
+    wdtest_ormpp();
+
     return 0;
 }

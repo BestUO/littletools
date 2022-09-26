@@ -17,6 +17,17 @@
 #include <thread>
 #include <future>
 
+#include <iostream>
+#include <iostream>
+#include <functional>
+#include <thread>
+#include <condition_variable>
+#include <future>
+#include <atomic>
+#include <vector>
+#include <queue>
+
+
 #define SPDLOG_FILENAME "log/TrimuleLogger.log"
 #define SPDLOGGERNAME "TrimuleLogger"
 #define LOGGER spdlog::get(SPDLOGGERNAME)
@@ -73,7 +84,9 @@ protected:
                 std::string str = real_data;
                 int class_judge = 4;
                 CallRecord record;
-                CallInfo data = record.GetCallRecord(real_data, 2);
+                int a=2;
+                CallInfo data = record.GetCallRecord(real_data, a);
+        
                 callog.cc_number = data.cc_number;
                 cache_action.CacheCmData(callog, str, class_judge,mysqlclient);
             }
@@ -92,6 +105,13 @@ protected:
     // }
 };
 
+int CheckUnUpdateId(const std::vector<std::string> &vec)
+{
+    DataCache cache;
+    cache.CheckUnUpdateId(vec[0],vec[1],vec[2]);
+    return 0;
+}
+
 template <class T>
 void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
 {
@@ -99,11 +119,14 @@ void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
                                                          {
         LOGGER->info("message is {}",std::string(req.body()));
         CallRecord check;
-        std::string check_res = check.CheckInfo(std::string(req.body()));
-        std::string que_str ='0'+std::string(req.body());
+        std::string check_info = std::string(req.body());
+        std::string check_res = check.CheckInfo(check_info);
+   
+        std::string que_str ='0'+check_info;
         int type = 0;
         if(check_res!="900"&&check_res!="901")
         {threadpool->EnqueueStr(que_str);}
+
 		res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+check_res+"\"}"); });
 
     server.set_http_handler<cinatra::GET, cinatra::POST>("/GetCallRecord/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
@@ -112,10 +135,33 @@ void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
                                     //checkweboc data
         LOGGER->info("message is {}",std::string(req.body()));
         CallRecord check;
-        std::string check_res = check.CheckWebOcInfo(std::string(req.body()));
-        std::string que_str ='1'+std::string(req.body());
+        std::string check_info = std::string(req.body());
+        std::string check_res = check.CheckWebOcInfo(check_info);
+
+        std::string que_str ='1'+check_info;
         int type = 1;
         threadpool->EnqueueStr(que_str);
+		res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+check_res+"\"}"); });
+
+    server.set_http_handler<cinatra::GET, cinatra::POST>("/CheckUnSync/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
+                                                         {
+
+                                    //checkweboc data
+        LOGGER->info("message is {}",std::string(req.body()));
+        CallRecord check;
+        std::string check_info = std::string(req.body());
+        std::string check_res = check.CheckUnSync(check_info);
+
+        if(check_res=="902")
+        {
+            std::vector<std::string> vec = check.ParseUnSync(check_info);
+            if(vec.size()==3)
+            {
+                std::thread aicall_calllog_subsidiary(CheckUnUpdateId,vec);
+                aicall_calllog_subsidiary.detach();
+            }
+        }
+        
 		res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+check_res+"\"}"); });
 }
 
@@ -138,6 +184,9 @@ int CallBackActionQueue()
     return 0;
 }
 
+
+
+
 int main()
 {
     initspdlog();
@@ -147,6 +196,7 @@ int main()
     int max_thread_num = 1;
     cinatra::http_server server(max_thread_num);
     server.listen((*config)["httpserver_setting"]["host"].GetString(), (*config)["httpserver_setting"]["port"].GetString());
+
 
     using QueueType = std::conditional_t<false, LockQueue<std::string>, FreeLockRingQueue<std::string>>;
     auto queuetask = std::shared_ptr<QueueType>(new QueueType);
@@ -159,9 +209,9 @@ int main()
     std::thread oc_web_polling_queue(OcWebPollingQueue);
     std::thread call_back_action_queue(CallBackActionQueue);
     server.run();
-    polling_queue.join();
-    oc_web_polling_queue.join();
-    call_back_action_queue.join();
+    polling_queue.detach();
+    oc_web_polling_queue.detach();
+    call_back_action_queue.detach();
 
     return 0;
 }

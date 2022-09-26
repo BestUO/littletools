@@ -121,16 +121,16 @@ template <> struct TestCase<false> {
   exit((int)UnitTest::getInstance().getFailureNum());
 }
 
-// int main() {
-//   signal(SIGSEGV, [](int) {
-//     UnitTest::getInstance().incFailure();
-//     std::cout << ">>> fatal error: received SIGSEGV." << std::endl;
-//     UnitTest::getInstance().printLastCheckedPoint();
-//     report_and_exit();
-//   });
-//   UnitTest::getInstance().runAll();
-//   report_and_exit();
-// }
+int main() {
+  signal(SIGSEGV, [](int) {
+    UnitTest::getInstance().incFailure();
+    std::cout << ">>> fatal error: received SIGSEGV." << std::endl;
+    UnitTest::getInstance().printLastCheckedPoint();
+    report_and_exit();
+  });
+  UnitTest::getInstance().runAll();
+  report_and_exit();
+}
 #endif
 
 template <typename F, typename... Args,

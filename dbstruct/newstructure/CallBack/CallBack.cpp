@@ -27,7 +27,7 @@ void SplitString(const std::string &s, std::vector<std::string> &tokens, const s
         pos = s.find_first_of(delimiters, lastPos);
     }
 }
-void CallBackManage::CallBackHandle(CallInfo &cm_data, const std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> &id_cluster, const int &callback_class,ormpp::dbng<ormpp::mysql> &mysqlclient)
+void CallBackManage::CallBackHandle(CallInfo &cm_data, const std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> &id_cluster, const int &callback_class, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
     LOGGER->info("begin CallBackHandle");
     CallBackData data;
@@ -39,9 +39,9 @@ void CallBackManage::CallBackHandle(CallInfo &cm_data, const std::tuple<std::str
     data.call_count = std::get<static_cast<int>(IdCluster::CallCount)>(id_cluster);
     rule.eid = stoi_s(std::get<static_cast<int>(IdCluster::EnterpriseUid)>(id_cluster));
     rule.task_id = stoi_s(std::get<static_cast<int>(IdCluster::TaskId)>(id_cluster));
-    data.url = GetCallBackUrl(data.eid,mysqlclient);
+    data.url = GetCallBackUrl(data.eid, mysqlclient);
     CmDataSwitch(cm_data, data);
-    MutipleCallBackManage(data, rule, callback_class, id_cluster, callback_class,mysqlclient);
+    MutipleCallBackManage(data, rule, callback_class, id_cluster, callback_class, mysqlclient);
 }
 
 void CallBackManage::MutipleCallBackManage(CallBackData data, CallBackRules rule, const int &class_judge, const std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> &id_cluster, const bool &callback_class, ormpp::dbng<ormpp::mysql> &mysqlclient)
@@ -52,7 +52,7 @@ void CallBackManage::MutipleCallBackManage(CallBackData data, CallBackRules rule
     std::string locate = data.eid + "-" + data.task_id;
     if (instance->SearchRules(locate) == "null")
     {
-        rule = MakeCallBackRulesFromMySql(id_cluster,mysqlclient);
+        rule = MakeCallBackRulesFromMySql(id_cluster, mysqlclient);
         instance->CacheRules(locate, SetRulesRedisCache(rule));
     }
     else
@@ -64,9 +64,9 @@ void CallBackManage::MutipleCallBackManage(CallBackData data, CallBackRules rule
 
     if (CallBackJudge(rule, data))
     {
-        if (OC_sync_judge(data.calllog_id,mysqlclient))
+        if (OC_sync_judge(data.calllog_id, mysqlclient))
         {
-            GetOCSyncData(data,mysqlclient);
+            GetOCSyncData(data, mysqlclient);
             if (CallBackJudge(rule, data))
             {
                 std::string cm_data_json = MakeCacheJson(data);
@@ -74,14 +74,14 @@ void CallBackManage::MutipleCallBackManage(CallBackData data, CallBackRules rule
                 // callback
                 LOGGER->info("data is sync ,begin callback");
                 int call_class = 2;
-                CacheCmData(data, caback_data, call_class,mysqlclient);
+                CacheCmData(data, caback_data, call_class, mysqlclient);
             }
         }
         else
         {
             int call_class = 0;
             std::string str = "";
-            CacheCmData(data, str, call_class,mysqlclient);
+            CacheCmData(data, str, call_class, mysqlclient);
             LOGGER->info("data is not sync ,donot callback");
         }
     }
@@ -93,10 +93,12 @@ void CallBackManage::MutipleCallBackManage(CallBackData data, CallBackRules rule
 
 bool CallBackManage::OC_sync_judge(const std::string &calllog_id, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
-    auto sync_judge = mysqlclient.query<std::tuple<std::string>>("select script_name from calllog where id = " + calllog_id);
-    LOGGER->info("command is select script_name from calllog where id =  {}", calllog_id);
-    if (sync_judge.size())
-        return std::get<0>(sync_judge[0]) == "" ? 0 : 1;
+    auto sync_judge = mysqlclient.query<std::tuple<std::string, std::string>>("select call_result,cc_number  from calllog where id = " + calllog_id);
+    LOGGER->info("command is select call_result,cc_number from calllog where id =  {}", calllog_id);
+    std::string cc_number = std::get<1>(sync_judge[0]);
+    int call_result = stoi_s(std::get<0>(sync_judge[0]));
+    if (sync_judge.size() && (call_result == 4 || (call_result > 0 && cc_number != "")))
+        return 1;
     else
         return 0;
 }
@@ -120,7 +122,6 @@ std::string CallBackManage::GetCallBackUrl(const std::string &eid, ormpp::dbng<o
 
 void CallBackManage::GetOCSyncData(CallBackData &data, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
-
 
     LOGGER->info("GetOCSyncData eid is {}", data.eid);
     GenerateSQL sql_command;
@@ -162,11 +163,11 @@ void CallBackManage::GetOCSyncData(CallBackData &data, ormpp::dbng<ormpp::mysql>
         values_calllog.insert(values_calllog.end(), calllog_columns.begin(), calllog_columns.end());
         std::string command_calllog = sql_command.MysqlGenerateSelectSQL(db_name_calllog, values_calllog, condition_calllog, condition_name_calllog, condition_symbols_calllog);
         auto result_calllog = mysqlclient.query<std::tuple<std::string, std::string, std::string, std::string,
-                                                                     std::string, std::string, std::string, std::string,
-                                                                     std::string, std::string, std::string, std::string,
-                                                                     std::string, std::string, std::string,
-                                                                     std::string, std::string, std::string,
-                                                                     std::string, std::string, std::string>>(command_calllog.c_str());
+                                                           std::string, std::string, std::string, std::string,
+                                                           std::string, std::string, std::string, std::string,
+                                                           std::string, std::string, std::string,
+                                                           std::string, std::string, std::string,
+                                                           std::string, std::string, std::string>>(command_calllog.c_str());
         if (result_calllog.size())
         {
             data.intention_type = std::get<static_cast<int>(calllog_enum::intention_type)>(result_calllog[0]);
@@ -198,8 +199,8 @@ void CallBackManage::GetOCSyncData(CallBackData &data, ormpp::dbng<ormpp::mysql>
     {
         std::string command_calllog = sql_command.MysqlGenerateSelectSQL(db_name_calllog, values_calllog, condition_calllog, condition_name_calllog, condition_symbols_calllog);
         auto result_calllog = mysqlclient.query<std::tuple<std::string, std::string, std::string,
-                                                                     std::string, std::string, std::string, std::string,
-                                                                     std::string, std::string, std::string, std::string>>(command_calllog.c_str());
+                                                           std::string, std::string, std::string, std::string,
+                                                           std::string, std::string, std::string, std::string>>(command_calllog.c_str());
         LOGGER->info("command_calllog is {}", command_calllog);
         if (result_calllog.size())
         {
@@ -275,7 +276,7 @@ void CallBackManage::CmDataSwitch(CallInfo &cm_data, CallBackData &data)
 
 CallBackRules CallBackManage::MakeCallBackRulesFromMySql(const std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> &id_cluster, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
- 
+
     CallBackRules rules;
     rules.eid = stoi_s(std::get<static_cast<int>(IdCluster::EnterpriseUid)>(id_cluster));
     rules.task_id = stoi_s(std::get<static_cast<int>(IdCluster::TaskId)>(id_cluster));
@@ -516,7 +517,7 @@ bool CallBackManage::CallBackJudge(const CallBackRules &rules, const CallBackDat
     return 0;
 }
 
-void CallBackManage::CacheCmData(const CallBackData &data, std::string &cache_data, const int &class_judge,ormpp::dbng<ormpp::mysql> &mysqlclient)
+void CallBackManage::CacheCmData(const CallBackData &data, std::string &cache_data, const int &class_judge, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
     auto now = time(NULL);
     std::stringstream sstream;
@@ -537,7 +538,7 @@ void CallBackManage::CacheCmData(const CallBackData &data, std::string &cache_da
     }
     else if (class_judge == 2)
     {
-        std::string url = GetCallBackUrl(data.eid,mysqlclient);
+        std::string url = GetCallBackUrl(data.eid, mysqlclient);
         id = data.calllog_id + "-" + url + "-now"; // cm and oc  must callback now
         set_name = "cm_id_cluster_now";
     }
@@ -758,7 +759,6 @@ std::pair<std::string, std::string> CallBackManage::GetSignkey(std::string keyna
 {
     std::pair<std::string, std::string> pair;
 
-
     std::string command = "select server_ip,https_port from ai.enterprise_info where id = " + std::to_string(id) + " limit 1;";
     LOGGER->info("command is {}", command);
     std::string server_ip = "";
@@ -828,7 +828,7 @@ void CallBackManage::CallBackAction(const std::string &data, const std::string &
 
 std::string CallBackManage::GetCallRecordFromCm(CallBackData &data, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
- 
+
     std::string command = "select server_ip,https_port,enterprise_id from ai.enterprise_info where id = " + data.eid + " limit 1;";
     std::string server_ip = "";
     ushort https_port = 0;
@@ -857,12 +857,26 @@ std::string CallBackManage::GetCallRecordFromCm(CallBackData &data, ormpp::dbng<
 
         std::string key_name = "robot_cm_default_secret";
         std::string signatureKey = "robot.cm.default.secret.da123456780e6fy5";
-        auto pair = GetSignkey(key_name, signatureKey, stoi_s(data.eid),mysqlclient);
+        auto pair = GetSignkey(key_name, signatureKey, stoi_s(data.eid), mysqlclient);
         if (!pair.first.empty())
         {
             std::string response = PostUrl2(pair.first, pair.second, url, post_param, false);
-            LOGGER->info("cm response is {}", response);
-            return response;
+            std::string real_response;
+            WebOcApiData result;
+            rapidjson::Document doc;
+            rapidjson::Value root(rapidjson::kObjectType);
+            doc.Parse(response.c_str());
+
+            if (doc.IsObject() && doc.HasMember("data"))
+            {
+                rapidjson::StringBuffer str_buf;
+                rapidjson::Writer<rapidjson::StringBuffer> writer(str_buf);
+                doc["data"].Accept(writer);
+                real_response = std::move(str_buf.GetString());
+            }
+
+            LOGGER->info("cm response is {}  parse data is {}", response, real_response);
+            return real_response;
         }
     }
     LOGGER->info("no response");
@@ -899,14 +913,14 @@ void CallBackManage::MakeQueueCache(const std::string &str)
         data.calllog_id = result.calllog_id_array[i];
         std::string nu = "";
         ormpp::dbng<ormpp::mysql> mysqlclient;
-        CacheCmData(data, nu, result.type,mysqlclient);
+        CacheCmData(data, nu, result.type, mysqlclient);
     }
 }
 
 void CallBackManage::PrepareId(CallBackData &data, CallBackRules &rule, const int &cc_or_calllog_id, const std::string &id, std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> &id_cluster, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
     UpdateMessage GetId;
-    id_cluster = GetId.GetIdFromMysql(cc_or_calllog_id, id,mysqlclient);
+    id_cluster = GetId.GetIdFromMysql(cc_or_calllog_id, id, mysqlclient);
 
     data.eid = std::get<static_cast<int>(IdCluster::EnterpriseUid)>(id_cluster);
     data.task_id = std::get<static_cast<int>(IdCluster::TaskId)>(id_cluster);

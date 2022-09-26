@@ -30,7 +30,8 @@ sqlconnect settingParser::GetSettinghParser(std::string filepath)
         connect.user = mysql_setting["mysql_user"].asString();
         connect.password = mysql_setting["mysql_password"].asString();
         connect.host = mysql_setting["mysql_host"].asString();
-        
+        connect.db_port = mysql_setting["mysql_port"].asInt();
+        connect.db_timeout = mysql_setting["mysql_timeout"].asInt();
         return connect;
     }
     connect.alarm = "other error";
@@ -47,16 +48,9 @@ redis_account  settingParser::GetRedisSetting(std::string filepath)
     //确认文件读取状态
     std::ifstream in(filepath, std::ios::binary);
 
-    // if (!in.is_open())
-    // {   connect.alarm = "file is not open!!";
-    //     return connect;
-    // }
-
     if (reader.parse(in, root))
     {
         Json::Value redis_setting = root["redis_setting"];
-        // Json::Value  res = mysql_setting[target];
-        // str = res.asString();
 
         connect.port = redis_setting["port"].asString();
         connect.password = redis_setting["password"].asString();
@@ -65,4 +59,24 @@ redis_account  settingParser::GetRedisSetting(std::string filepath)
         return connect;
     }
     return connect;
+}
+
+int settingParser::GetSleepTime(std::string filepath)
+{
+    std::string str = "";
+    Json::Reader reader;
+    Json::Value root;
+
+    //确认文件读取状态
+    std::ifstream in(filepath, std::ios::binary);
+    int time =0;
+    if (reader.parse(in, root))
+    {
+        Json::Value time_setting = root["queue_sync_time"];
+
+        time = time_setting.asInt();
+        return time;
+    }
+    
+    return time;
 }

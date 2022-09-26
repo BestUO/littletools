@@ -26,7 +26,7 @@ INCLUDE_DIRECTORIES(
                     ${CMAKE_SOURCE_DIR}/iguana
                    )
 
-# add_executable(ormpp ${SOURCE_FILES})
+add_executable(ormpp ${SOURCE_FILES})
 if (ENABLE_MYSQL)
 target_link_libraries(ormpp mysqlclient)
 endif()

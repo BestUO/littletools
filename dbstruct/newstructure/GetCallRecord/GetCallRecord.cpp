@@ -3,7 +3,7 @@
 #include <json/json.h>
 #include <string>
 using namespace std;
-CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
+CallInfo CallRecord::GetCallRecord(std::string &s, int &framework_class)
 {
     CallInfo result;
     Json::Reader reader;
@@ -182,7 +182,7 @@ CallInfo CallRecord::GetCallRecord(std::string s, int framework_class)
     return result;
 }
 
-std::string CallRecord::CheckInfo(std::string info)
+std::string CallRecord::CheckInfo(std::string &info)
 {
     Json::Reader reader;
     Json::Value root;
@@ -209,6 +209,22 @@ std::string CallRecord::CheckInfo(std::string info)
     return "900"; // style error
 }
 
+std::string CallRecord::CheckUnSync(const std::string &info)
+{
+    Json::Reader reader;
+    Json::Value root;
+
+    if (reader.parse(info, root))
+    {
+
+        auto records = root["data"];
+        if (!root["eid"].isNull())
+        {
+            return "902";
+        }
+    }
+    return "900"; // style error
+}
 
 std::string CallRecord::CheckWebOcInfo(const std::string &info)
 {
@@ -227,7 +243,22 @@ std::string CallRecord::CheckWebOcInfo(const std::string &info)
     return "900"; // style error
 }
 
-int CallRecord::GetManualType(int stop_reason, int customer_fail_reason)
+std::vector<std::string> CallRecord::ParseUnSync(const std::string &info)
+{
+    Json::Reader reader;
+    Json::Value root;
+    std::vector<std::string> vec;
+    if (reader.parse(info, root))
+    {
+        vec.emplace_back(std::to_string(root["eid"].asInt()));
+        vec.emplace_back(std::to_string(root["min_time"].asInt()));
+        vec.emplace_back(std::to_string(root["max_time"].asInt()));
+    }
+    return vec; 
+}
+
+
+int CallRecord::GetManualType(int &stop_reason, int &customer_fail_reason)
 {
     if (customer_fail_reason == 9)
 
@@ -257,14 +288,14 @@ int CallRecord::GetManualType(int stop_reason, int customer_fail_reason)
     }
 }
 
-int CallRecord::GetHangupType(int stop_reason, int customer_fail_reason)
+int CallRecord::GetHangupType(int &stop_reason, int &customer_fail_reason)
 {
     if (stop_reason == 25)
         return HangUpType::UserHangUp;
     else
         return HangUpType::AiHangUp;
 }
-int CallRecord::GetCallResult(int stop_reason, int customer_fail_reason)
+int CallRecord::GetCallResult(int &stop_reason, int &customer_fail_reason)
 {
 
     switch (customer_fail_reason)
