@@ -16,7 +16,6 @@ int stoi_s(const std::string &str)
     return i;
 }
 
-
 void SplitString(const std::string &s, std::vector<std::string> &tokens, const std::string &delimiters = " ")
 {
     std::string::size_type lastPos = s.find_first_not_of(delimiters, 0);
@@ -96,11 +95,11 @@ bool CallBackManage::OC_sync_judge(const std::string &calllog_id, ormpp::dbng<or
 {
     auto sync_judge = mysqlclient.query<std::tuple<std::string, std::string>>("select call_result,cc_number  from calllog where id = " + calllog_id);
     LOGGER->info("command is select call_result,cc_number from calllog where id =  {}", calllog_id);
-    if(!sync_judge.size())
+    if (!sync_judge.size())
         return false;
     std::string cc_number = std::get<1>(sync_judge[0]);
     int call_result = stoi_s(std::get<0>(sync_judge[0]));
-    if ((call_result == 4 || call_result == 13|| call_result == 14 || (call_result > 0 && cc_number != "")))
+    if ((call_result == 4 || call_result == 13 || call_result == 14 || (call_result > 0 && cc_number != "")))
         return 1;
     else
         return 0;
@@ -109,12 +108,13 @@ bool CallBackManage::OC_sync_judge(const std::string &calllog_id, ormpp::dbng<or
 std::string CallBackManage::GetCallBackUrl(const std::string &eid, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
 
+    std::string suffix = "/callRecordDetail";
     auto url = mysqlclient.query<std::tuple<std::string>>("select value from aicall_config where `key` = 'api_callback_domain' and eid = " + eid);
     LOGGER->info("get callback url is   select value from aicall_config where `key` = 'api_callback_domain' and eid = {}", eid);
     if (url.size())
     {
         LOGGER->info("url is {}", std::get<0>(url[0]));
-        return std::get<0>(url[0]);
+        return std::get<0>(url[0])+suffix;
     }
     else
     {
@@ -376,8 +376,8 @@ void CallBackManage::ParseApiCallbackSceneStatus(CallBackRules &rules)
 {
     LOGGER->info("ParseIntetionAndCallResult, api_callback_scene_status is {}", rules.api_callback_scene_status);
 
-    if(rules.api_callback_scene_status==""||rules.api_callback_scene_status=="0")
-        return ;
+    if (rules.api_callback_scene_status == "" || rules.api_callback_scene_status == "0")
+        return;
 
     rapidjson::Document doc;
     doc.Parse(rules.api_callback_scene_status.c_str());
@@ -400,8 +400,8 @@ void CallBackManage::ParseApiCallbackSceneStatus(CallBackRules &rules)
 void CallBackManage::ParseIntetionAndCallResult(CallBackRules &rules)
 {
     LOGGER->info("ParseIntetionAndCallResult, auto_recall_scenes is {}", rules.auto_recall_scenes);
-    if(rules.auto_recall_scenes==""||rules.auto_recall_scenes=="0")
-        return ;
+    if (rules.auto_recall_scenes == "" || rules.auto_recall_scenes == "0")
+        return;
 
     rapidjson::Value root(rapidjson::Type::kArrayType);
     rapidjson::Document doc;
@@ -930,7 +930,14 @@ void CallBackManage::MakeQueueCache(const std::string &str)
 void CallBackManage::PrepareId(CallBackData &data, CallBackRules &rule, const int &cc_or_calllog_id, const std::string &id, std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> &id_cluster, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
     UpdateMessage GetId;
-    id_cluster = GetId.GetIdFromMysql(cc_or_calllog_id, id, mysqlclient);
+    try
+    {
+        id_cluster = GetId.GetIdFromMysql(cc_or_calllog_id, id, mysqlclient);
+    }
+    catch (exception &e)
+    {
+        LOGGER->info("mysql maybe error ,please take a check ");
+    }
 
     data.eid = std::get<static_cast<int>(IdCluster::EnterpriseUid)>(id_cluster);
     data.task_id = std::get<static_cast<int>(IdCluster::TaskId)>(id_cluster);

@@ -46,7 +46,7 @@ void RedisOperate::CacheData(const std::string &key,const std::string &str,int t
 void RedisOperate::CacheData(const std::string &key,const std::string &str)
 {
     redis.set(key,str);
-    LOGGER->info("set str  {}",str);
+    LOGGER->info("set str  {} ,keys is {}",str,key);
 }
 
 void RedisOperate::DelKey(const std::string &key)

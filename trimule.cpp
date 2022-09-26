@@ -190,8 +190,6 @@ int CallBackActionQueue()
 int main()
 {
     initspdlog();
-
-
     auto config = JsonSimpleWrap::GetPaser("conf/config.json");
     int max_thread_num = 1;
     cinatra::http_server server(max_thread_num);

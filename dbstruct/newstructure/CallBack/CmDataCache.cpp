@@ -23,8 +23,22 @@ void DataCache::PollingQueue()
     ormpp::dbng<ormpp::mysql> mysqlclient;
     settingParser mysql_example;
     sqlconnect conne = mysql_example.GetSettinghParser("conf/config.json");
-    std::string port = "3306";
-    mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str(), conne.db_timeout, conne.db_port);
+    std::string port = to_string(conne.db_port);
+  try
+    {
+        if(!mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str(), conne.db_timeout, conne.db_port))
+        throw 1;
+    }
+    catch (int  i)
+    {
+        if(i)
+        {
+            LOGGER->info("mysql maybe error ,please take a check ");
+            cout<<"mysql error"<<endl;
+        }
+        return;
+    }
+    
     int sleep_judge = 0;
     int time = mysql_example.GetSleepTime("conf/config.json");
     LOGGER->info("PollingQueue  sleep time is {} second", time);
@@ -103,8 +117,24 @@ void DataCache::OcWebPollingQueue()
     ormpp::dbng<ormpp::mysql> mysqlclient;
     settingParser mysql_example;
     sqlconnect conne = mysql_example.GetSettinghParser("conf/config.json");
-    mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str());
+
+    try
+    {
+        if(!mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str(), conne.db_timeout, conne.db_port))
+        throw 1;
+    }
+    catch (int  i)
+    {
+        if(i)
+        {
+            LOGGER->info("mysql maybe error ,please take a check ");
+            cout<<"mysql error"<<endl;
+        }
+        return;
+    }
+
     int time = mysql_example.GetSleepTime("conf/config.json");
+
     LOGGER->info("OcWebPollingQueue  sleep time is {} second", time);
     while (true)
     {
@@ -218,29 +248,14 @@ IdMuster DataCache::ParseCmId(const std::string &cm_id)
     IdMuster muster;
     int id_num = 0;
     int pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-    // for (int i = 0; i < cm_id.size(); i++)
-    // {
-    //     if (cm_id[i] == '-')
-    //     {
-    //         if (pos1 == 0)
-    //         {
-    //             pos1 = i;
-    //             break;
-    //         }
-    //         else if (pos2 == 0)
-    //         {
-    //             pos2 = i;
-    //             break
-    //         }
-    //     }
-    // }
+
     if (count(cm_id.begin(), cm_id.end(), '-') == 1)
     {
 
         pos1 = cm_id.rfind('-');
         muster.calllog_id = cm_id.substr(0, pos1);
         muster.time = cm_id.substr(pos1 + 1, (cm_id.size() - pos1 - 1));
-        // LOGGER->info("calllog_id is {},type is {}", muster.calllog_id, muster.time);
+
     }
     else if (count(cm_id.begin(), cm_id.end(), '-') == 2)
     {
@@ -294,7 +309,21 @@ void DataCache::CheckUnUpdateId(const std::string &eid, const std::string &mini_
     ormpp::dbng<ormpp::mysql> mysqlclient;
     settingParser mysql_example;
     sqlconnect conne = mysql_example.GetSettinghParser("conf/config.json");
-    mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str());
+    try
+    {
+        if(!mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str(), conne.db_timeout, conne.db_port))
+        throw 1;
+    }
+    catch (int  i)
+    {
+        if(i)
+        {
+            LOGGER->info("mysql maybe error ,please take a check ");
+            cout<<"mysql error"<<endl;
+        }
+        return;
+    }
+    // mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str(), conne.db_timeout, conne.db_port);
 
     auto res = mysqlclient.query<std::tuple<std::string>>("SELECT id from calllog WHERE enterprise_uid = " + eid + " and create_time >= " + mini_time + " and create_time <= " + max_time + " and id in (select calllog_id from aicall_calllog_subsidiary where update_status = 0) ");
 
