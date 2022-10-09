@@ -3,7 +3,8 @@
 #include<mutex>
 #include<queue>
 #include<functional>
-#include <optional>
+#include<optional>
+#include<condition_variable>
 
 template<typename T>
 class custom_priority_queue : public std::priority_queue<T> {
@@ -19,6 +20,7 @@ public:
     bool remove_if(Pred pred) 
     {
         const auto old_size = this->size();
+        std::cout << "size:" << old_size << std::endl;
         this->c.erase(std::remove_if(this->c.begin(), this->c.end(), pred), this->c.end());
         if (old_size == this->size()) return false;
         std::make_heap(this->c.begin(), this->c.end(), this->comp);
@@ -44,6 +46,8 @@ public:
     bool GetObj(T &obj, std::function<bool(T)>comparefun=nullptr)
     {
         std::unique_lock<std::mutex> lck(__mutex);
+        if(__queue.empty())
+            return false;
         __notempty.wait(lck, [this]{return !__queue.empty();});
         if(comparefun && !comparefun(__queue.top()))
             return false;
@@ -55,6 +59,8 @@ public:
     bool GetObj(std::queue<T>& queue)
     {
         std::unique_lock<std::mutex> lck(__mutex);
+        if(__queue.empty())
+            return false;
         __notempty.wait(lck, [this]{return !__queue.empty();});
         queue = std::move(__queue);
         return true;
@@ -72,10 +78,10 @@ public:
             return false;
     }
 
-    void DeleteObj(std::function<bool(T)>comparefun)
+    bool DeleteObj(std::function<bool(T)>comparefun)
     {
         std::unique_lock<std::mutex> lck(__mutex);
-        __queue.remove_if(comparefun);
+        return __queue.remove_if(comparefun);
     }
 };
 

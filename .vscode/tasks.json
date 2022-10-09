@@ -28,5 +28,15 @@
                 "isDefault": true
             }
         },
+        {
+            "label": "build doctooltest",
+            "args": [
+                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target doctooltest -j 2"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
     ]
 }

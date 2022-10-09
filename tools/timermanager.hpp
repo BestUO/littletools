@@ -25,22 +25,24 @@ public:
     {
         std::function<void()> intervalfun = [=]()
         {
-            fun();
             AddAlarmInterval(alarm+interval, t, fun, interval);
+            fun();
         };
         __timerqueue.AddObj({alarm, intervalfun, t});
         __cv.notify_one();
     }
 
-    void DeleteAlarm(std::function<bool(T)> comparefun)
+    bool DeleteAlarm(std::function<bool(T)> comparefun)
     {
-        __timerqueue.DeleteObj([comparefun](const auto& obj){return comparefun(obj.key);});
+        bool result = __timerqueue.DeleteObj([comparefun](const auto& obj){return comparefun(obj.key);});
         __cv.notify_one();
+        return result;
     }
 
     void StopTimerManager()
     {
         __stop = true;
+        __cv.notify_one();
     }
 private:
     TimerManager()
@@ -90,7 +92,8 @@ private:
             {
                 std::thread tmp([](TimerElement timerelement)
                 {
-                    timerelement.fun();
+                    if(timerelement.fun)
+                        timerelement.fun();
                 },__timerelement);
                 tmp.detach();
             }
