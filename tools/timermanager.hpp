@@ -15,20 +15,9 @@ public:
         return &instance;
     }
 
-    void AddAlarm(std::chrono::system_clock::time_point alarm, T t, std::function<void()> fun)
+    void AddAlarm(std::chrono::system_clock::time_point alarm, T key, std::function<void()> fun, std::chrono::seconds interval = std::chrono::seconds(0))
     {
-        __timerqueue.AddObj({alarm, fun, t});
-        __cv.notify_one();
-    }
-
-    void AddAlarmInterval(std::chrono::system_clock::time_point alarm, T t, std::function<void()> fun, std::chrono::seconds interval)
-    {
-        std::function<void()> intervalfun = [=]()
-        {
-            AddAlarmInterval(alarm+interval, t, fun, interval);
-            fun();
-        };
-        __timerqueue.AddObj({alarm, intervalfun, t});
+        __timerqueue.AddObj({alarm, fun, key, interval});
         __cv.notify_one();
     }
 
@@ -61,12 +50,12 @@ private:
         std::chrono::system_clock::time_point alarm;
         std::function<void()> fun;
         T key;
+        std::chrono::seconds interval = std::chrono::seconds(0);
         bool operator<(const TimerElement &t) const
         {
             return alarm > t.alarm;
         }
     };
-    TimerElement __timerelement;
     ThreadSafePriorityQueue<TimerElement> __timerqueue;
     std::thread __timerthread;
     std::condition_variable __cv;
@@ -76,26 +65,25 @@ private:
     {
         while(!__stop)
         {
+            std::unique_lock<std::mutex> lck(__cv_m);
+            auto timerelement = __timerqueue.GetTopObj();
+            if(timerelement != std::nullopt)
+                __cv.wait_until(lck, timerelement->alarm);
+            else
+                __cv.wait_until(lck,  std::chrono::system_clock::now() + std::chrono::hours(1));
+            if(timerelement && std::chrono::system_clock::now() >= timerelement->alarm)
             {
-                // std::this_thread::sleep_for(std::chrono::seconds(1));
-                std::unique_lock<std::mutex> lck(__cv_m);
-                if(__timerqueue.GetTopObj(__timerelement))
-                    __cv.wait_until(lck, __timerelement.alarm);
-                else
-                    __cv.wait_until(lck,  std::chrono::system_clock::now() + std::chrono::hours(1));
-            }
-
-            while(bool c = __timerqueue.GetObj(__timerelement, [](const TimerElement &obj) -> bool
-            {
-                return  std::chrono::system_clock::now() >= obj.alarm ? true:false;
-            }))
-            {
-                std::thread tmp([](TimerElement timerelement)
+                if(timerelement->interval > std::chrono::seconds(0))
+                    AddAlarm(timerelement->alarm+timerelement->interval, timerelement->key, timerelement->fun, timerelement->interval);
+                __timerqueue.PopTop();
+                if(timerelement->fun)
                 {
-                    if(timerelement.fun)
-                        timerelement.fun();
-                },__timerelement);
-                tmp.detach();
+                    std::thread tmp([](std::function<void()> fun)
+                    {
+                        fun();
+                    },timerelement->fun);
+                    tmp.detach();
+                }
             }
         }
     }

@@ -353,7 +353,7 @@ void testtimermanager()
 
     a->AddAlarm(std::chrono::system_clock::now()+std::chrono::seconds(20), TTT{"run fun1",20}, std::bind(fun1,TTT{"run fun1",10}));
     a->AddAlarm(std::chrono::system_clock::now()+std::chrono::seconds(5), TTT{"run fun1",3}, std::bind(fun1,TTT{"run fun1",3}));
-    a->AddAlarmInterval(std::chrono::system_clock::now()+std::chrono::seconds(5), TTT{"run fun1interval",3}, std::bind(fun1,TTT{"run fun1interval",3}),std::chrono::seconds(1));
+    a->AddAlarm(std::chrono::system_clock::now()+std::chrono::seconds(5), TTT{"run fun1interval",3}, std::bind(fun1,TTT{"run fun1interval",3}),std::chrono::seconds(1));
 
     for(int i=0;i<5;i++)
         a->AddAlarm(std::chrono::system_clock::now()+std::chrono::seconds(10), TTT{"run fun1",i}, std::bind(fun1,TTT{"run fun1",i}));

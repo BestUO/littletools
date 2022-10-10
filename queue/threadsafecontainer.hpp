@@ -20,7 +20,6 @@ public:
     bool remove_if(Pred pred) 
     {
         const auto old_size = this->size();
-        std::cout << "size:" << old_size << std::endl;
         this->c.erase(std::remove_if(this->c.begin(), this->c.end(), pred), this->c.end());
         if (old_size == this->size()) return false;
         std::make_heap(this->c.begin(), this->c.end(), this->comp);
@@ -43,7 +42,8 @@ public:
         __notempty.notify_one();
     }
 
-    bool GetObj(T &obj, std::function<bool(T)>comparefun=nullptr)
+    [[deprecated]]
+    bool GetObj(T &obj, std::function<bool(T)>comparefun=nullptr, std::function<bool(T)>ifremove=[](T t){return true;})
     {
         std::unique_lock<std::mutex> lck(__mutex);
         if(__queue.empty())
@@ -52,8 +52,15 @@ public:
         if(comparefun && !comparefun(__queue.top()))
             return false;
         obj = __queue.top();
-        __queue.pop();
+        if(ifremove && ifremove(obj))
+            __queue.pop();
         return true;
+    }
+
+    void PopTop()
+    {
+        std::unique_lock<std::mutex> lck(__mutex);
+        __queue.pop();
     }
 
     bool GetObj(std::queue<T>& queue)
@@ -65,7 +72,8 @@ public:
         queue = std::move(__queue);
         return true;
     }
-
+    
+    [[deprecated]]
     bool GetTopObj(T &obj)
     {
         std::unique_lock<std::mutex> lck(__mutex);
@@ -76,6 +84,18 @@ public:
         }
         else
             return false;
+    }
+
+    std::optional<T> GetTopObj()
+    {
+        std::unique_lock<std::mutex> lck(__mutex);
+        if(!__queue.empty())
+        {
+             __queue.top();
+            return __queue.top();
+        }
+        else
+            return std::nullopt;
     }
 
     bool DeleteObj(std::function<bool(T)>comparefun)
