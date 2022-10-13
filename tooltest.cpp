@@ -609,7 +609,7 @@ void testPThreadPool()
 //     int access_time;
 //     int extension;
 // };
-// REFLECTION(aicall_tts_file_cache, id, TTS_text, TTS_version_code, tts_src, tts_duration, create_time, access_time, extension)
+REFLECTION(aicall_tts_file_cache, id, TTS_text, TTS_version_code, tts_src, tts_duration, create_time, access_time, extension)
 
 // struct user
 // {

@@ -113,8 +113,8 @@ std::string CallBackManage::GetCallBackUrl(const std::string &eid, ormpp::dbng<o
     LOGGER->info("get callback url is   select value from aicall_config where `key` = 'api_callback_domain' and eid = {}", eid);
     if (url.size())
     {
-        LOGGER->info("url is {}", std::get<0>(url[0])+suffix);
-        std::string real_url = std::get<0>(url[0])+suffix;
+        LOGGER->info("url is {}", std::get<0>(url[0]) + suffix);
+        std::string real_url = std::get<0>(url[0]) + suffix;
         return real_url;
     }
     else
@@ -477,6 +477,7 @@ bool CallBackManage::GetRulesFromRedis(CallBackRules &rules)
         rules.auto_recall_status = doc["auto_recall_status"].GetInt();
         rules.api_status = doc["api_status"].GetInt();
         rules.auto_recall_max_times = doc["auto_recall_max_times"].GetInt();
+        LOGGER->info("get rules from redis intention_type_judge is {} call_result_judge is {}  auto_recall_status is {} auto_recall_max_times is {} ", rules.intention_type_judge, rules.call_result_judge, rules.auto_recall_status, rules.auto_recall_max_times);
         return 1;
     }
     return 0;
@@ -619,7 +620,7 @@ std::string CallBackManage::CollectInfoXML2JSON(const std::string &xml)
     tinyxml2::XMLDocument doc;
     tinyxml2::XMLError error = doc.Parse(xml.c_str());
     auto root = doc.RootElement();
-    LOGGER->info("xml is {}",xml);
+    LOGGER->info("xml is {}", xml);
     if (root)
     {
         auto collect_info_element = root->FirstChildElement("collect_info");
@@ -694,7 +695,7 @@ std::string CallBackManage::MergeCacheJson(const CallBackData &data, const std::
         root.AddMember("clue_no", val.SetString(clue_no.c_str(), allocator), allocator);
         root.AddMember("task_id", val.SetString(data.task_id.c_str(), allocator), allocator);
         std::string collect_info = CollectInfoXML2JSON(calllog_txt);
-        LOGGER->info("info is {}",collect_info);
+        LOGGER->info("info is {}", collect_info);
 
         root.AddMember("collect_info", val.SetString(collect_info.c_str(), allocator), allocator);
         root.AddMember("buttons", val.SetString(data.buttons.c_str(), allocator), allocator);
@@ -771,33 +772,41 @@ std::string CallBackManage::PostUrl2(std::string keyname, std::string signatureK
 
 std::pair<std::string, std::string> CallBackManage::GetSignkey(std::string keyname, std::string signatureKey, const uint id, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
-    std::pair<std::string, std::string> pair;
+    std::pair<std::string, std::string> pair{"", ""};
 
-    std::string command = "select server_ip,https_port from ai.enterprise_info where id = " + std::to_string(id) + " limit 1;";
-    LOGGER->info("command is {}", command);
-    std::string server_ip = "";
-    ushort https_port = 0;
-    auto ip_port = mysqlclient.query<std::tuple<std::string, std::string>>(command);
-    if (ip_port.size())
+    try
     {
-        server_ip = std::get<0>(ip_port[0]);
-        https_port = static_cast<ushort>(stoi_s(std::get<1>(ip_port[0])));
-        std::string url = "https://" + server_ip + ":" + std::to_string(https_port) + "/server/signkey";
-        rapidjson::Document doc;
-        std::string real_data = PostUrl2(keyname, signatureKey, url, "", true);
-        doc.Parse(real_data.c_str());
-        if (doc.IsObject())
+        std::string command = "select server_ip,https_port from ai.enterprise_info where id = " + std::to_string(id) + " limit 1;";
+        LOGGER->info("command is {}", command);
+        std::string server_ip = "";
+        ushort https_port = 0;
+        auto ip_port = mysqlclient.query<std::tuple<std::string, std::string>>(command);
+        if (ip_port.size())
         {
-            std::string str = "";
-            if (doc["info"].IsString())
-                str = doc["info"].GetString();
-
-            if (doc["info"].IsString() && str == "Success")
+            server_ip = std::get<0>(ip_port[0]);
+            https_port = static_cast<ushort>(stoi_s(std::get<1>(ip_port[0])));
+            std::string url = "https://" + server_ip + ":" + std::to_string(https_port) + "/server/signkey";
+            rapidjson::Document doc;
+            std::string real_data = PostUrl2(keyname, signatureKey, url, "", true);
+            doc.Parse(real_data.c_str());
+            if (doc.IsObject())
             {
-                pair.first = doc["data"]["name"].GetString();
-                pair.second = doc["data"]["value"].GetString();
+                std::string str = "";
+                if (doc["info"].IsString())
+                    str = doc["info"].GetString();
+
+                if (doc["info"].IsString() && str == "Success")
+                {
+                    pair.first = doc["data"]["name"].GetString();
+                    pair.second = doc["data"]["value"].GetString();
+                }
             }
         }
+        throw(ip_port.size());
+    }
+    catch (int a)
+    {
+        LOGGER->info("GetSignkey error,result size is  {}", a);
     }
 
     return pair;
