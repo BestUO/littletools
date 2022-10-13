@@ -271,7 +271,7 @@ public:
     void CallBackAction(const std::string &data, const std::string &url);
     void PrepareId(CallBackData &data, CallBackRules &rule, const int &cc_or_calllog_id, const std::string &id, std::tuple<std::string, std::string, std::string, std::string,std::string, std::string> &id_cluster,ormpp::dbng<ormpp::mysql> &mysqlclient);
     void CacheCmData(const CallBackData &data, std::string &result, const int &class_judge,ormpp::dbng<ormpp::mysql> &mysqlclient);
-private:
+// private:
     bool AutoTaskMatch(const CallBackRules &rules, const CallBackData &data);
     
     std::string MakeCacheJson(const CallBackData &data);

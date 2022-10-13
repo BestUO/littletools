@@ -203,14 +203,58 @@ int main()
 
     SetApiCallBackHandler(server, threadpool);
 
-    std::thread polling_queue(PollingQueue);
-    std::thread oc_web_polling_queue(OcWebPollingQueue);
-    std::thread call_back_action_queue(CallBackActionQueue);
+    // std::thread polling_queue(PollingQueue);
+    // std::thread oc_web_polling_queue(OcWebPollingQueue);
+    // std::thread call_back_action_queue(CallBackActionQueue);
+
+    CallBackRules rules;
+ rapidjson::Document doc;std::string rule = "{\"detail_judge\":\"{\\\"call_record_detail\\\":1,\\\"task_complete\\\":1,\\\"task_auto_start\\\":1,\\\"task_auto_pause\\\":1,\\\"call_answered\\\":1,\\\"call_record_detail_occasion\\\":1,\\\"callback_scope\\\":1}\",\"global_judge\":1,\"scope_judge\":1,\"uuid\":\"\",\"intention_type_judge\":\"000000000000000\",\"call_result_judge\":\"001111111111101\",\"auto_recall_status\":1,\"auto_recall_max_times\":3,\"api_status\":1}";
+        doc.Parse(rule.c_str());
+    if (doc.IsObject())
+    {
+        rules.api_callback_scene_status = doc["detail_judge"].GetString();
+        rules.global_judge = doc["global_judge"].GetInt();
+        rules.scope_judge = doc["scope_judge"].GetInt();
+        rules.uuid = doc["uuid"].GetString();
+        rules.intention_type_judge = doc["intention_type_judge"].GetString();
+        rules.call_result_judge = doc["call_result_judge"].GetString();
+        rules.auto_recall_status = doc["auto_recall_status"].GetInt();
+        rules.api_status = doc["api_status"].GetInt();
+         rules.auto_recall_max_times = doc["auto_recall_max_times"].GetInt();
+       // return 1;
+    }
+
+rules.api_callback_scene_status = "{\"call_record_detail\":1,\"task_complete\":1,\"task_auto_start\":1,\"task_auto_pause\":1,\"call_answered\":1,\"call_record_detail_occasion\":1,\"callback_scope\":1}"
+;
+
+  
+
+    // rapidjson::Document doc;
+    doc.Parse(rules.api_callback_scene_status.c_str());
+    if (doc.IsObject())
+    {
+        if (doc.HasMember("callback_scope"))
+        {
+            rules.global_judge = doc["callback_scope"].GetInt();
+        }
+        if (doc.HasMember("call_record_detail"))
+        {
+            rules.callback = doc["call_record_detail"].GetInt();
+        }
+        if (doc.HasMember("call_record_detail_occasion"))
+        {
+            rules.scope_judge = doc["call_record_detail_occasion"].GetInt();
+        }
+    }
+
+
+
+
     server.run();
-    polling_queue.detach();
-    oc_web_polling_queue.detach();
-    call_back_action_queue.detach();
+    // polling_queue.detach();
+    // oc_web_polling_queue.detach();
+    // call_back_action_queue.detach();
 
-
+  
     return 0;
 }

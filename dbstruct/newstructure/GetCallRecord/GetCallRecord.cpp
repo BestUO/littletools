@@ -79,6 +79,8 @@ CallInfo CallRecord::GetCallRecord(std::string &s, int &framework_class)
 
                 result.flow_number = record["flow_number"].isNull() ? -1 : record["flow_number"].asInt();
 
+                result.hangup_type = GetHangupType(result.stop_reason, result.customer_fail_reason);
+                
                 if (result.flow_number != 0 && result.flow_number >= now_flow) // transfer_manual
                 {
                     now_flow = result.flow_number;
@@ -89,6 +91,7 @@ CallInfo CallRecord::GetCallRecord(std::string &s, int &framework_class)
                     auto &send_invite_timestamp = record["invite_time"];
                     auto &transfer_manual_cost = record["seat_ring_duration"];
                     auto &conversation_time = record["conversation_time"];
+                    auto &initiate_time = record["initiate_time"];
 
                     int conversation_type = conversation_time.asString() == "" ? 1 : (conversation_time.asString() == "0"?1:0);
 
@@ -117,7 +120,8 @@ CallInfo CallRecord::GetCallRecord(std::string &s, int &framework_class)
                     if (end_time.isString())
                         result.transfer_end_time = end_time.asString();
                     if (start_time.isString())
-                        result.transfer_start_time = start_time.asString();
+                        result.transfer_start_time = initiate_time.asString();
+
                     if (transfer_confirm_time.isString())
                         result.transfer_confirm_time = transfer_confirm_time.asString();
                     if (call_state.isString())
@@ -134,7 +138,7 @@ CallInfo CallRecord::GetCallRecord(std::string &s, int &framework_class)
                 else if(result.flow_number == 0 )// ai_
                 {
                     result.call_result = GetCallResult(result.stop_reason, result.customer_fail_reason);
-                    result.hangup_type = GetHangupType(result.stop_reason, result.customer_fail_reason);
+                    
 
                     auto &confirm_time = record["confirm_timestamp"];
                     auto &call_type = record["call_type"];

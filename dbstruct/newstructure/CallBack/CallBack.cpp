@@ -113,8 +113,9 @@ std::string CallBackManage::GetCallBackUrl(const std::string &eid, ormpp::dbng<o
     LOGGER->info("get callback url is   select value from aicall_config where `key` = 'api_callback_domain' and eid = {}", eid);
     if (url.size())
     {
-        LOGGER->info("url is {}", std::get<0>(url[0]));
-        return std::get<0>(url[0])+suffix;
+        LOGGER->info("url is {}", std::get<0>(url[0])+suffix);
+        std::string real_url = std::get<0>(url[0])+suffix;
+        return real_url;
     }
     else
     {
@@ -475,6 +476,7 @@ bool CallBackManage::GetRulesFromRedis(CallBackRules &rules)
         rules.call_result_judge = doc["call_result_judge"].GetString();
         rules.auto_recall_status = doc["auto_recall_status"].GetInt();
         rules.api_status = doc["api_status"].GetInt();
+        rules.auto_recall_max_times = doc["auto_recall_max_times"].GetInt();
         return 1;
     }
     return 0;
@@ -617,6 +619,7 @@ std::string CallBackManage::CollectInfoXML2JSON(const std::string &xml)
     tinyxml2::XMLDocument doc;
     tinyxml2::XMLError error = doc.Parse(xml.c_str());
     auto root = doc.RootElement();
+    LOGGER->info("xml is {}",xml);
     if (root)
     {
         auto collect_info_element = root->FirstChildElement("collect_info");
@@ -691,6 +694,7 @@ std::string CallBackManage::MergeCacheJson(const CallBackData &data, const std::
         root.AddMember("clue_no", val.SetString(clue_no.c_str(), allocator), allocator);
         root.AddMember("task_id", val.SetString(data.task_id.c_str(), allocator), allocator);
         std::string collect_info = CollectInfoXML2JSON(calllog_txt);
+        LOGGER->info("info is {}",collect_info);
 
         root.AddMember("collect_info", val.SetString(collect_info.c_str(), allocator), allocator);
         root.AddMember("buttons", val.SetString(data.buttons.c_str(), allocator), allocator);
