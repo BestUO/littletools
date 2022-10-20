@@ -45,8 +45,9 @@ struct CallBackRules
     std::string intention_type_judge;
     std::string call_result_judge;
     std::string auto_recall_scenes;
+    std::string delete_flag;
     CallBackRules() : task_id(0), eid(0), api_status(0),callback(0),global_judge(0),
-                      call_count(0), auto_recall_max_times(0), auto_recall_status(0), scope_judge(0), uuid(""), api_callback_scene_status("0"), intention_type_judge("000000000000000"), call_result_judge("000000000000000"), auto_recall_scenes("") {}
+                      call_count(0), auto_recall_max_times(0), auto_recall_status(0), scope_judge(0), uuid(""), api_callback_scene_status("0"), intention_type_judge("000000000000000"), call_result_judge("000000000000000"), auto_recall_scenes(""),delete_flag("") {}
 };
 
 struct CallBackData

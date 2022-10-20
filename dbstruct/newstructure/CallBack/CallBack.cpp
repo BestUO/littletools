@@ -289,14 +289,14 @@ CallBackRules CallBackManage::MakeCallBackRulesFromMySql(const std::tuple<std::s
     // outcall_task
     std::string calllog_id, clue_id, task_id;
     std::string db_name_outcall_task = "outcall_task";
-    std::vector<std::string> values_outcall_task = {"uuid", "auto_recall_scenes", "auto_recall_status", "auto_recall_max_times"};
+    std::vector<std::string> values_outcall_task = {"uuid", "auto_recall_scenes", "auto_recall_status", "auto_recall_max_times","delete_flag"};
     std::vector<std::string> condition_outcall_task{std::get<static_cast<int>(IdCluster::TaskId)>(id_cluster), std::get<static_cast<int>(IdCluster::EnterpriseUid)>(id_cluster)};
     std::vector<std::string> condition_name_outcall_task{"id", "enterprise_uid"};
     std::vector<std::string> condition_symbols_outcall_task{"=", "="};
 
     std::string outcall_task_rule = general_sql.MysqlGenerateSelectSQL(db_name_outcall_task, values_outcall_task, condition_outcall_task, condition_name_outcall_task, condition_symbols_outcall_task);
     LOGGER->info("command is {}", outcall_task_rule);
-    auto result_outcall_task = mysqlclient.query<std::tuple<std::string, std::string, std::string, std::string>>(outcall_task_rule.c_str());
+    auto result_outcall_task = mysqlclient.query<std::tuple<std::string, std::string, std::string, std::string,std::string>>(outcall_task_rule.c_str());
     LOGGER->info("size is {}", result_outcall_task.size());
 
     // aicall_config
@@ -329,6 +329,7 @@ CallBackRules CallBackManage::MakeCallBackRulesFromMySql(const std::tuple<std::s
         rules.auto_recall_scenes = std::get<static_cast<int>(outcall_task_enum::auto_recall_scenes)>(result_outcall_task[0]);
         rules.auto_recall_status = stoi_s(std::get<static_cast<int>(outcall_task_enum::auto_recall_status)>(result_outcall_task[0]));
         rules.auto_recall_max_times = stoi_s(std::get<static_cast<int>(outcall_task_enum::auto_recall_max_times)>(result_outcall_task[0]));
+        rules.delete_flag = stoi_s(std::get<4>(result_outcall_task[0]));
     }
     else
     {
@@ -449,6 +450,7 @@ std::string CallBackManage::SetRulesRedisCache(const CallBackRules &rules)
     doc.AddMember("auto_recall_status", rules.auto_recall_status, allocator);
     doc.AddMember("auto_recall_max_times", rules.auto_recall_max_times, allocator);
     doc.AddMember("api_status", rules.api_status, allocator);
+    doc.AddMember("delete_flag", rapidjson::StringRef(rules.delete_flag.c_str()), allocator);
     rapidjson::StringBuffer str_buf;
     rapidjson::Writer<rapidjson::StringBuffer> writer(str_buf);
     doc.Accept(writer);
@@ -477,6 +479,7 @@ bool CallBackManage::GetRulesFromRedis(CallBackRules &rules)
         rules.auto_recall_status = doc["auto_recall_status"].GetInt();
         rules.api_status = doc["api_status"].GetInt();
         rules.auto_recall_max_times = doc["auto_recall_max_times"].GetInt();
+        rules.delete_flag = doc["delete_flag"].GetString();
         LOGGER->info("get rules from redis intention_type_judge is {} call_result_judge is {}  auto_recall_status is {} auto_recall_max_times is {} ", rules.intention_type_judge, rules.call_result_judge, rules.auto_recall_status, rules.auto_recall_max_times);
         return 1;
     }
@@ -501,7 +504,7 @@ bool CallBackManage::AutoTaskMatch(const CallBackRules &rules, const CallBackDat
 
 bool CallBackManage::CallBackJudge(const CallBackRules &rules, const CallBackData &data)
 {
-    if (((rules.global_judge) || (rules.uuid != "")) && rules.callback && rules.api_status)
+    if (((rules.global_judge) || (rules.uuid != "")) && rules.callback && rules.api_status&&rules.delete_flag=="0")
     {
         if ((rules.scope_judge == 1 && rules.auto_recall_status == 1))
         {
