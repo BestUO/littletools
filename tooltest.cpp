@@ -1,21 +1,21 @@
-// #include <iostream>
-// #include "queue/rte_ring.h"
-// #include "queue/threadsafecontainer.hpp"
-// #include "queue/ringqueue.hpp"
-// #include "tools/timermanager.hpp"
-// #include "tools/commandcenter.hpp"
-// #include "tools/threadpool.hpp"
-// #include <tuple>
-// #include <vector>
-// #include <chrono>
-// #include <thread>
-// #include <cinatra.hpp>
-// #include <simplewrapkafka.h>
-// #include "RWSeparate.hpp"
-// #include <json/json.h>
-// #include <type_traits>
+#include <iostream>
+#include "queue/rte_ring.h"
+#include "queue/threadsafecontainer.hpp"
+#include "queue/ringqueue.hpp"
+#include "tools/timermanager.hpp"
+#include "tools/commandcenter.hpp"
+#include "tools/threadpool.hpp"
+#include <tuple>
+#include <vector>
+#include <chrono>
+#include <thread>
+#include <cinatra.hpp>
+#include <simplewrapkafka.h>
+#include "RWSeparate.hpp"
+#include <json/json.h>
+#include <type_traits>
 
-// using namespace cinatra;
+using namespace cinatra;
 
 // struct point
 // {
@@ -983,30 +983,30 @@
 
 
 
-// int main()
-// {
-//     // testQueueTypeThreadPool();
-//     // testrapidjson();
-//     // testspdlog();
-//     // testormpp();
-//     // testPThreadPool();
-//     // testFThreadPool();
-//     // testLockQueue();
-//     // testRingFreeLockQueue();
-//     // testregister();
-//     // testtimermanager();
-//     // testDealCommandCenter();
-//     // ThreadSafePriorityQueueTest();
-//     // testfreelock();
-//     // testKafkaCinatra();
-//     // testmemorypool();
-//     // testpublicfun();
-//     // testiguna();
-//     // wdtestormpp();
-//     // testtinyxml();
-//     // testwd_testcurl();
-//     // tset_opsnssl();
-//     wdtest_ormpp();
+int main()
+{
+    // testQueueTypeThreadPool();
+    // testrapidjson();
+    // testspdlog();
+    // testormpp();
+    // testPThreadPool();
+    // testFThreadPool();
+    // testLockQueue();
+    // testRingFreeLockQueue();
+    // testregister();
+    // testtimermanager();
+    // testDealCommandCenter();
+    // ThreadSafePriorityQueueTest();
+    // testfreelock();
+    // testKafkaCinatra();
+    // testmemorypool();
+    // testpublicfun();
+    // testiguna();
+    // wdtestormpp();
+    // testtinyxml();
+    // testwd_testcurl();
+    // tset_opsnssl();
+    // wdtest_ormpp();
 
-//     return 0;
-// }
+    return 0;
+}
