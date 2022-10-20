@@ -329,7 +329,7 @@ CallBackRules CallBackManage::MakeCallBackRulesFromMySql(const std::tuple<std::s
         rules.auto_recall_scenes = std::get<static_cast<int>(outcall_task_enum::auto_recall_scenes)>(result_outcall_task[0]);
         rules.auto_recall_status = stoi_s(std::get<static_cast<int>(outcall_task_enum::auto_recall_status)>(result_outcall_task[0]));
         rules.auto_recall_max_times = stoi_s(std::get<static_cast<int>(outcall_task_enum::auto_recall_max_times)>(result_outcall_task[0]));
-        rules.delete_flag = stoi_s(std::get<4>(result_outcall_task[0]));
+        rules.delete_flag = std::get<4>(result_outcall_task[0]);
     }
     else
     {
