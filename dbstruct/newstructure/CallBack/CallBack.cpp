@@ -141,15 +141,22 @@ void CallBackManage::GetOCSyncData(CallBackData &data, ormpp::dbng<ormpp::mysql>
     auto result_outcall_clue = mysqlclient.query<std::tuple<std::string, std::string>>(command_clue.c_str());
     LOGGER->info("command_clue is {}", command_clue);
 
-    if (result_outcall_clue.size())
+        // label
+    std::string db_name_label = "aicall_calllog_labe";
+    std::vector<std::string> values_label = {"label"};
+    std::vector<std::string> condition_label = {data.calllog_id};
+    std::vector<std::string> condition_name_label{"calllog_id"};
+    std::vector<std::string> condition_symbols_label = {"="};
+
+    std::string command_label = sql_command.MysqlGenerateSelectSQL(db_name_label, values_label, condition_label, condition_name_label, condition_symbols_label);
+    auto result_outcall_label = mysqlclient.query<std::tuple<std::string, std::string>>(command_label.c_str());
+    LOGGER->info("command_label is {}", command_label);
+
+    if (result_outcall_label.size())
     {
-        data.label = std::get<static_cast<int>(outcall_clue_enum::label)>(result_outcall_clue[0]);
-        data.clue_no = std::get<static_cast<int>(outcall_clue_enum::alias)>(result_outcall_clue[0]);
+        data.label = std::get<0>(result_outcall_label[0]);
     }
-    else
-    {
-        LOGGER->info("enterprise {}  clue {}  label , alias no data", data.eid, data.clue_id);
-    }
+
 
     // calllog
     std::string db_name_calllog = "calllog";

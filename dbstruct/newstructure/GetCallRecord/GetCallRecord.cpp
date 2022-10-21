@@ -86,7 +86,7 @@ CallInfo CallRecord::GetCallRecord(std::string &s, int &framework_class)
                     now_flow = result.flow_number;
 
                     auto &dialing = record["dialing"];
-                    auto &transfer_confirm_time = record["confirm_timestamp"];
+                    auto &transfer_confirm_time = record["conversation_time"];
                     auto &send_query_msg_timestamp = record["query_msg_time"];
                     auto &send_invite_timestamp = record["invite_time"];
                     auto &transfer_manual_cost = record["seat_ring_duration"];
@@ -140,7 +140,7 @@ CallInfo CallRecord::GetCallRecord(std::string &s, int &framework_class)
                     result.call_result = GetCallResult(result.stop_reason, result.customer_fail_reason);
                     
 
-                    auto &confirm_time = record["confirm_timestamp"];
+                    auto &confirm_time = record["conversation_time"];
                     auto &call_type = record["call_type"];
                     auto &ring_time = record["customer_ring_duration"];
 
