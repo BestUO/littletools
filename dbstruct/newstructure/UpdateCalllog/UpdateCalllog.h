@@ -27,6 +27,7 @@ private:
     void CheckAndUpdateAicallCalllogContinuousSync(CallInfo &callog,const std::string &id,ormpp::dbng<ormpp::mysql> &mysqlclient);
     void UpdateAicallCalllogSubsidiary(const std::string &calllog_id,ormpp::dbng<ormpp::mysql> &mysqlclient);
     void ExecuteCommand(std::string &s,std::string children_db_name,ormpp::dbng<ormpp::mysql> &mysqlclient);
+    void CheckCallResultSilence(CallInfo &callog,ormpp::dbng<ormpp::mysql> &mysqlclient,const int &class_judge, const std::string &condition);//if callresult from sql is 1 ,donot update cm's callresult
     // int  NewGetHangupCauseFromCallRecord(CallInfo info);
     // int  GetCallResult(int cause); 
     std::string CalculateTransferManualCost(CallInfo &callog);

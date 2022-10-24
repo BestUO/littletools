@@ -45,8 +45,9 @@ struct CallBackRules
     std::string intention_type_judge;
     std::string call_result_judge;
     std::string auto_recall_scenes;
-    CallBackRules() : task_id(0), eid(0), api_status(0),callback(0),
-                      call_count(0), auto_recall_max_times(0), auto_recall_status(0), scope_judge(0), uuid(""), api_callback_scene_status("0"), intention_type_judge("000000000000000"), call_result_judge("000000000000000"), auto_recall_scenes("") {}
+    std::string delete_flag;
+    CallBackRules() : task_id(0), eid(0), api_status(0),callback(0),global_judge(0),
+                      call_count(0), auto_recall_max_times(0), auto_recall_status(0), scope_judge(0), uuid(""), api_callback_scene_status("0"), intention_type_judge("000000000000000"), call_result_judge("000000000000000"), auto_recall_scenes(""),delete_flag("0") {}
 };
 
 struct CallBackData
@@ -242,6 +243,7 @@ struct WebOcApiData
     WebOcApiData() : type(0), calllog_id_array({}) {}
 };
 
+
 class CallBackManage : public CallRecord
 {
 
@@ -270,7 +272,7 @@ public:
     void CallBackAction(const std::string &data, const std::string &url);
     void PrepareId(CallBackData &data, CallBackRules &rule, const int &cc_or_calllog_id, const std::string &id, std::tuple<std::string, std::string, std::string, std::string,std::string, std::string> &id_cluster,ormpp::dbng<ormpp::mysql> &mysqlclient);
     void CacheCmData(const CallBackData &data, std::string &result, const int &class_judge,ormpp::dbng<ormpp::mysql> &mysqlclient);
-private:
+// private:
     bool AutoTaskMatch(const CallBackRules &rules, const CallBackData &data);
     
     std::string MakeCacheJson(const CallBackData &data);

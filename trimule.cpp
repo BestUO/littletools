@@ -190,8 +190,6 @@ int CallBackActionQueue()
 int main()
 {
     initspdlog();
-
-
     auto config = JsonSimpleWrap::GetPaser("conf/config.json");
     int max_thread_num = 1;
     cinatra::http_server server(max_thread_num);
@@ -208,10 +206,17 @@ int main()
     std::thread polling_queue(PollingQueue);
     std::thread oc_web_polling_queue(OcWebPollingQueue);
     std::thread call_back_action_queue(CallBackActionQueue);
-    server.run();
+
+
+
+
     polling_queue.detach();
     oc_web_polling_queue.detach();
     call_back_action_queue.detach();
 
+    server.run();
+   
+
+  
     return 0;
 }

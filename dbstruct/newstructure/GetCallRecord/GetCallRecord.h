@@ -76,7 +76,7 @@ class CallRecord{
         std::string CheckUnSync(const std::string &info);
         std::vector<std::string> ParseUnSync(const std::string &info);
     private: 
-         int GetManualType(int &stop_reason,int &customer_fail_reason);
+         int GetManualType(int &stop_reason, int &customer_fail_reason,int &conversation_type);
          int GetHangupType(int &stop_reason,int &customer_fail_reason);
          int GetCallResult(int &stop_reason,int &customer_fail_reason);
          

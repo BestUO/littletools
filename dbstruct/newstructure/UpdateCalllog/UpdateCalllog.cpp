@@ -20,6 +20,11 @@
 void UpdateMessage::HandleSQL(std::string &s, ormpp::dbng<ormpp::mysql> &mysqlclient, const int &class_judge, const std::string &calllog_id)
 {
 	LOGGER->info("handle coming message {}", s);
+	if(s.empty()||s=="")
+	{
+		LOGGER->info("empty data ,return it");
+		return ;
+	}
 
 	CallRecord record;
 	int a = 2;
@@ -27,9 +32,9 @@ void UpdateMessage::HandleSQL(std::string &s, ormpp::dbng<ormpp::mysql> &mysqlcl
 
 	std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> result;
 	if (class_judge == 0)
-		result = GetIdFromMysql(class_judge, callog.cc_number, mysqlclient);
+		{result = GetIdFromMysql(class_judge, callog.cc_number, mysqlclient);CheckCallResultSilence(callog,mysqlclient,class_judge,callog.cc_number);}
 	else
-		result = GetIdFromMysql(class_judge, calllog_id, mysqlclient);
+		{result = GetIdFromMysql(class_judge, calllog_id, mysqlclient);CheckCallResultSilence(callog,mysqlclient,class_judge,calllog_id);}
 
 	if (std::get<0>(result) != "")
 	{
@@ -50,6 +55,34 @@ void UpdateMessage::HandleSQL(std::string &s, ormpp::dbng<ormpp::mysql> &mysqlcl
 		data_handle.CallBackHandle(callog, id_cluster, class_judge, mysqlclient);
 	}
 }
+
+void UpdateMessage::CheckCallResultSilence(CallInfo &callog,ormpp::dbng<ormpp::mysql> &mysqlclient,const int &class_judge,const std::string &condition)
+{
+std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> null_tu = std::make_tuple("", "", "", "", "", "");
+	if (class_judge == 0)
+	{
+		std::string cc_ = R"(cc_number = ')" + condition + R"(')";
+		auto res = mysqlclient.query<std::tuple<std::string, std::string, std::string, std::string, std::string, std::string>>("select call_result from calllog where " + cc_);
+		LOGGER->info("CheckCallResultSilence  use cc_number select,command is,select call_result from calllog where {}", cc_);
+		if (res.size()&&stoi(std::get<0>(res[0]))==1)
+			{
+				callog.call_result = 1;
+				LOGGER->info("{} hangup with noinput",cc_);
+			}
+	}
+	else
+	{
+		std::string calllog_id = R"(id = ')" + condition + R"(')";
+		auto res = mysqlclient.query<std::tuple<std::string, std::string, std::string, std::string, std::string, std::string>>("select call_result from calllog where " + calllog_id);
+		LOGGER->info("CheckCallResultSilence  use calllog_id select,command is,select call_result from calllog where {}", calllog_id);
+
+		if (res.size()&&stoi(std::get<0>(res[0]))==1)
+			{callog.call_result = 1;
+			LOGGER->info("{} hangup with noinput",calllog_id);}
+	}
+
+}
+
 std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> UpdateMessage::GetIdFromMysql(const int &class_judge, const std::string &condition, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
 
@@ -79,9 +112,9 @@ void UpdateMessage::UpdateCalllog(CallInfo &calllog, const std::string &id, ormp
 {
 
 	std::string call_result = calllog.call_result == 0 ? "" : std::to_string(calllog.call_result);
-	std::vector<std::string> columns = {"duration", "call_result", "transfer_number", "transfer_duration", "call_record_url", "manual_status", "answer_time", "hangup_time"};
+	std::vector<std::string> columns = {"duration","call_time", "call_result", "transfer_number", "transfer_duration", "call_record_url", "manual_status", "answer_time", "hangup_time"};
 	std::string manual_status = calllog.manual_type == 0 ? "" : std::to_string(calllog.manual_type);
-	std::vector<std::string> values = {std::to_string(calllog.duration_time), call_result, calllog.transfer_number, std::to_string(calllog.transfer_duration), calllog.record_url, manual_status, calllog.confirm_time, calllog.end_time};
+	std::vector<std::string> values = {std::to_string(calllog.duration_time),calllog.start_time, call_result, calllog.transfer_number, std::to_string(calllog.transfer_duration), calllog.record_url, manual_status, calllog.confirm_time, calllog.end_time};
 	std::vector<std::string> condition(1);
 	condition[0] = calllog.cc_number;
 	std::vector<std::string> condition_name(1);
@@ -141,7 +174,7 @@ void UpdateMessage::CheckAndUpdateAicallCalllogContinuousSync(CallInfo &calllog,
 										"call_state", "switch_number", "ring_duration", "hangup_type", "manual_incoming", "manual_confirm",
 										"manual_disconnect", "duration", "call_time", "answer_time", "hangup_time",
 										"manual_status", "transfer_number"};
-	std::string manual_status = calllog.manual_type == 0 ? "" : std::to_string(calllog.manual_type);
+	std::string manual_status = calllog.manual_type == 0 ? " 0 " : std::to_string(calllog.manual_type);
 	std::vector<std::string> values = {calllog.record_url, call_result, intention_type, calllog.transfer_manual_cost, std::to_string(calllog.call_state), 
 										calllog.switch_number, calllog.ring_time, std::to_string(calllog.hangup_type), calllog.transfer_start_time, calllog.transfer_confirm_time, 
 										calllog.transfer_end_time, std::to_string(calllog.duration_time), calllog.start_time, calllog.confirm_time, calllog.end_time, manual_status, calllog.transfer_number};
