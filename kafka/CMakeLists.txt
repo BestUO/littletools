@@ -2,10 +2,12 @@
 #set(CMAKE_CXX_STANDARD 17)
 project(uokafka)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ../lib)
+set(THIRD_PARTY_PATH ${PROJECT_SOURCE_DIR}/../3rdparty)
 
-include_directories(${THIRD_PARTY_PATH}/include/rdkafka)
+include_directories(${THIRD_PARTY_PATH}/include/)
+include_directories(${PROJECT_SOURCE_DIR}/../tools/)
 link_directories(${THIRD_PARTY_PATH}/lib/rdkafka)
-#MESSAGE(${THIRD_PARTY_PATH}/include/kafka)
+
 
 add_library(${PROJECT_NAME} SHARED simplewrapkafka.cpp)
 

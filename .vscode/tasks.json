@@ -38,5 +38,15 @@
                 "isDefault": true
             }
         },
+        {
+            "label": "build asiostudy",
+            "args": [
+                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target asiostudy -j 2"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
     ]
 }

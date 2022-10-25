@@ -1,10 +1,10 @@
 #include <iostream>
-#include "queue/rte_ring.h"
-#include "queue/threadsafecontainer.hpp"
-#include "queue/ringqueue.hpp"
-#include "tools/timermanager.hpp"
-#include "tools/commandcenter.hpp"
-#include "tools/threadpool.hpp"
+#include <rte_ring.h>
+#include <threadsafecontainer.hpp>
+#include <ringqueue.hpp>
+#include <timermanager.hpp>
+#include <commandcenter.hpp>
+#include <threadpool.hpp>
 #include <tuple>
 #include <vector>
 #include <chrono>
@@ -14,6 +14,11 @@
 #include "RWSeparate.hpp"
 #include <json/json.h>
 #include <type_traits>
+#include <memorypool.hpp>
+#include <globalfun.hpp>
+#include <register.hpp>
+#include "ormpp/dbng.hpp"
+#include "ormpp/mysql.hpp"
 
 using namespace cinatra;
 
@@ -373,7 +378,6 @@ void testtimermanager()
     b->DeleteAlarm(std::bind([](const TTT& t, int id){ return t.id == id; },std::placeholders::_1, 5));
 }
 
-#include "tools/memorypool.hpp"
 void testmemorypool()
 {
     struct TTT 
@@ -390,7 +394,6 @@ void testmemorypool()
     pool.delete_element(element2);
 }
 
-#include "tools/globalfun.hpp"
 void testpublicfun()
 {
     std::cout << CephHashFun(123) << std::endl;
@@ -399,7 +402,6 @@ void testpublicfun()
     std::cout << public_align32pow2(5) << std::endl;
 }
 
-#include "tools/register.hpp"
 void testregister()
 {
     class TTT
@@ -606,9 +608,6 @@ void testPThreadPool()
     for(int i=0;i<10;i++)
         pool.EnqueueStr(Worker2Params(i));
 }
-
-#include "ormpp/dbng.hpp"
-#include "ormpp/mysql.hpp"
 
 struct aicall_tts_file_cache
 {

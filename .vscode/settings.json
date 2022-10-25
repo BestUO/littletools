@@ -75,6 +75,8 @@
         "charconv": "cpp",
         "span": "cpp",
         "bitset": "cpp",
-        "regex": "cpp"
+        "regex": "cpp",
+        "strstream": "cpp",
+        "variant": "cpp"
     }
 }

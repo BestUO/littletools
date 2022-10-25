@@ -1,7 +1,7 @@
 #include "cinatra.hpp"
-#include "queue/ringqueue.hpp"
-#include "tools/threadpool.hpp"
-#include "tools/jsonwrap.hpp"
+#include <ringqueue.hpp>
+#include <threadpool.hpp>
+#include <jsonwrap.hpp>
 #include "ormpp/dbng.hpp"
 #include "ormpp/mysql.hpp"
 #include "spdlog/spdlog.h"

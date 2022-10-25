@@ -52,6 +52,27 @@
             "miDebuggerPath": "/usr/bin/gdb"
         },
         {
+            "name": "asiostudy",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/asiostudy/asiostudy",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "build asiostudy",
+            "miDebuggerPath": "/usr/bin/gdb"
+        },
+        {
             "name": "trimule",
             "type": "cppdbg",
             "request": "launch",
