@@ -1,4 +1,4 @@
-build/*
+build/
 www
 *.log
-conf/config.json
+conf/
