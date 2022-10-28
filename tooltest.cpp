@@ -957,32 +957,6 @@ using namespace cinatra;
 //     std::cout << md5_string;
 // }
 
-// #include "ormpp/dbng.hpp"
-// #include "ormpp/mysql.hpp"
-// void wdtest_ormpp()
-// {
-//     // "mysql_setting": {
-//     //     "mysql_user": "emi_ai",
-//     //     "mysql_password": "Sinicnet123456",
-//     //     "mysql_db": "ai",
-//     //     "mysql_host": "rm-2ze4h4gd92r731iapeo.mysql.rds.aliyuncs.com",
-//     //     "mysql_port":3306,
-//     //     "mysql_timeout":5
-//     // },
-
-//     ormpp::dbng<ormpp::mysql> mysqlclient;
-//     // settingParser mysql_example;
-//     // sqlconnect conne = mysql_example.GetSettinghParser("conf/config.json");
-
-//     mysqlclient.connect("", "", "Sinicnet123456", "ai", 5, 3306);
-
-//      auto res = mysqlclient.query<std::tuple<std::string>>("SELECT create_time from calllog WHERE enterprise_uid = 19 and id in (select calllog_id from aicall_calllog_extension where hangup_type = 2) limit 1");
-
-//     std::cout << std::get<0>(res[0]) << std::endl;
-// }
-
-
-
 int main()
 {
     // testQueueTypeThreadPool();
