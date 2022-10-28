@@ -184,9 +184,6 @@ int CallBackActionQueue()
     return 0;
 }
 
-
-
-
 int main()
 {
     initspdlog();

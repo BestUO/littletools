@@ -15,12 +15,11 @@ include_directories(${PROJECT_SOURCE_DIR}/kafka)
 include_directories(${PROJECT_SOURCE_DIR}/net/include)
 include_directories(${PROJECT_SOURCE_DIR}/tools)
 
-# include_directories("/usr/include/mysql")
-# link_directories("usr/lib/x86_64-linux-gnu")
-
 link_directories(${THIRD_PARTY_PATH}/lib)
 link_directories(${THIRD_PARTY_PATH}/lib/json)
 link_directories(${THIRD_PARTY_PATH}/lib/rdkafka)
+link_directories(${THIRD_PARTY_PATH}/lib/hiredis)
+link_directories(${THIRD_PARTY_PATH}/lib/redis++)
 
 ADD_SUBDIRECTORY(redispool)
 ADD_SUBDIRECTORY(tinyxml2)
@@ -53,29 +52,14 @@ set(TOOL_TEST tooltest)
 set(TOOL_TEST_SOURCE tooltest.cpp)
 add_executable(${TOOL_TEST} ${TOOL_TEST_SOURCE})
 target_include_directories(${TOOL_TEST} PUBLIC ${OPENSSL_INCLUDE_DIR})
-target_link_libraries(${TOOL_TEST}   ${CURL_LIBRARIES}    mysqlclient OpenSSL::SSL OpenSSL::Crypto  uoqueue pthread uokafka rdkafka++ uuid jsoncpp atomic  tinyxml)
+target_link_libraries(${TOOL_TEST} ${CURL_LIBRARIES} mysqlclient OpenSSL::SSL OpenSSL::Crypto uoqueue pthread uokafka rdkafka++ uuid jsoncpp atomic tinyxml)
 
 set(TOOL_COMPOSE trimule)
 set(TOOL_COMPOSE_SOURCE trimule.cpp)
 
-
 add_executable(${TOOL_COMPOSE} ${TOOL_COMPOSE_SOURCE})
-
-# <------------ add hiredis dependency --------------->
-find_path(HIREDIS_HEADER hiredis)
-target_include_directories(${TOOL_COMPOSE} PUBLIC ${HIREDIS_HEADER})
-
-find_library(HIREDIS_LIB hiredis)
-target_link_libraries(${TOOL_COMPOSE} ${HIREDIS_LIB})
-
-# <------------ add redis-plus-plus dependency -------------->
-find_path(REDIS_PLUS_PLUS_HEADER sw)
-target_include_directories(${TOOL_COMPOSE} PUBLIC ${REDIS_PLUS_PLUS_HEADER})
-
-find_library(REDIS_PLUS_PLUS_LIB redis++)
-
-target_include_directories(${TOOL_COMPOSE} PUBLIC ${OPENSSL_INCLUDE_DIR})
-target_link_libraries(${TOOL_COMPOSE}     ${REDIS_PLUS_PLUS_LIB}  ${CURL_LIBRARIES}   OpenSSL::SSL OpenSSL::Crypto    pthread   mysqlclient jsoncpp  dbstruct settingParser GetCallRecord redisclient CallBack )
+# target_include_directories(${TOOL_COMPOSE} PUBLIC ${OPENSSL_INCLUDE_DIR})
+target_link_libraries(${TOOL_COMPOSE} ${REDIS_PLUS_PLUS_LIB} ${CURL_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto pthread mysqlclient jsoncpp dbstruct settingParser GetCallRecord redisclient CallBack)
 
 
 

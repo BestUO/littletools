@@ -1,6 +1,6 @@
 build/*
 www
 *.log
-conf/*
-conf/config.json
+# conf/*
+# conf/config.json
 

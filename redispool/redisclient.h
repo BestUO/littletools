@@ -1,7 +1,7 @@
 #ifndef _REDIS_H_
 #define _REDIS_H_
 
-#include <sw/redis++/redis++.h>
+#include <redis++/redis++.h>
 #include <iostream>
 #include "spdlog/spdlog.h"
 #include "../settingParser/settingParser.h"

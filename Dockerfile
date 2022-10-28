@@ -1,5 +1,5 @@
 FROM gcc:11.3.0
-MAINTAINER Parsifal
+MAINTAINER newtrimule
 
 RUN  sed -i s@/archive.ubuntu.com/@/mirrors.aliyun.com/@g /etc/apt/sources.list \
      && sed -i s@/deb.debian.org/@/mirrors.aliyun.com/@g /etc/apt/sources.list \

@@ -1,2 +1,2 @@
 #!/bin/bash
-docker build -t parsifal .
+docker build -t newtrimule .
