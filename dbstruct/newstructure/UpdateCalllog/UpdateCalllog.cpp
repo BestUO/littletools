@@ -11,7 +11,6 @@
 #include <tuple>
 #include "UpdateCalllog.h"
 #include "../../sqlcommand/updatedb.h"
-#include "../../dbstruct/dbstruct.h"
 #include "ormpp/dbng.hpp"
 #define SPDLOG_FILENAME "log/TrimuleLogger.log"
 #define SPDLOGGERNAME "TrimuleLogger"

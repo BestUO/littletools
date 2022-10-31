@@ -1,7 +1,6 @@
 #ifndef DATACACHE_H
 #define DATACACHE_H
 #include "CallBack.h"
-#include "../../dbstruct/dbstruct.h"
 #include <unordered_set>
 #include <vector>
 #include <algorithm>

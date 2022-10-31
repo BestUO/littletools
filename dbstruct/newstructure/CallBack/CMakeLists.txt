@@ -10,6 +10,6 @@ set(CallBackProject_SOURCE CallBack.cpp)
 
 
 find_package(OpenSSL REQUIRED) 
-find_package(CURL REQUIRED) 
+# find_package(CURL REQUIRED) 
 include_directories(${CURL_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME}  ${CURL_LIBRARIES} ssl crypto tinyxml mysqlclient  updatedb redisclient dbstruct GetCallRecord UpdateCalllog)
+target_link_libraries(${PROJECT_NAME}  ${CURL_LIBRARIES} ssl crypto tinyxml mysqlclient updatedb settingParser redisclient GetCallRecord UpdateCalllog curl)

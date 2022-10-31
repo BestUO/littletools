@@ -4,7 +4,6 @@
 #include <iostream>
 #include <string>
 #include <json/json.h>
-#include "../../dbstruct/dbstruct.h"
 #include "../UpdateCalllog/UpdateCalllog.h"
 #include "../GetCallRecord/GetCallRecord.h"
 #include "ormpp/dbng.hpp"

@@ -9,19 +9,9 @@
     },
     "tasks": [
         {
-            "label": "build test_main",
-            "args": [
-                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target trimule -j 4; make trimule_copyfile"
-            ],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
-        },
-        {
             "label": "build tooltest",
             "args": [
-                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target tooltest -j 4"
+                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target tooltest -j 2"
             ],
             "group": {
                 "kind": "build",
@@ -31,7 +21,17 @@
         {
             "label": "build trimule",
             "args": [
-                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target trimule -j 4; make trimule_copyfile"
+                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target trimule -j 2; make trimule_copyfile"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "release trimule",
+            "args": [
+                "cmake -DCMAKE_BUILD_TYPE=Release ..; cmake --build . --target trimule -j 2; make trimule_copyfile"
             ],
             "group": {
                 "kind": "build",
