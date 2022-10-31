@@ -6,9 +6,13 @@
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/3rdparty/doctest/doctest/parts"
             ],
+            "defines": [
+                "ASIO_STANDALONE",
+                "ASIO_HAS_STD_TUPLE"
+            ],
             "compilerPath": "/usr/local/bin/gcc",
-            "cStandard": "gnu17",
-            "cppStandard": "gnu++20",
+            "cStandard": "c17",
+            "cppStandard": "c++20",
             "intelliSenseMode": "linux-gcc-x64"
         }
     ],

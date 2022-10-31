@@ -492,15 +492,98 @@ void MultiThreadRun()
     t1.join();
 }
 
+void strandtest()
+{
+    asio::io_context io_context;
+    auto worker = asio::make_work_guard(io_context);
+
+    std::vector<std::thread> runthreads;
+    for(int i=0;i<3;i++)
+        runthreads.emplace_back(std::thread([&io_context](){ io_context.run(); }));
+    auto fun1 = []()
+    {
+        std::cout<< "fun1 " << std::this_thread::get_id()<<std::endl;
+    };
+    auto fun2 = []()
+    {
+        std::cout<< "fun2 " << std::this_thread::get_id()<<std::endl;
+    };
+    {
+        //乱序
+        for(int i = 0;i<10;i++)
+        {
+            asio::post(io_context,fun1);
+            asio::post(io_context,fun2);
+        }
+    }
+    sleep(5);
+    std::cout << "use strand" << std::endl;
+    {
+        //顺序绑定strand
+        asio::strand<asio::io_context::executor_type> fun1strand(asio::make_strand(io_context));
+        asio::strand<asio::io_context::executor_type> fun2strand(asio::make_strand(io_context));
+
+        for(int i = 0;i<10;i++)
+        {
+            asio::post(asio::bind_executor(fun1strand,fun1));
+            asio::post(asio::bind_executor(fun2strand,fun2));
+        }
+    }
+
+    for(auto &tmp:runthreads)
+        tmp.join();
+}
+
+std::string make_string(asio::streambuf& streambuf)
+{
+ return {buffers_begin(streambuf.data()), 
+         buffers_end(streambuf.data())};
+}
+
+void streambuffertest()
+{
+    asio::streambuf write_buffer;
+    std::ostream output(&write_buffer);
+    output << "a@"
+            "b@";
+    std::cout << "Wrote: " << make_string(write_buffer) << std::endl;
+
+    write_buffer.consume(2);
+    std::cout << "Consumed write buffer, it now contains: " <<
+                    make_string(write_buffer) << std::endl;
+}
+
+
+void Print(std::error_code ec, asio::steady_timer* timer, int *count) 
+{
+    if (*count < 3)
+    {
+        std::cout << *count << std::endl;
+        ++(*count);       
+        timer->expires_at(timer->expires_at() + std::chrono::seconds(1));
+        timer->async_wait(std::bind(&Print, std::placeholders::_1, timer, count));
+    }
+}
+
+void steadytimertest()
+{
+    asio::io_context ioc;
+    asio::steady_timer timer(ioc, std::chrono::seconds(3));
+    int count = 0;
+    timer.async_wait(std::bind(&Print,std::placeholders::_1, &timer, &count));
+    ioc.run();
+}
+
 int main()
 {
     // main1();
     // coroutinuec20();
     // actortest();
     // restartpoll();
-    postdispatchtest();
+    // postdispatchtest();
     // threadpooltest();
     // MultiThreadRun();
-
+    // strandtest();
+    steadytimertest();
     return 0;
 }

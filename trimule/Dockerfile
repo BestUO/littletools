@@ -1,5 +1,5 @@
 FROM gcc:11.3.0
-MAINTAINER Parsifal
+MAINTAINER trimule
 
 RUN apt-get update && apt-get install supervisor -y  \
     &&  apt-get install vim -y && mkdir /home/TRIMULE
