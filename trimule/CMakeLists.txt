@@ -17,7 +17,7 @@ link_directories(${THIRD_PARTY_PATH}/lib/redis++)
 set(OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/Trimule)
 ADD_CUSTOM_TARGET(trimule_copyfile ALL
 COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_PATH}
-COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/conf ${OUTPUT_PATH}/conf
+COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/trimule/conf ${OUTPUT_PATH}/conf
 COMMAND mv ${PROJECT_SOURCE_DIR}/build/trimule/trimule ${OUTPUT_PATH}
 COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/trimule/Dockerfile ${OUTPUT_PATH}/Dockerfile
 COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/trimule/docker_build.sh ${OUTPUT_PATH}/docker_build.sh
