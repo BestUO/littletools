@@ -4,8 +4,10 @@ set(DM_SOURCE dialogmanger.cpp)
 include_directories(${PROJECT_SOURCE_DIR}/net/include)
 include_directories(${PROJECT_SOURCE_DIR})
 
+ADD_SUBDIRECTORY(network)
+
 add_executable(${DM} ${DM_SOURCE})
-target_link_libraries(${DM} pthread)
+target_link_libraries(${DM} dmnetwork pthread)
 
 set(OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/dialogmanger)
 ADD_CUSTOM_TARGET(dialogmanger_copyfile ALL

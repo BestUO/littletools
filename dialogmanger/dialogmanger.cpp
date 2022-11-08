@@ -2,11 +2,8 @@
 #include "spdlog/sinks/rotating_file_sink.h"
 #include "spdlog/async.h"
 #include "tools/jsonwrap.hpp"
-#include "cinatra.hpp"
-
-#define SPDLOG_FILENAME "log/DialogerManagerLogger.log"
-#define SPDLOGGERNAME "DialogerManagerLogger"
-#define LOGGER spdlog::get(SPDLOGGERNAME)
+#include "network/net_interface.h"
+#include "global.h"
 
 void initspdlog()
 {
@@ -20,10 +17,12 @@ int main(int argc,char **argv)
 {
     initspdlog();
     auto config = JsonSimpleWrap::GetPaser("conf/dialog_manager_config.json");
-    if(config = std::nullopt)
-        LOGGER->info("aa");
-    int max_thread_num = 1;
-    cinatra::http_server server(max_thread_num);
-    server.listen((*config)["httpserver_setting"]["host"].GetString(), (*config)["httpserver_setting"]["port"].GetString());
+    if(config == std::nullopt)
+    {
+        LOGGER->info("dialog_manager_config.json err so return");
+        return 0;
+    }
+    NetInterFace netinterface(config.value());
+    netinterface.NetInterFaceStart();
     return 0;
 }
