@@ -186,7 +186,7 @@ int CallBackActionQueue()
 int main()
 {
     initspdlog();
-    auto config = JsonSimpleWrap::GetPaser("conf/config.json");
+    auto config = JsonSimpleWrap::GetPaser("conf/trimule_config.json");
     int max_thread_num = 1;
     cinatra::http_server server(max_thread_num);
     server.listen((*config)["httpserver_setting"]["host"].GetString(), (*config)["httpserver_setting"]["port"].GetString());
@@ -202,9 +202,6 @@ int main()
     std::thread polling_queue(PollingQueue);
     std::thread oc_web_polling_queue(OcWebPollingQueue);
     std::thread call_back_action_queue(CallBackActionQueue);
-
-
-
 
     polling_queue.detach();
     oc_web_polling_queue.detach();

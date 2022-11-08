@@ -51,12 +51,11 @@
             "preLaunchTask": "build trimule",
             "miDebuggerPath": "/usr/bin/gdb"
         },
-
         {
-            "name": "test_main",
+            "name": "dialogmanger",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/queue/test_main",
+            "program": "${workspaceFolder}/build/dialogmanger/dialogmanger",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
@@ -70,29 +69,8 @@
                     "ignoreFailures": true
                 }
             ],
-            "preLaunchTask": "build test_main",
+            "preLaunchTask": "build dialogmanger",
             "miDebuggerPath": "/usr/bin/gdb"
         },
-        {
-            "name": "UO_KAFKA",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/build/kafka/test_kafka",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "gdb",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                }
-            ],
-            "preLaunchTask": "Make Debug",
-            "miDebuggerPath": "/bin/gdb"
-        }
     ]
 }
