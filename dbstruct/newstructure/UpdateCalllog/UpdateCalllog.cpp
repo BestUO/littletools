@@ -1,6 +1,6 @@
 #ifndef DATACACHE_H
 #define DATACACHE_H
-#include "cinatra.hpp"
+#include "cinatra/cinatra.hpp"
 #include "ormpp/dbng.hpp"
 #include "ormpp/mysql.hpp"
 #include "spdlog/spdlog.h"

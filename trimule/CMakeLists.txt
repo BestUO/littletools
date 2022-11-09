@@ -2,7 +2,7 @@ add_definitions(-DASIO_STANDALONE)
 add_definitions(-DORMPP_ENABLE_MYSQL)
 
 include_directories(${THIRD_PARTY_PATH}/include)
-include_directories(${PROJECT_SOURCE_DIR}/net/include)
+include_directories(${THIRD_PARTY_PATH}/include/cinatra)
 include_directories(${PROJECT_SOURCE_DIR}/tools)
 include_directories(${PROJECT_SOURCE_DIR})
 

@@ -1,7 +1,7 @@
 #ifndef UPDATE_H
 #define UPDATE_H
 
-#include "cinatra.hpp"
+#include "cinatra/cinatra.hpp"
 #include "ormpp/dbng.hpp"
 #include "ormpp/mysql.hpp"
 #include "spdlog/spdlog.h"

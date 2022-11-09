@@ -1,5 +1,5 @@
 #pragma once
-#include "cinatra.hpp"
+#include "cinatra/cinatra.hpp"
 #include "tools/jsonwrap.hpp"
 
 class NetInterFace
@@ -11,4 +11,6 @@ public:
     void NetInterFaceStart();
 private:
     cinatra::http_server __server;
+
+    void NextContext(cinatra::request& req, cinatra::response& res);
 };

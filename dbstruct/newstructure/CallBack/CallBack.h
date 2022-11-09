@@ -1,6 +1,6 @@
 #ifndef CALLBACK_H
 #define CALLBACK_H
-#include "cinatra.hpp"
+#include "cinatra/cinatra.hpp"
 #include <iostream>
 #include <string>
 #include <json/json.h>

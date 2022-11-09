@@ -1,8 +1,8 @@
 set(DM dialogmanger)
 set(DM_SOURCE dialogmanger.cpp)
 
-include_directories(${PROJECT_SOURCE_DIR}/net/include)
 include_directories(${PROJECT_SOURCE_DIR})
+include_directories(${THIRD_PARTY_PATH}/include/cinatra)
 
 ADD_SUBDIRECTORY(network)
 

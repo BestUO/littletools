@@ -7,7 +7,6 @@
 # add_library(${PROJECT_NAME} SHARED ${PARSERJSON} )
 # # # add_definitions(-DASIO_STANDALONE)
 # # include_directories(${THIRD_PARTY_PATH}/include)
-# # # include_directories(${PROJECT_SOURCE_DIR}/net/include)
 
 
 # # link_directories(${THIRD_PARTY_PATH}/lib)
@@ -25,7 +24,6 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ../lib)
 add_library(${PROJECT_NAME}    settingParser.cpp settingParser.h)
 # # add_definitions(-DASIO_STANDALONE)
 # include_directories(${THIRD_PARTY_PATH}/include)
-# # include_directories(${PROJECT_SOURCE_DIR}/net/include)
 
 
 # link_directories(${THIRD_PARTY_PATH}/lib)
