@@ -1,4 +1,4 @@
-project(dmnetwork)
+project(net_interface)
 
 # set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ../lib)
 include_directories(${THIRD_PARTY_PATH}/include)

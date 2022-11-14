@@ -2,9 +2,8 @@
 #include "spdlog/sinks/rotating_file_sink.h"
 #include "spdlog/async.h"
 #include "tools/jsonwrap.hpp"
-#include "network/net_interface.h"
+#include "net_interface/net_interface.h"
 #include "global.h"
-#include "dmthreadpool.hpp"
 
 void Initspdlog()
 {
@@ -16,8 +15,6 @@ void Initspdlog()
 
 int main(int argc,char **argv)
 {
-    auto result = DMThreadPool::GetInstance()->GetThreadPool()->EnqueueFun([](int x){return x*2;},1);
-    auto aaaa = result.get();
     Initspdlog();
     auto config = JsonSimpleWrap::GetPaser("conf/dialog_manager_config.json");
     if(config == std::nullopt)

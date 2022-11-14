@@ -1,5 +1,7 @@
 #include "session_manager.h"
 #include "course_manager/course_manager.h"
+#include "dmthreadpool.hpp"
+#include "callback_function/qainfo_callback.hpp"
 #include <random>
 
 std::shared_ptr<Session> SessionManager::GetSession(unsigned int session_id, unsigned int course_id)
@@ -68,10 +70,7 @@ bool SessionManager::ProcessSession(std::shared_ptr<Session> session, std::strin
             session->current_qa->answer_audio_path = content;
         else
             session->current_qa->answer_txt = content;
-        //线程池asr打分
-        //TODO
-        //session->current_qa insert to thread pool
-        //。。。。
+        DMThreadPool::GetInstance()->GetThreadPool()->EnqueueFun(QAInfoCallBackFunction::StoreInDB,session->current_qa);
         session->current_qa = nullptr;
     }
     session->current_qa = std::make_shared<QAInfo>();

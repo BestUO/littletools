@@ -2,7 +2,6 @@
 
 #include "tools/threadpool.hpp"
 #include "tools/jsonwrap.hpp"
-
 class DMThreadPool
 {
 using QueueType = std::conditional_t<false, LockQueue<std::function<void()>>, FreeLockRingQueue<std::function<void()>>>;
@@ -19,7 +18,10 @@ public:
 private:
     DMThreadPool()
     {
-        std::shared_ptr<ThreadPool<QueueType>> threadpool(new ThreadPool<QueueType>(2, 10));
+        auto config = JsonSimpleWrap::GetPaser("conf/dialog_manager_config.json").value();
+        std::shared_ptr<ThreadPool<QueueType>> threadpool(new ThreadPool<QueueType>(config["thread_pool"]["min_size"].GetInt(), 
+                                                    config["thread_pool"]["max_size"].GetInt()));
+
         __threadpool = threadpool;
     }
     
