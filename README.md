@@ -16,12 +16,15 @@ littletools usage in tooltest
 * hooktest
 * funregister for rpc
 * asio example
+* Simple LRU_Cache
 
 # Trimule
 use cinatra+ormpp+freelockqueue for httpserver and dbclient.  
 **very fast**
 
 ## HowtoRunTrimule
+### require 
+c++17
 ### Make
 mkdir build && cd build  
 cmake .. && make  
