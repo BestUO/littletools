@@ -4,8 +4,9 @@
 #include "tools/jsonwrap.hpp"
 #include "network/net_interface.h"
 #include "global.h"
+#include "dmthreadpool.hpp"
 
-void initspdlog()
+void Initspdlog()
 {
     spdlog::flush_every(std::chrono::seconds(5));
     auto file_logger = spdlog::rotating_logger_mt<spdlog::async_factory>(SPDLOGGERNAME, SPDLOG_FILENAME, 1024 * 1024 * 200, 5);
@@ -15,13 +16,16 @@ void initspdlog()
 
 int main(int argc,char **argv)
 {
-    initspdlog();
+    auto result = DMThreadPool::GetInstance()->GetThreadPool()->EnqueueFun([](int x){return x*2;},1);
+    auto aaaa = result.get();
+    Initspdlog();
     auto config = JsonSimpleWrap::GetPaser("conf/dialog_manager_config.json");
     if(config == std::nullopt)
     {
         LOGGER->info("dialog_manager_config.json err so return");
         return 0;
     }
+
     NetInterFace netinterface(config.value());
     netinterface.NetInterFaceStart();
     return 0;

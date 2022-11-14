@@ -65,7 +65,7 @@ protected:
         }
 
     }
-    virtual void DealElement(ContainerType &&p) = 0;
+    virtual void DealElement(ContainerType &&p){};
 };
 
 
@@ -97,10 +97,15 @@ public:
     {
         using return_type = typename std::result_of<F(Args...)>::type;
 
-        // with -std=c++2b you can also code as:
         // auto task = std::packaged_task<return_type()>(std::bind(std::forward<F>(f), std::forward<Args>(args)...));
-        // while(!__queuetask.AddObj([task=std::move(task)]()mutable{ (*task)(); }))
-        // {...}
+        // std::future<return_type> res = task.get_future();
+        // while(!__queuetask->AddObj([task=std::move(task)]()mutable{ task(); }))
+        // {
+        //     if(__totalnum < __maxsize)
+        //         CreateWorker(false).detach();
+        //     std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        // }
+        // return res;
         
         auto task = std::make_shared< std::packaged_task<return_type()> >(
                 std::bind(std::forward<F>(f), std::forward<Args>(args)...)

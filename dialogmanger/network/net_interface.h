@@ -1,6 +1,7 @@
 #pragma once
 #include "cinatra/cinatra.hpp"
 #include "tools/jsonwrap.hpp"
+#include "global.h"
 
 class NetInterFace
 {

@@ -36,7 +36,13 @@ public:
         return std::make_tuple(std::pair<std::string,int>("status",1),std::pair<std::string,std::string>("info","参数缺失"));
     }
 
+    static auto GetSessionFail()
+    {
+        return std::make_tuple(std::pair<std::string,int>("status",1),std::pair<std::string,std::string>("info","session获取失败"));
+    }
+
 private:
+    //urgly code
     static void WritekeyValue(rapidjson::Writer<rapidjson::StringBuffer> &writer, std::pair<std::string,std::string> arg)
     {
         writer.Key(arg.first.c_str());
