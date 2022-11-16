@@ -15,14 +15,20 @@ NetInterFace::NetInterFace(rapidjson::Document &config):__server(1)
 
     __server.set_http_handler<cinatra::GET, cinatra::POST>("/dialogmanger/stop", [this](cinatra::request& req, cinatra::response& res) 
     {
-        res.set_status_and_content(cinatra::status_type::ok, "bye");
-        __server.stop();
+        StopDialogManager(req, res);
 	});
 }
 
 void NetInterFace::NetInterFaceStart()
 {
     __server.run();
+}
+
+void NetInterFace::StopDialogManager(cinatra::request& req, cinatra::response& res)
+{
+    SessionManager::GetInstance()->StopSessionManager();
+    __server.stop();
+    res.set_status_and_content(cinatra::status_type::ok, "bye");
 }
 
 void NetInterFace::NextContext(cinatra::request& req, cinatra::response& res)

@@ -40,6 +40,10 @@ struct Node
     std::vector<unsigned int> label;
     std::vector<std::weak_ptr<Node>> childs;
     std::vector<std::weak_ptr<Node>> parents;
+    ~Node()
+    {
+        std::cout << "byd node" << std::endl;
+    }
 };
 
 struct CourseInfo
@@ -48,6 +52,10 @@ struct CourseInfo
     std::map<unsigned int,std::shared_ptr<QuestionDetail>> question_detail_map;
     std::weak_ptr<Node> root;
     unsigned int course_id;
+    ~CourseInfo()
+    {
+        std::cout << "byd CourseInfo" << std::endl;
+    }
 };
 
 struct QAInfo
@@ -64,6 +72,9 @@ struct QAInfo
     std::weak_ptr<QuestionDetail> question_detail;
     TTSStatement tts_statement;
     std::string answer_stander;
+
+    ~QAInfo()
+    {std::cout << "byd QAInfo" << std::endl;}
 };
 
 struct Session
@@ -79,6 +90,8 @@ struct Session
     std::shared_ptr<QAInfo> current_qa = nullptr;
     Session() = default;
     Session(unsigned int session_id,std::shared_ptr<CourseInfo> course_info):session_id(session_id),course_info(course_info){};
+    ~Session()
+    {std::cout << "byd Session" << std::endl;}
 };
 
 /*error code

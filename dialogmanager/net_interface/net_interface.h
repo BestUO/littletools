@@ -13,4 +13,5 @@ private:
     cinatra::http_server __server;
 
     void NextContext(cinatra::request& req, cinatra::response& res);
+    void StopDialogManager(cinatra::request& req, cinatra::response& res);
 };

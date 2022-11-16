@@ -499,6 +499,7 @@ using namespace cinatra;
 //     v.push_back(p1);
 //     v.push_back(p2);
 //     q.AddObjBulk(std::move(v));
+//     q.NoticeOneConsumer();
 //     auto bulk = q.GetObjBulk();
 //     q.AddObj(std::move(p1));
 //     std::cout << "end" << std::endl;

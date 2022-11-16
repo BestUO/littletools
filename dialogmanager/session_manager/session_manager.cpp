@@ -14,7 +14,7 @@ std::shared_ptr<Session> SessionManager::GetSession(unsigned int session_id, uns
     else
     {
         session = CreateSessionInsertToMap(session_id, course_id);
-        InsertToTimmeManager(session);
+        InsertToTimerManager(session);
     }
     return session;
 }
@@ -139,17 +139,30 @@ TTSStatement SessionManager::GetTTSStatement(std::shared_ptr<QuestionDetail> que
     return question_detail->ttsstatement[std::random_device()()%question_detail->ttsstatement.size()];
 }
 
-void SessionManager::InsertToTimmeManager(std::shared_ptr<Session> session)
+void SessionManager::InsertToTimerManager(std::shared_ptr<Session> session)
 {
     auto timermanager = TimerManager<unsigned int>::GetInstance();
     timermanager->AddAlarm(std::chrono::system_clock::now() + std::chrono::minutes(30), session->session_id, [this,key=session->session_id]()
     {
-        DeleteSession(key);
+        DeleteSessionMap(key);
     });
 }
 
 void SessionManager::DeleteSession(unsigned int session_id)
 {
+    auto timermanager = TimerManager<unsigned int>::GetInstance();
+    timermanager->DeleteAlarm(session_id);
+    DeleteSessionMap(session_id);
+}
+
+void SessionManager::DeleteSessionMap(unsigned int session_id)
+{
     std::unique_lock<std::shared_mutex> lock(__rwlock);
     __session_map.erase(session_id);
+}
+
+void SessionManager::StopSessionManager()
+{
+    TimerManager<unsigned int>::GetInstance()->StopTimerManager();
+    DMThreadPool::GetInstance()->StopThreadPool();
 }

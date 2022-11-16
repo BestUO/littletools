@@ -20,7 +20,7 @@ std::shared_ptr<CourseInfo> CourseManager::GetCourse(unsigned int course_id)
 
 std::optional<std::shared_ptr<CourseInfo>> CourseManager::GetFromCourseMap(unsigned int course_id)
 {
-    return __lrucache.GetKeyValue(course_id);
+    return __lrucache.GetValue(course_id);
 }
 
 std::shared_ptr<CourseInfo> CourseManager::CreateCourseInsertToMap(unsigned int course_id)

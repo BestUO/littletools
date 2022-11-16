@@ -62,7 +62,7 @@ private:
     std::thread __timerthread;
     std::condition_variable __cv;
     std::mutex __cv_m;
-    int __model = 0;
+    int __model = 1;
 
     TimerManager()
     {

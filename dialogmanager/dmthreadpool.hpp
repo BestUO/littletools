@@ -15,6 +15,10 @@ public:
     {
         return __threadpool;
     }
+    void StopThreadPool()
+    {
+        __threadpool->StopThreadPool();
+    };
 private:
     DMThreadPool()
     {
@@ -25,6 +29,7 @@ private:
         __threadpool = threadpool;
     }
     
-    ~DMThreadPool()=default;
+    ~DMThreadPool() = default;
+
     std::shared_ptr<ThreadPool<QueueType>> __threadpool;
 };

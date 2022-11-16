@@ -55,7 +55,7 @@ public:
 		}
 	}
 	
-	std::optional<V> GetKeyValue(const K& key) 
+	std::optional<V> GetValue(const K& key) 
     {
         std::unique_lock<std::shared_mutex> lock(__rwlock);
 		auto it = __cache_items_map.find(key);
