@@ -17,7 +17,7 @@ ADD_SUBDIRECTORY(queue)
 ADD_SUBDIRECTORY(settingParser)
 ADD_SUBDIRECTORY(dbstruct)
 ADD_SUBDIRECTORY(trimule)
-ADD_SUBDIRECTORY(dialogmanger)
+ADD_SUBDIRECTORY(dialogmanager)
 
 # set(OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/Trimule)
 

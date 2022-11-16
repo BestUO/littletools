@@ -3,7 +3,8 @@
 #include<mutex>
 #include<queue>
 #include<functional>
-#include <optional>
+#include<optional>
+#include<condition_variable>
 
 template<typename T>
 class custom_priority_queue : public std::priority_queue<T> {
@@ -41,25 +42,38 @@ public:
         __notempty.notify_one();
     }
 
-    bool GetObj(T &obj, std::function<bool(T)>comparefun=nullptr)
+    [[deprecated]]
+    bool GetObj(T &obj, std::function<bool(T)>comparefun=nullptr, std::function<bool(T)>ifremove=[](T t){return true;})
     {
         std::unique_lock<std::mutex> lck(__mutex);
+        if(__queue.empty())
+            return false;
         __notempty.wait(lck, [this]{return !__queue.empty();});
         if(comparefun && !comparefun(__queue.top()))
             return false;
         obj = __queue.top();
-        __queue.pop();
+        if(ifremove && ifremove(obj))
+            __queue.pop();
         return true;
+    }
+
+    void PopTop()
+    {
+        std::unique_lock<std::mutex> lck(__mutex);
+        __queue.pop();
     }
 
     bool GetObj(std::queue<T>& queue)
     {
         std::unique_lock<std::mutex> lck(__mutex);
+        if(__queue.empty())
+            return false;
         __notempty.wait(lck, [this]{return !__queue.empty();});
         queue = std::move(__queue);
         return true;
     }
-
+    
+    [[deprecated]]
     bool GetTopObj(T &obj)
     {
         std::unique_lock<std::mutex> lck(__mutex);
@@ -72,10 +86,22 @@ public:
             return false;
     }
 
-    void DeleteObj(std::function<bool(T)>comparefun)
+    std::optional<T> GetTopObj()
     {
         std::unique_lock<std::mutex> lck(__mutex);
-        __queue.remove_if(comparefun);
+        if(!__queue.empty())
+        {
+             __queue.top();
+            return __queue.top();
+        }
+        else
+            return std::nullopt;
+    }
+
+    bool DeleteObj(std::function<bool(T)>comparefun)
+    {
+        std::unique_lock<std::mutex> lck(__mutex);
+        return __queue.remove_if(comparefun);
     }
 };
 

@@ -22,6 +22,8 @@ struct QuestionDetail
     std::vector<TTSStatement> ttsstatement;
     std::string answer;
     std::string keywords;
+    std::string prompt_txt;
+    std::string prompt_steps;
 };
 
 struct Question
@@ -52,13 +54,13 @@ struct QAInfo
 {
     unsigned int course_id;
     unsigned int session_id;
-    unsigned int node_id;
     std::chrono::system_clock::time_point question_time;
     std::chrono::system_clock::time_point answer_time;
     std::string answer_txt;
     std::string answer_audio_path;
     std::string answer_analyse;
 
+    std::weak_ptr<Node> current_node;
     std::weak_ptr<QuestionDetail> question_detail;
     TTSStatement tts_statement;
     std::string answer_stander;

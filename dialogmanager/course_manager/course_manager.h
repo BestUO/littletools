@@ -1,6 +1,7 @@
 #pragma once
 #include "global.h"
 #include "rapidjson/document.h"
+#include "tools/lrucache.hpp"
 #include <map>
 #include <shared_mutex>
 #include <optional>
@@ -16,10 +17,8 @@ public:
     std::shared_ptr<CourseInfo> GetCourse(unsigned int course_id);
 
 private:
-    std::map<unsigned int,std::shared_ptr<CourseInfo>> __course_map;
-    std::shared_mutex __rwlock;
-
-    CourseManager()=default;
+    LRUCache<unsigned int, std::shared_ptr<CourseInfo>> __lrucache;
+    CourseManager();
     ~CourseManager()=default;
 
     std::optional<std::shared_ptr<CourseInfo>> GetFromCourseMap(unsigned int course_id);

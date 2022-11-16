@@ -1,6 +1,12 @@
 #include "course_manager.h"
 #include "dboperate/dboperate.hpp"
-#include <ranges>
+
+CourseManager::CourseManager()
+{
+    auto config = JsonSimpleWrap::GetPaser("conf/dialog_manager_config.json").value();
+    __lrucache.SetMaxSizeAndRemainDay(config["lru_cache_course"]["size"].GetInt(),config["lru_cache_course"]["remain_days"].GetInt());
+};
+
 std::shared_ptr<CourseInfo> CourseManager::GetCourse(unsigned int course_id)
 {
     std::shared_ptr<CourseInfo> CourseInfo= nullptr;
@@ -14,24 +20,15 @@ std::shared_ptr<CourseInfo> CourseManager::GetCourse(unsigned int course_id)
 
 std::optional<std::shared_ptr<CourseInfo>> CourseManager::GetFromCourseMap(unsigned int course_id)
 {
-    std::shared_lock<std::shared_mutex> lock(__rwlock);
-    if(__course_map.find(course_id) != __course_map.end())
-        return __course_map[course_id];
-    else
-        return std::nullopt;
+    return __lrucache.GetKeyValue(course_id);
 }
 
 std::shared_ptr<CourseInfo> CourseManager::CreateCourseInsertToMap(unsigned int course_id)
 {
     auto courseinfo = CreateCourse(course_id);
-    if(courseinfo == nullptr)
-        return nullptr;
-    else
-    {
-        std::unique_lock<std::shared_mutex> lock(__rwlock);
-        __course_map[course_id] = courseinfo;
-        return courseinfo;
-    }
+    if(courseinfo != nullptr)
+        __lrucache.StoreKeyValue(course_id,courseinfo);
+    return courseinfo;
 }
 
 std::shared_ptr<CourseInfo> CourseManager::CreateCourse(unsigned int course_id)
@@ -110,7 +107,7 @@ std::shared_ptr<CourseInfo> CourseManager::CreateCourse(unsigned int course_id)
                 nodeptr->label = std::move(NodeParseLabel(node["label"]));
                 nodeptr->childs = std::move(NodeParseChildNode(node["child_nodes"], node_map, nodeptr));
                 auto jump_nodes = std::move(NodeParseJumpNode(node["jump_nodes"], node_map, nodeptr));
-                std::ranges::move(nodeptr->childs,std::back_insert_iterator(jump_nodes));
+                nodeptr->childs.insert(nodeptr->childs.end(), jump_nodes.begin(), jump_nodes.end());
             }
             return CreateCourse(course_id, node_map, question_detail_map);
         }
@@ -167,10 +164,12 @@ Question CourseManager::NodeParseQuestion(const rapidjson::Value & value,
 std::shared_ptr<QuestionDetail> CourseManager::CreateQuestionDetail(unsigned int questiondetail_id)
 {
     auto tmp = std::make_shared<QuestionDetail>();
-    auto [id, standard, similars, answer, keywords] = DBOperate::GetInstance()->GetQuestionDetail(questiondetail_id);
+    auto [id, standard, similars, answer, keywords,prompt_txt,prompt_steps] = DBOperate::GetInstance()->GetQuestionDetail(questiondetail_id);
     tmp->question_id = id;
     tmp->answer = std::move(answer);
     tmp->keywords = std::move(keywords);
+    tmp->prompt_txt = std::move(prompt_txt);
+    tmp->prompt_steps = std::move(prompt_steps);
     tmp->ttsstatement = std::move(GetTTSStatementInfo(standard,std::move(similars)));
     return tmp;
 }

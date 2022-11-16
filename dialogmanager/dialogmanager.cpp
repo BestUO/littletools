@@ -2,15 +2,15 @@
 #include "spdlog/sinks/rotating_file_sink.h"
 #include "spdlog/async.h"
 #include "tools/jsonwrap.hpp"
-#include "net_interface/net_interface.h"
 #include "global.h"
+#include "net_interface/net_interface.h"
 
 void Initspdlog()
 {
     spdlog::flush_every(std::chrono::seconds(5));
     auto file_logger = spdlog::rotating_logger_mt<spdlog::async_factory>(SPDLOGGERNAME, SPDLOG_FILENAME, 1024 * 1024 * 200, 5);
-    LOGGER->set_level(spdlog::level::info); // Set global log level to info
-    LOGGER->set_pattern("[%Y-%m-%d %H:%M:%S.%e %^%L%$ %t] %v");
+    file_logger->set_level(spdlog::level::info); // Set global log level to info
+    file_logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e %^%L%$ %t] %v");
 }
 
 int main(int argc,char **argv)

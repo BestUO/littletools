@@ -2,6 +2,7 @@
 #include "course_manager/course_manager.h"
 #include "dmthreadpool.hpp"
 #include "callback_function/qainfo_callback.hpp"
+#include "tools/timermanager.hpp"
 #include <random>
 
 std::shared_ptr<Session> SessionManager::GetSession(unsigned int session_id, unsigned int course_id)
@@ -11,7 +12,10 @@ std::shared_ptr<Session> SessionManager::GetSession(unsigned int session_id, uns
     if(opt != std::nullopt)
         session = opt.value();
     else
+    {
         session = CreateSessionInsertToMap(session_id, course_id);
+        InsertToTimmeManager(session);
+    }
     return session;
 }
 
@@ -49,7 +53,7 @@ std::tuple<std::vector<std::weak_ptr<QuestionDetail>>, std::string> SessionManag
     if(nodeptr->question.order == 1) //随机提问
     {
         std::shuffle(tmp.begin(), tmp.end(), std::default_random_engine(std::random_device()()));
-        unsigned int popnum = std::random_device()()/tmp.size();
+        unsigned int popnum = std::random_device()()%tmp.size();
         for(unsigned int i = 0;i < popnum;i++)
             tmp.pop_back();
     }
@@ -63,7 +67,6 @@ bool SessionManager::ProcessSession(std::shared_ptr<Session> session, std::strin
     {
         session->current_qa->course_id = session->course_info->course_id;
         session->current_qa->session_id = session->session_id;
-        session->current_qa->node_id = session->current_node.lock()->node_id;
         session->current_qa->question_time = question_time;
         session->current_qa->answer_time = answer_time;
         if(content.find("http") == 0)
@@ -71,14 +74,32 @@ bool SessionManager::ProcessSession(std::shared_ptr<Session> session, std::strin
         else
             session->current_qa->answer_txt = content;
         DMThreadPool::GetInstance()->GetThreadPool()->EnqueueFun(QAInfoCallBackFunction::StoreInDB,session->current_qa);
-        session->current_qa = nullptr;
     }
     session->current_qa = std::make_shared<QAInfo>();
     return CompleteQAInfo(session);
 }
 
+bool SessionManager::CompleteQAInfo(std::shared_ptr<Session> session)
+{
+    if(!NodeHaveQuestionsLeft(session))
+    {
+        //nextnode
+        auto current_node = GetNextNode(session->current_node);
+        if(current_node == std::nullopt)
+            return false;
+        else
+        {
+            session->current_node = current_node.value();
+            std::tie(session->left_questions, session->node_text) = GetTotalQuestionDetail(session->current_node);
+            NodeHaveQuestionsLeft(session);
+        }
+    }
+    return true;
+}
+
 bool SessionManager::NodeHaveQuestionsLeft(std::shared_ptr<Session> session)
 {
+    bool flag = false;
     if(!session->node_text.empty() || !session->left_questions.empty())
     {
         if(!session->node_text.empty())
@@ -95,25 +116,13 @@ bool SessionManager::NodeHaveQuestionsLeft(std::shared_ptr<Session> session)
             session->current_qa->tts_statement = GetTTSStatement(question_detail);
             session->current_qa->answer_stander = question_detail->answer;
         }
-        return true;
+        flag = true;
     }
     else
-        return false;
-}
+        flag = false;
 
-bool SessionManager::CompleteQAInfo(std::shared_ptr<Session> session)
-{
-    if(!NodeHaveQuestionsLeft(session))
-    {
-        //nextnode
-        auto current_node = GetNextNode(session->current_node);
-        if(current_node == std::nullopt)
-            return false;
-        session->current_node = current_node.value();
-        std::tie(session->left_questions, session->node_text) = GetTotalQuestionDetail(session->current_node);
-        NodeHaveQuestionsLeft(session);
-    }
-    return true;
+    session->current_qa->current_node = session->current_node;
+    return flag;
 }
 
 std::optional<std::weak_ptr<Node>> SessionManager::GetNextNode(std::weak_ptr<Node> node)
@@ -122,10 +131,25 @@ std::optional<std::weak_ptr<Node>> SessionManager::GetNextNode(std::weak_ptr<Nod
     if(nodeptr->childs.empty())
         return std::nullopt;
     else
-        return nodeptr->childs[std::random_device()()/ nodeptr->childs.size()];
+        return nodeptr->childs[std::random_device()()%nodeptr->childs.size()];
 }
 
 TTSStatement SessionManager::GetTTSStatement(std::shared_ptr<QuestionDetail> question_detail)
 {
-    return question_detail->ttsstatement[std::random_device()()/ question_detail->ttsstatement.size()];
+    return question_detail->ttsstatement[std::random_device()()%question_detail->ttsstatement.size()];
+}
+
+void SessionManager::InsertToTimmeManager(std::shared_ptr<Session> session)
+{
+    auto timermanager = TimerManager<unsigned int>::GetInstance();
+    timermanager->AddAlarm(std::chrono::system_clock::now() + std::chrono::minutes(30), session->session_id, [this,key=session->session_id]()
+    {
+        DeleteSession(key);
+    });
+}
+
+void SessionManager::DeleteSession(unsigned int session_id)
+{
+    std::unique_lock<std::shared_mutex> lock(__rwlock);
+    __session_map.erase(session_id);
 }

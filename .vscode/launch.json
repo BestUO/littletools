@@ -52,10 +52,10 @@
             "miDebuggerPath": "/usr/bin/gdb"
         },
         {
-            "name": "dialogmanger",
+            "name": "dialogmanager",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/dialogmanger/dialogmanger",
+            "program": "${workspaceFolder}/build/dialogmanager/dialogmanager",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
@@ -69,7 +69,7 @@
                     "ignoreFailures": true
                 }
             ],
-            "preLaunchTask": "build dialogmanger",
+            "preLaunchTask": "build dialogmanager",
             "miDebuggerPath": "/usr/bin/gdb"
         },
     ]

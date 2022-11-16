@@ -53,13 +53,14 @@ public:
             return std::get<0>(content.front());
     }
 
-    std::tuple<int, int, std::string, std::string, std::string> GetQuestionDetail(unsigned int questiondetail_id)
+    auto GetQuestionDetail(unsigned int questiondetail_id)
     {
+        using type = std::tuple<int, int, std::string, std::string, std::string, std::string, std::string>;
         auto conn = ormpp::connection_pool<ormpp::dbng<ormpp::mysql>>::instance().get();
-        auto content = conn->query<std::tuple<int, int, std::string, std::string, std::string>>
-            ("select id,standard,similars,answer,keywords from aia_question where id=?",questiondetail_id);
+        auto content = conn->query<type>
+            ("select id,standard,similars,answer,keywords,prompt_txt,prompt_steps from aia_question where id=?",questiondetail_id);
         if(content.empty())
-            return std::tuple<int, int, std::string, std::string, std::string>();
+            return type();
         else
             return content.front();
     }

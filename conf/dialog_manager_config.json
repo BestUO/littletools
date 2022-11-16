@@ -13,6 +13,11 @@
         "min_size":2,
         "max_size":10
     },
+    "lru_cache_course":
+    {
+        "size":100,
+        "remain_days":20
+    },
     "httpserver_setting":
     {
         "host":"0.0.0.0",
