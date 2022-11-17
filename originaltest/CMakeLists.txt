@@ -11,7 +11,7 @@ set(THIRD_PARTY_PATH ${PROJECT_SOURCE_DIR}/3rdparty)
 
 include_directories(${THIRD_PARTY_PATH}/include)
 include_directories(${PROJECT_SOURCE_DIR}/kafka)
-include_directories(${PROJECT_SOURCE_DIR}/net/include)
+include_directories(${THIRD_PARTY_PATH}/include/cinatra)
 include_directories(${PROJECT_SOURCE_DIR}/tools)
 
 link_directories(${THIRD_PARTY_PATH}/lib)

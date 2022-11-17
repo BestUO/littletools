@@ -9,18 +9,18 @@
 class JsonSimpleWrap
 {
 public:
-    static std::optional<rapidjson::Document> GetPaser(std::string str)
+    static std::optional<rapidjson::Document> GetPaser(std::string_view str)
     {
-        if(access(str.c_str(),F_OK) != -1)
+        if(access(str.data(),F_OK) != -1)
         {
-            std::ifstream file(str, std::ios::binary);
+            std::ifstream file(str.data(), std::ios::binary);
             std::string buf((std::istreambuf_iterator<char>(file)),  
                             std::istreambuf_iterator<char>()); 
 
             return JsonPaser(buf.c_str());
         }
         else
-            return JsonPaser(str.c_str());
+            return JsonPaser(str.data());
     }
 
 private:

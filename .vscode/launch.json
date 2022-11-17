@@ -94,10 +94,10 @@
             "miDebuggerPath": "/usr/bin/gdb"
         },
         {
-            "name": "UO_KAFKA",
+            "name": "dialogmanager",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/kafka/test_kafka",
+            "program": "${workspaceFolder}/build/dialogmanager/dialogmanager",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
@@ -111,8 +111,8 @@
                     "ignoreFailures": true
                 }
             ],
-            "preLaunchTask": "Make Debug",
-            "miDebuggerPath": "/bin/gdb"
-        }
+            "preLaunchTask": "build dialogmanager",
+            "miDebuggerPath": "/usr/bin/gdb"
+        },
     ]
 }

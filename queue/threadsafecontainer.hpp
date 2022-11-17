@@ -179,7 +179,7 @@ public:
         if(__queue.size() < __capacity)
         {
             __queue.emplace(std::move(t));
-            __consumer.notify_one();
+            NoticeOneConsumer();
             return true;
         }
         else
@@ -194,7 +194,7 @@ public:
         {
             for(auto &&element:v)
                 __queue.emplace(std::move(element));
-            __consumer.notify_one();
+            NoticeOneConsumer();
             return true;
         }
         else
@@ -240,10 +240,23 @@ public:
 
     void WaitComingObj()
     {
-        std::unique_lock<std::mutex> lck(__mutex);
-        __consumer.wait(lck,[this](){return GetElementNums();});
+        if(!GetElementNums())
+        {
+            std::unique_lock<std::mutex> lck(__mutex);
+            __consumer.wait(lck);
+        }
     }
-    
+
+    void NoticeAllConsumer()
+    {
+        __consumer.notify_all();
+    }
+
+    void NoticeOneConsumer()
+    {
+        __consumer.notify_one();
+    }
+
 private:
     std::mutex __mutex;
     std::condition_variable __consumer;

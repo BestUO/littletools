@@ -6,9 +6,10 @@
 #include <stdexcept>
 #include <shared_mutex>
 #include <chrono>
+#include <optional>
 
 template<typename K, typename V>
-class LRCCache 
+class LRUCache 
 {
     struct Node
     {
@@ -20,7 +21,13 @@ public:
 	typedef typename std::pair<K, Node> key_value_pair_t;
 	typedef typename std::list<key_value_pair_t>::iterator list_iterator_t;
 
-	LRCCache(size_t max_size, size_t remain_days) :__max_size(max_size),__remain_days(remain_days) {}
+	LRUCache(size_t max_size=100, size_t remain_days=1) :__max_size(max_size),__remain_days(remain_days) {}
+
+    void SetMaxSizeAndRemainDay(size_t max_size=100, size_t remain_days=1)
+    {
+        __max_size = max_size;
+        __remain_days = remain_days;
+    }
 	
 	void StoreKeyValue(const K& key, const V& value) 
     {
@@ -48,7 +55,7 @@ public:
 		}
 	}
 	
-	std::optional<V> GetKeyValue(const K& key) 
+	std::optional<V> GetValue(const K& key) 
     {
         std::unique_lock<std::shared_mutex> lock(__rwlock);
 		auto it = __cache_items_map.find(key);
@@ -77,6 +84,17 @@ public:
         std::shared_lock<std::shared_mutex> lock(__rwlock);
 		return __cache_items_map.size();
 	}
+
+    void DeleteKey(const K& key)
+    {
+        std::unique_lock<std::shared_mutex> lock(__rwlock);
+        auto it = __cache_items_map.find(key);
+        if (it != __cache_items_map.end()) 
+        {
+			__cache_items_list.erase(it->second);
+			__cache_items_map.erase(it);
+		}
+    }
 	
 private:
     std::shared_mutex __rwlock;

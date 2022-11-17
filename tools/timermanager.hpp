@@ -28,23 +28,24 @@ public:
         return result;
     }
 
+    bool DeleteAlarm(T key)
+    {
+        bool result = __timerqueue.DeleteObj([key](const auto& obj){return key == obj.key;});
+        __cv.notify_one();
+        return result;
+    }
+
     void StopTimerManager()
     {
         __stop = true;
         __cv.notify_one();
     }
+
+    void SetModel(int model)
+    {
+        __model = model;
+    }
 private:
-    TimerManager()
-    {
-        __timerthread = std::thread(&TimerManager::RunTimerManager, this);
-    }
-
-    ~TimerManager()
-    {
-        __timerthread.join();
-    }
-
-    bool __stop=false;
     struct TimerElement
     {
         std::chrono::system_clock::time_point alarm;
@@ -56,10 +57,22 @@ private:
             return alarm > t.alarm;
         }
     };
+    bool __stop=false;
     ThreadSafePriorityQueue<TimerElement> __timerqueue;
     std::thread __timerthread;
     std::condition_variable __cv;
     std::mutex __cv_m;
+    int __model = 1;
+
+    TimerManager()
+    {
+        __timerthread = std::thread(&TimerManager::RunTimerManager, this);
+    }
+
+    ~TimerManager()
+    {
+        __timerthread.join();
+    }
 
     void RunTimerManager()
     {
@@ -78,11 +91,16 @@ private:
                 __timerqueue.PopTop();
                 if(timerelement->fun)
                 {
-                    std::thread tmp([](std::function<void()> fun)
+                    if(__model)
+                        timerelement->fun();
+                    else
                     {
-                        fun();
-                    },timerelement->fun);
-                    tmp.detach();
+                        std::thread tmp([](std::function<void()> fun)
+                        {
+                            fun();
+                        },timerelement->fun);
+                        tmp.detach();
+                    }
                 }
             }
         }

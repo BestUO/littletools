@@ -1,0 +1,34 @@
+{
+    "mysql_setting": {
+        "mysql_user": "root",
+        "mysql_password": "123",
+        "mysql_db": "aia",
+        "mysql_host": "127.0.0.1",
+        "mysql_port":3306,
+        "mysql_timeout":5,
+        "mysql_connect_pool_size":5
+    },
+    "thread_pool":
+    {
+        "min_size":2,
+        "max_size":10
+    },
+    "lru_cache_course":
+    {
+        "size":100,
+        "remain_days":20
+    },
+    "httpserver_setting":
+    {
+        "host":"0.0.0.0",
+        "port":"9988"
+    },
+    "redis_setting":
+    {
+        "host":"127.0.0.1",
+        "port":"16379",
+        "password":"123"
+    },
+    "queue_sync_time":1
+}
+

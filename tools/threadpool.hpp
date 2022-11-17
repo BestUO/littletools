@@ -40,6 +40,12 @@ public:
         WorkerRun(original);
     }
 
+    void StopWorker()
+    {
+        _stop = true;
+        _queue->NoticeAllConsumer();
+    }
+
 protected:
     std::shared_ptr<T> _queue;
     bool _stop = false;
@@ -86,18 +92,18 @@ class ThreadPool
 public:
     ThreadPool(size_t minsize, size_t maxsize=10, unsigned int expireduration=60):__minsize(minsize),__maxsize(maxsize)
     {
-        if(!__queuetask)
-            __queuetask = std::shared_ptr<QueueType>(new QueueType);
+        if(!__queue)
+            __queue = std::shared_ptr<QueueType>(new QueueType);
             
         if(!__worker)
-            __worker = std::make_shared<WorkerDefault>(__queuetask,expireduration);
+            __worker = std::make_shared<WorkerDefault>(__queue,expireduration);
 
         for(size_t i = 0;i<__minsize;++i)
             __workerthreads.emplace_back(std::move(CreateWorker(true)));
     }
 
-    ThreadPool(std::shared_ptr<QueueType> queuetask, std::shared_ptr<Worker<QueueType>> worker, size_t minsize, size_t maxsize=10):
-                __queuetask(queuetask),__worker(worker),__minsize(minsize),__maxsize(maxsize)
+    ThreadPool(std::shared_ptr<QueueType> queue, std::shared_ptr<Worker<QueueType>> worker, size_t minsize, size_t maxsize=10):
+                __queue(queue),__worker(worker),__minsize(minsize),__maxsize(maxsize)
     {
         for(size_t i = 0;i<__minsize;++i)
             __workerthreads.emplace_back(std::move(CreateWorker(true)));
@@ -108,17 +114,22 @@ public:
     {
         using return_type = typename std::result_of<F(Args...)>::type;
 
-        // with -std=c++2b you can also code as:
         // auto task = std::packaged_task<return_type()>(std::bind(std::forward<F>(f), std::forward<Args>(args)...));
-        // while(!__queuetask.AddObj([task=std::move(task)]()mutable{ (*task)(); }))
-        // {...}
+        // std::future<return_type> res = task.get_future();
+        // while(!__queue->AddObj([task=std::move(task)]()mutable{ task(); }))
+        // {
+        //     if(__totalnum < __maxsize)
+        //         CreateWorker(false).detach();
+        //     std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        // }
+        // return res;
         
         auto task = std::make_shared< std::packaged_task<return_type()> >(
                 std::bind(std::forward<F>(f), std::forward<Args>(args)...)
             );
         
         std::future<return_type> res = task->get_future();
-        while(!__queuetask->AddObj([task](){ (*task)(); }))
+        while(!__queue->AddObj([task](){ (*task)(); }))
         {
             if(__totalnum < __maxsize)
                 CreateWorker(false).detach();
@@ -130,12 +141,17 @@ public:
     template<class T>
     void EnqueueStr(T&& t)
     {
-        while(!__queuetask->AddObj(std::move(t)))
+        while(!__queue->AddObj(std::move(t)))
         {
             if(__totalnum < __maxsize)
                 CreateWorker(false).detach();
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
+    }
+
+    void StopThreadPool()
+    {
+        __worker->StopWorker();
     }
 
     ~ThreadPool()
@@ -150,7 +166,7 @@ private:
     std::atomic<unsigned int> __totalnum;
     std::vector< std::thread > __workerthreads;
     std::shared_ptr<Worker<QueueType>> __worker;
-    std::shared_ptr<QueueType> __queuetask;
+    std::shared_ptr<QueueType> __queue;
 
     class WorkerDefault:public Worker<QueueType>
     {
@@ -166,7 +182,7 @@ private:
 
     std::thread CreateWorker(bool original)
     {
-        std::thread t( [this,original]
+        std::thread t([this,original]
         {
             __totalnum++;
             __worker->CreateWorker(original);

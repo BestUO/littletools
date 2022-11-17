@@ -48,7 +48,7 @@ public:
         {
             AddItems(old_head, std::move(v));
             UpdateTail(ringinfo.prod, old_head, new_head);
-            __consumer.notify_one();
+            NoticeOneConsumer();
             return true;
         }
     }
@@ -89,8 +89,21 @@ public:
 
     void WaitComingObj()
     {
-        std::unique_lock<std::mutex> lck(__mutex);
-        __consumer.wait(lck,[this](){return GetElementNums();});
+        if(!GetElementNums())
+        {
+            std::unique_lock<std::mutex> lck(__mutex);
+            __consumer.wait(lck);
+        }
+    }
+
+    void NoticeAllConsumer()
+    {
+        __consumer.notify_all();
+    }
+
+    void NoticeOneConsumer()
+    {
+        __consumer.notify_one();
     }
 
 private:
@@ -101,6 +114,7 @@ private:
         std::atomic<unsigned int> head;
         std::atomic<unsigned int> tail;
     };
+    
     struct RingInfo
     {
         bool single;

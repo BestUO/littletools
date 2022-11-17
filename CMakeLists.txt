@@ -1,10 +1,14 @@
 cmake_minimum_required(VERSION 3.8)
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# ADD_SUBDIRECTORY(3rdparty)
+set(THIRD_PARTY_PATH ${PROJECT_SOURCE_DIR}/3rdparty)
+include_directories(${THIRD_PARTY_PATH}/include)
+
 ADD_SUBDIRECTORY(kafka)
 ADD_SUBDIRECTORY(queue)
 ADD_SUBDIRECTORY(examples)
 ADD_SUBDIRECTORY(trimule)
 ADD_SUBDIRECTORY(originaltest)
 ADD_SUBDIRECTORY(asiostudy)
+ADD_SUBDIRECTORY(dialogmanager)

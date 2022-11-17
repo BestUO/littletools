@@ -1,10 +1,10 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #define ANKERL_NANOBENCH_IMPLEMENT
-#include <doctest.h>
-#include <nanobench.h>
+#include "doctest/doctest.h"
+#include "nanobench.h"
 
-#include "../tools/timermanager.hpp"
-#include "../tools/lrucache.hpp"
+#include "tools/timermanager.hpp"
+#include "tools/lrucache.hpp"
 
 TEST_CASE("testing TimerManager AddAlarm DeleteAlarm") 
 {
@@ -133,11 +133,11 @@ TEST_CASE("testLockQueue")
 
 TEST_CASE("LRUCache")
 {
-    LRCCache<int,std::string> cache(1,20);
+    LRUCache<int,std::string> cache(1,20);
     cache.StoreKeyValue(1,"1");
-    CHECK(cache.GetKeyValue(1).value() == "1");
+    CHECK(cache.GetValue(1).value() == "1");
     cache.StoreKeyValue(1,"2");
     cache.StoreKeyValue(3,"3");
-    CHECK(cache.GetKeyValue(1).value() == "2");
-    CHECK(cache.GetKeyValue(2) == std::nullopt);
+    CHECK(cache.GetValue(1).value() == "2");
+    CHECK(cache.GetValue(2) == std::nullopt);
 }

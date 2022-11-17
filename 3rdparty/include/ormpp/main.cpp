@@ -30,11 +30,11 @@
 
 using namespace std::string_literals;
 
-struct test_tb {
-  int id;
-  char name[12];
-};
-REFLECTION(test_tb, id, name);
+// struct test_tb {
+//   int id;
+//   char name[12];
+// };
+// REFLECTION(test_tb, id, name);
 
 struct person {
   int id;
@@ -99,6 +99,23 @@ const char *ip = "127.0.0.1"; // your database ip
 
 template <class T, size_t N> constexpr size_t size(T (&)[N]) { return N; }
 
+struct dummy {
+  int id;
+  std::string name;
+};
+REFLECTION(dummy, id, name);
+
+TEST_CASE(mysql_exist_tb) {
+  dbng<mysql> mysql;
+  TEST_REQUIRE(mysql.connect(ip, "root", "12345", "testdb", /*timeout_seconds=*/5, 3306));
+  dummy d{ 0, "tom" };
+  dummy d1{ 0, "jerry" };
+  mysql.insert(d);
+  mysql.insert(d1);
+  auto v = mysql.query<dummy>("limit 1, 1");
+  std::cout << v.size() << "\n";
+}
+
 TEST_CASE(mysql_pool) {
   //	dbng<sqlite> sqlite;
   //	sqlite.connect("testdb");
@@ -139,8 +156,9 @@ TEST_CASE(test_ormpp_cfg) {
 #ifdef ORMPP_ENABLE_MYSQL
   auto &pool = connection_pool<dbng<mysql>>::instance();
   try {
+    cfg.db_port = 3306;
     pool.init(cfg.db_conn_num, cfg.db_ip.data(), cfg.user_name.data(),
-              cfg.pwd.data(), cfg.db_name.data(), cfg.timeout);
+              cfg.pwd.data(), cfg.db_name.data(), cfg.timeout, cfg.db_port);
   } catch (const std::exception &e) {
     std::cout << e.what() << std::endl;
     return;
@@ -278,8 +296,9 @@ TEST_CASE(orm_insert_query) {
   auto vv = mysql.query(FID(simple::id), "<", 5);
   auto vv3 = mysql.query(FID(person::name), "<", "5");
   auto vv5 = mysql.query(FID(person::name), "<", 5);
-  auto r = mysql.delete_records(FID(simple::id), "=", 3);
+  mysql.delete_records(FID(simple::id), "=", 3);
 #endif
+
 
 #ifdef ORMPP_ENABLE_PG
   dbng<postgresql> postgres;
@@ -311,8 +330,8 @@ TEST_CASE(orm_insert_query) {
     TEST_CHECK(sqlite.insert(v) == 2);
     auto result6 = sqlite.query<student>();
     TEST_CHECK(result6.size() == 4);
-    auto v = sqlite.query(FID(student::code), "<", "5");
-    auto v1 = sqlite.query<student>("limit 2");
+    auto v2 = sqlite.query(FID(student::code), "<", "5");
+    auto v3 = sqlite.query<student>("limit 2");
 #endif
   }
 
@@ -679,8 +698,8 @@ TEST_CASE(orm_transaction) {
 
   TEST_REQUIRE(mysql.begin());
   for (int i = 0; i < 10; ++i) {
-    student s = {i, "tom", 0, 19, 1.5, "room2"};
-    if (!mysql.insert(s)) {
+    student st = {i, "tom", 0, 19, 1.5, "room2"};
+    if (!mysql.insert(st)) {
       mysql.rollback();
       return;
     }
@@ -713,8 +732,8 @@ TEST_CASE(orm_transaction) {
   TEST_REQUIRE(sqlite.create_datatable<student>(key));
   TEST_REQUIRE(sqlite.begin());
   for (int i = 0; i < 10; ++i) {
-    student s = {i, "tom", 0, 19, 1.5, "room2"};
-    if (!sqlite.insert(s)) {
+    student st = {i, "tom", 0, 19, 1.5, "room2"};
+    if (!sqlite.insert(st)) {
       sqlite.rollback();
       return;
     }

@@ -1,4 +1,4 @@
-#include "cinatra.hpp"
+#include "cinatra/cinatra.hpp"
 #include <ringqueue.hpp>
 #include <threadpool.hpp>
 #include <jsonwrap.hpp>
@@ -22,7 +22,7 @@ public:
 protected:
     virtual void WorkerRun(bool original)
     {
-        auto config = JsonSimpleWrap::GetPaser("conf/setting.conf");
+        auto config = JsonSimpleWrap::GetPaser("conf/trimule_config.json");
         ormpp::dbng<ormpp::mysql> mysqlclient;
 	    mysqlclient.connect((*config)["mysql_setting"]["mysql_host"].GetString(), (*config)["mysql_setting"]["mysql_user"].GetString(),
                                      (*config)["mysql_setting"]["mysql_password"].GetString(), (*config)["mysql_setting"]["mysql_db"].GetString());
@@ -87,7 +87,7 @@ int main()
 {
     initspdlog();
 
-    auto config = JsonSimpleWrap::GetPaser("conf/setting.conf");
+    auto config = JsonSimpleWrap::GetPaser("conf/trimule_config.json");
     int max_thread_num = 1;
 	cinatra::http_server server(max_thread_num);
     server.listen((*config)["httpserver_setting"]["host"].GetString(), (*config)["httpserver_setting"]["port"].GetString());

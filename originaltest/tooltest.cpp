@@ -9,7 +9,7 @@
 #include <vector>
 #include <chrono>
 #include <thread>
-#include <cinatra.hpp>
+#include "cinatra/cinatra.hpp"
 #include <simplewrapkafka.h>
 #include "RWSeparate.hpp"
 #include <json/json.h>
@@ -665,7 +665,7 @@ void testspdlog()
 
 void testrapidjson()
 {
-    JsonSimpleWrap::GetPaser("conf/setting.conf");
+    JsonSimpleWrap::GetPaser("conf/trimule_config.json");
 
         // 1. Parse a JSON string into DOM.
     const char* json = "{\"mysql_setting\":{\"mysql_user\":\"user\",\"mysql_password\":\"123\",\"mysql_db\":\"db\",\"mysql_host\":\"127.0.0.1\"}}";

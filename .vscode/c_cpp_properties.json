@@ -4,7 +4,8 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/3rdparty/doctest/doctest/parts"
+                "${workspaceFolder}/3rdparty/include/doctest",
+                "${workspaceFolder}/3rdparty/include/nanobench/src/include"
             ],
             "defines": [
                 "ASIO_STANDALONE",

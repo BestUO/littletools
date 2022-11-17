@@ -11,7 +11,7 @@
         {
             "label": "build tooltest",
             "args": [
-                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target tooltest -j 2"
+                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target tooltest -j 1"
             ],
             "group": {
                 "kind": "build",
@@ -21,7 +21,7 @@
         {
             "label": "build trimule",
             "args": [
-                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target trimule -j 2;make trimule_copyfile"
+                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target trimule -j 1;make trimule_copyfile"
             ],
             "group": {
                 "kind": "build",
@@ -31,7 +31,7 @@
         {
             "label": "build doctooltest",
             "args": [
-                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target doctooltest -j 2"
+                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target doctooltest -j 1"
             ],
             "group": {
                 "kind": "build",
@@ -41,7 +41,17 @@
         {
             "label": "build asiostudy",
             "args": [
-                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target asiostudy -j 2"
+                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target asiostudy -j 1"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "build dialogmanager",
+            "args": [
+                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target dialogmanager -j 1"
             ],
             "group": {
                 "kind": "build",
