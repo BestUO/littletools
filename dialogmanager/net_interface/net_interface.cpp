@@ -46,6 +46,7 @@ void NetInterFace::DeleteCourse(cinatra::request& req, cinatra::response& res)
             auto [course_id] = params.value();
             CourseManager::GetInstance()->DeleteCourse(course_id);
             res.set_status_and_content(cinatra::status_type::ok, GenerateResponse::GetResponse(std::move(GenerateResponse::ExecuteSuccess())));
+            LOGGER->info("DeleteCourse course {}", course_id);
         }
     }
 }
@@ -61,6 +62,7 @@ void NetInterFace::DeleteSession(cinatra::request& req, cinatra::response& res)
             auto [session_id] = params.value();
             SessionManager::GetInstance()->DeleteSession(session_id);
             res.set_status_and_content(cinatra::status_type::ok, GenerateResponse::GetResponse(std::move(GenerateResponse::ExecuteSuccess())));
+            LOGGER->info("DeleteSession session {}", session_id);
         }
     }
 }
@@ -70,6 +72,7 @@ void NetInterFace::StopDialogManager(cinatra::request& req, cinatra::response& r
     SessionManager::GetInstance()->StopSessionManager();
     __server.stop();
     res.set_status_and_content(cinatra::status_type::ok, GenerateResponse::GetResponse(std::move(GenerateResponse::ExecuteSuccess())));
+    LOGGER->info("StopDialogManager");
 }
 
 void NetInterFace::NextContext(cinatra::request& req, cinatra::response& res)

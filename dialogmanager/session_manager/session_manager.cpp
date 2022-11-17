@@ -30,6 +30,7 @@ std::optional<std::shared_ptr<Session>> SessionManager::GetFromSessionMap(unsign
 
 std::shared_ptr<Session> SessionManager::CreateSessionInsertToMap(unsigned int session_id, unsigned int course_id)
 {
+    LOGGER->info("cant find session {} so create", session_id);
     auto courseinfo = CourseManager::GetInstance()->GetCourse(course_id);
     if(courseinfo == nullptr)
         return nullptr;

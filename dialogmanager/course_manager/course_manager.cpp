@@ -25,6 +25,7 @@ std::optional<std::shared_ptr<CourseInfo>> CourseManager::GetFromCourseMap(unsig
 
 std::shared_ptr<CourseInfo> CourseManager::CreateCourseInsertToMap(unsigned int course_id)
 {
+    LOGGER->info("cant find course {} so create", course_id);
     auto courseinfo = CreateCourse(course_id);
     if(courseinfo != nullptr)
         __lrucache.StoreKeyValue(course_id,courseinfo);

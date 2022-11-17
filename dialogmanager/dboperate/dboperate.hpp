@@ -45,8 +45,10 @@ public:
 
     std::string GetCourseInfo(unsigned int course_id)
     {
-        auto conn = ormpp::connection_pool<ormpp::dbng<ormpp::mysql>>::instance().get();
+        auto &pool = ormpp::connection_pool<ormpp::dbng<ormpp::mysql>>::instance();
+        auto conn = pool.get();
         auto content = conn->query<std::tuple<std::string>>("select content from aia_course where id=?",course_id);
+        pool.return_back(conn);
         if(content.empty())
             return "";
         else
@@ -56,9 +58,11 @@ public:
     auto GetQuestionDetail(unsigned int questiondetail_id)
     {
         using type = std::tuple<int, int, std::string, std::string, std::string, std::string, std::string>;
-        auto conn = ormpp::connection_pool<ormpp::dbng<ormpp::mysql>>::instance().get();
+        auto &pool = ormpp::connection_pool<ormpp::dbng<ormpp::mysql>>::instance();
+        auto conn = pool.get();
         auto content = conn->query<type>
             ("select id,standard,similars,answer,keywords,prompt_txt,prompt_steps from aia_question where id=?",questiondetail_id);
+        pool.return_back(conn);
         if(content.empty())
             return type();
         else
@@ -69,8 +73,10 @@ public:
     {
         std::string sql = "select statement.id, statement.statement, soundcache.path from aia_tts_statement as statement,aia_tts_sound_cache as soundcache where statement.id in ("+
         ttsstatement_ids + ") and statement.file_id = soundcache.id";
-        auto conn = ormpp::connection_pool<ormpp::dbng<ormpp::mysql>>::instance().get();
+        auto &pool = ormpp::connection_pool<ormpp::dbng<ormpp::mysql>>::instance();
+        auto conn = pool.get();
         auto result = conn->query<std::tuple<int, std::string, std::string>>(sql);
+        pool.return_back(conn);
         return result;
     }
 
