@@ -15,7 +15,7 @@ public:
         return &instance;
     }
     std::shared_ptr<CourseInfo> GetCourse(unsigned int course_id);
-
+    void DeleteCourse(unsigned int course_id);
 private:
     LRUCache<unsigned int, std::shared_ptr<CourseInfo>> __lrucache;
     CourseManager();

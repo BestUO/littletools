@@ -215,3 +215,8 @@ std::vector<std::weak_ptr<Node>> CourseManager::NodeParseJumpNode(const rapidjso
     return NodeParseChildNode(value, node_map, parent);
 }
 
+void CourseManager::DeleteCourse(unsigned int course_id)
+{
+    __lrucache.DeleteKey(course_id);
+}
+

@@ -84,6 +84,17 @@ public:
         std::shared_lock<std::shared_mutex> lock(__rwlock);
 		return __cache_items_map.size();
 	}
+
+    void DeleteKey(const K& key)
+    {
+        std::unique_lock<std::shared_mutex> lock(__rwlock);
+        auto it = __cache_items_map.find(key);
+        if (it != __cache_items_map.end()) 
+        {
+			__cache_items_list.erase(it->second);
+			__cache_items_map.erase(it);
+		}
+    }
 	
 private:
     std::shared_mutex __rwlock;

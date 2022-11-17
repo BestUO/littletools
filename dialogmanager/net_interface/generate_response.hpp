@@ -46,10 +46,15 @@ public:
         return std::make_tuple(std::pair<std::string,int>("status",STATUS::FINISH),std::pair<std::string,std::string>("info","练习结束"));
     }
 
+    static auto ExecuteSuccess()
+    {
+        return std::make_tuple(std::pair<std::string,int>("status",STATUS::SUCCESS),std::pair<std::string,std::string>("info","执行成功"));
+    }
+
     static auto NextQuestion(std::shared_ptr<QAInfo> current_qa)
     {
         auto tmp = current_qa->question_detail.lock();
-        return std::make_tuple(std::pair<std::string,int>("status",STATUS::NORMAL),
+        return std::make_tuple(std::pair<std::string,int>("status",STATUS::SUCCESS),
             std::pair<std::string,int>("statement_id",current_qa->tts_statement.tts_statement_id),
             std::pair<std::string,int>("node_id",current_qa->current_node.lock()->node_id),
             std::pair<std::string,std::string>("question",current_qa->tts_statement.question),
@@ -60,7 +65,7 @@ public:
     }
 
 private:
-    enum STATUS {NORMAL,ERROR,FINISH};
+    enum STATUS {SUCCESS,ERROR,FINISH};
     //urgly code
     static void WritekeyValue(rapidjson::Writer<rapidjson::StringBuffer> &writer, std::pair<std::string,std::string> arg)
     {
