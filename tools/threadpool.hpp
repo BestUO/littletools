@@ -82,7 +82,13 @@ protected:
         }
 
     }
-    virtual void DealElement(ContainerType &&p) = 0;
+    virtual void DealElement(ContainerType &&p)
+    {
+        if constexpr (std::is_invocable_v<ContainerType>)
+            p();
+        else
+            return;
+    }
 };
 
 
@@ -113,17 +119,6 @@ public:
     auto EnqueueFun(F&& f, Args&&... args) -> std::future<typename std::result_of<F(Args...)>::type>
     {
         using return_type = typename std::result_of<F(Args...)>::type;
-
-        // auto task = std::packaged_task<return_type()>(std::bind(std::forward<F>(f), std::forward<Args>(args)...));
-        // std::future<return_type> res = task.get_future();
-        // while(!__queue->AddObj([task=std::move(task)]()mutable{ task(); }))
-        // {
-        //     if(__totalnum < __maxsize)
-        //         CreateWorker(false).detach();
-        //     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        // }
-        // return res;
-        
         auto task = std::make_shared< std::packaged_task<return_type()> >(
                 std::bind(std::forward<F>(f), std::forward<Args>(args)...)
             );
@@ -172,12 +167,6 @@ private:
     {
     public:
         WorkerDefault(std::shared_ptr<QueueType> queue, unsigned int expireduration=60):Worker<QueueType>(queue,expireduration){};
-
-    protected:
-        virtual void DealElement(std::function<void()> &&p) final
-        {
-            p();
-        }
     };
 
     std::thread CreateWorker(bool original)

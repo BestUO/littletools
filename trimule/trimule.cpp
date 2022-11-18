@@ -1,6 +1,7 @@
 #include "cinatra/cinatra.hpp"
 #include <ringqueue.hpp>
 #include <threadpool.hpp>
+#include <threadpool2.hpp>
 #include <jsonwrap.hpp>
 #include "ormpp/dbng.hpp"
 #include "ormpp/mysql.hpp"
@@ -46,21 +47,64 @@ protected:
         }
 
     }
-
-    virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
-    // typename std::enable_if<std::is_same<typename GetContainerType<T>::Type, Worker2Params>::value>::type
-    DealElement(ormpp::dbng<ormpp::mysql> &mysql, std::string &&s)
+    
+    virtual void DealElement(ormpp::dbng<ormpp::mysql> &mysql, std::string &&s) final
     {
         LOGGER->info("message #{}", s);
         auto res = mysql.query<aicall_tts_file_cache>("id = 5659");
         for(auto& file : res)
             std::cout<<file.id<<" "<<file.TTS_text<<" "<<file.TTS_version_code<<std::endl;
     }
+};
 
-    virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
-    DealElement(std::string &&s)
+template<class QueueType>
+class TrimuleThreadPool:public ThreadPool2<QueueType>
+{
+public:
+    TrimuleThreadPool(std::shared_ptr<QueueType> queue, size_t minsize, size_t maxsize=10):ThreadPool2<QueueType>(queue,minsize,maxsize){}
+
+    // virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
+    void DealElement(ormpp::dbng<ormpp::mysql> &mysql, std::string &&s)
     {
-        return;
+        LOGGER->info("message #{}", s);
+        auto res = mysql.query<aicall_tts_file_cache>("id = 5659");
+        for(auto& file : res)
+            std::cout<<file.id<<" "<<file.TTS_text<<" "<<file.TTS_version_code<<std::endl;
+    }
+    void WorkerRun(bool original)
+    {
+        auto worktime = std::chrono::system_clock::now();
+        auto config = JsonSimpleWrap::GetPaser("conf/trimule_config.json");
+        ormpp::dbng<ormpp::mysql> mysqlclient;
+	    mysqlclient.connect((*config)["mysql_setting"]["mysql_host"].GetString(), (*config)["mysql_setting"]["mysql_user"].GetString(),
+                                     (*config)["mysql_setting"]["mysql_password"].GetString(), (*config)["mysql_setting"]["mysql_db"].GetString());
+        while(!ThreadPool2<QueueType>::_stop)
+        {
+            auto e = ThreadPool2<QueueType>::_queue->GetObjBulk();
+            if(e)
+            {
+                worktime = std::chrono::system_clock::now();
+                while(!e->empty())
+                {
+                    DealElement(mysqlclient, std::move(e->front()));
+                    e->pop();
+                }
+            }
+            else
+            {
+                if(!original)
+                {
+                    if(worktime + std::chrono::seconds(ThreadPool2<QueueType>::_expire_duration) > std::chrono::system_clock::now())
+                    {
+                        std::this_thread::sleep_for(std::chrono::seconds(1));
+                        continue;
+                    }
+                    else
+                        break;
+                }
+                ThreadPool2<QueueType>::_queue->WaitComingObj();
+            }
+        }
     }
 };
 
@@ -96,6 +140,8 @@ int main()
     auto queuetask = std::shared_ptr<QueueType>(new QueueType);
     std::shared_ptr<Worker<QueueType>> worker = std::make_shared<WorkerForHttp<QueueType>>(queuetask);
     std::shared_ptr<ThreadPool<QueueType>> threadpool(new ThreadPool(queuetask,worker,2,2));
+    //or use
+    // std::shared_ptr<TrimuleThreadPool<QueueType>> threadpool(new TrimuleThreadPool(queuetask,2,2));
 
     SetApiCallBackHandler(server, threadpool);
 
