@@ -36,7 +36,7 @@ private:
     {
         ConnectionOptions opts;
         settingParser redis_settting;
-        redis_account conne = redis_settting.GetRedisSetting("conf/config.json");
+        redis_account conne = redis_settting.GetRedisSetting("conf/trimule_config.json");
         opts.host = conne.host;         // Required.
         opts.port = stoi(conne.port);   // Optional. The default port is 6379.
         opts.password = conne.password; // Optional. No password by default.

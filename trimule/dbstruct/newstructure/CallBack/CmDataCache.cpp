@@ -22,7 +22,7 @@ void DataCache::PollingQueue()
     std::string list_name = "cm_id_cluster";
     ormpp::dbng<ormpp::mysql> mysqlclient;
     settingParser mysql_example;
-    sqlconnect conne = mysql_example.GetSettinghParser("conf/config.json");
+    sqlconnect conne = mysql_example.GetSettinghParser("conf/trimule_config.json");
     std::string port = to_string(conne.db_port);
   try
     {
@@ -40,7 +40,7 @@ void DataCache::PollingQueue()
     }
     
     int sleep_judge = 0;
-    int time = mysql_example.GetSleepTime("conf/config.json");
+    int time = mysql_example.GetSleepTime("conf/trimule_config.json");
     LOGGER->info("PollingQueue  sleep time is {} second", time);
     while (true)
     {
@@ -116,7 +116,7 @@ void DataCache::OcWebPollingQueue()
     std::string list_name = "cm_id_cluster_ocweb";
     ormpp::dbng<ormpp::mysql> mysqlclient;
     settingParser mysql_example;
-    sqlconnect conne = mysql_example.GetSettinghParser("conf/config.json");
+    sqlconnect conne = mysql_example.GetSettinghParser("conf/trimule_config.json");
 
     try
     {
@@ -133,7 +133,7 @@ void DataCache::OcWebPollingQueue()
         return;
     }
 
-    int time = mysql_example.GetSleepTime("conf/config.json");
+    int time = mysql_example.GetSleepTime("conf/trimule_config.json");
 
     LOGGER->info("OcWebPollingQueue  sleep time is {} second", time);
     while (true)
@@ -208,7 +208,7 @@ void DataCache::CallBackActionQueue()
     RedisOperate instance;
     std::string list_name = "cm_id_cluster_now";
     settingParser mysql_example;
-    int time = mysql_example.GetSleepTime("conf/config.json");
+    int time = mysql_example.GetSleepTime("conf/trimule_config.json");
     LOGGER->info("CallBackActionQueue  sleep time is {} second", time);
     while (true)
     {
@@ -308,7 +308,7 @@ void DataCache::CheckUnUpdateId(const std::string &eid, const std::string &mini_
     std::string list_name = "cm_id_cluster_ocweb";
     ormpp::dbng<ormpp::mysql> mysqlclient;
     settingParser mysql_example;
-    sqlconnect conne = mysql_example.GetSettinghParser("conf/config.json");
+    sqlconnect conne = mysql_example.GetSettinghParser("conf/trimule_config.json");
     try
     {
         if(!mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str(), conne.db_timeout, conne.db_port))

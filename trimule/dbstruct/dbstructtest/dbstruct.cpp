@@ -11,7 +11,7 @@
 // {
 
 //     settingParser mysql_example;
-//     sqlconnect conne = mysql_example.GetSettinghParser("conf/config.json");
+//     sqlconnect conne = mysql_example.GetSettinghParser("conf/trimule_config.json");
 
 //     mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str());
 //     mysqlclient.ping();

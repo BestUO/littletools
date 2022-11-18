@@ -7,7 +7,7 @@
 using namespace std;
 
 struct sqlconnect{
-    // "conf//config.json"
+    // "conf/trimule_config.json"
     std::string alarm;
     std::string user;
     std::string password;
