@@ -1,7 +1,5 @@
 #include "session_manager.h"
 #include "course_manager/course_manager.h"
-#include "dmthreadpool.hpp"
-#include "callback_function/qainfo_callback.hpp"
 #include "tools/timermanager.hpp"
 #include <random>
 
@@ -59,25 +57,6 @@ std::tuple<std::vector<std::weak_ptr<QuestionDetail>>, std::string> SessionManag
             tmp.pop_back();
     }
     return {tmp,nodeptr->node_text};
-}
-
-bool SessionManager::ProcessSession(std::shared_ptr<Session> session, std::string_view content, std::chrono::system_clock::time_point question_time, 
-                                            std::chrono::system_clock::time_point answer_time)
-{
-    if(session->current_qa)
-    {
-        session->current_qa->course_id = session->course_info->course_id;
-        session->current_qa->session_id = session->session_id;
-        session->current_qa->question_time = question_time;
-        session->current_qa->answer_time = answer_time;
-        if(content.find("http") == 0)
-            session->current_qa->answer_audio_path = content;
-        else
-            session->current_qa->answer_txt = content;
-        DMThreadPool::GetInstance()->GetThreadPool()->EnqueueFun(QAInfoCallBackFunction::StoreInDB,session->current_qa);
-    }
-    session->current_qa = std::make_shared<QAInfo>();
-    return CompleteQAInfo(session);
 }
 
 bool SessionManager::CompleteQAInfo(std::shared_ptr<Session> session)

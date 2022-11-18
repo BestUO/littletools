@@ -64,6 +64,7 @@ struct QAInfo
     unsigned int session_id;
     std::chrono::system_clock::time_point question_time;
     std::chrono::system_clock::time_point answer_time;
+    unsigned int isexpired;
     std::string answer_txt;
     std::string answer_audio_path;
     std::string answer_analyse;

@@ -71,7 +71,13 @@ protected:
         }
 
     }
-    virtual void DealElement(ContainerType &&p)=0;
+    virtual void DealElement(ContainerType &&p)
+    {
+        if constexpr (std::is_invocable_v<ContainerType>)
+            p();
+        else
+            return;
+    }
 };
 
 

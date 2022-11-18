@@ -83,7 +83,7 @@ void NetInterFace::NextContext(cinatra::request& req, cinatra::response& res)
         auto params = ParseNextContext(body.value(), req, res);
         if(params != std::nullopt)
         {
-            auto [session_id,course_id,question_time,answer_time,content] = params.value();
+            auto [session_id,course_id,question_time,answer_time,isexpired,content] = params.value();
             auto sminstance = SessionManager::GetInstance();
             auto session = sminstance->GetSession(session_id,course_id);
             if(!session)
@@ -93,9 +93,8 @@ void NetInterFace::NextContext(cinatra::request& req, cinatra::response& res)
                 return;
             }
 
-            bool next = sminstance->ProcessSession(session, content, std::chrono::system_clock::from_time_t(question_time),
-                        std::chrono::system_clock::from_time_t(answer_time));
             std::string s;
+            bool next = sminstance->ProcessSession(session, params.value());
             if(next)
                 s = std::move(GenerateResponse::GetResponse(std::move(GenerateResponse::NextQuestion(session->current_qa))));
             else
@@ -131,10 +130,10 @@ bool NetInterFace::AllMemberExist(rapidjson::Document& body, cinatra::response& 
     return allmemberexist;
 }
 
-std::optional<std::tuple<unsigned int,unsigned int,unsigned int,unsigned int,std::string_view>>
+std::optional<std::tuple<unsigned int,unsigned int,unsigned int,unsigned int,unsigned int,std::string_view>>
 NetInterFace::ParseNextContext(rapidjson::Document& body,cinatra::request& req, cinatra::response& res)
 {
-    if(!AllMemberExist(body,res,"session_id","course_id","content","question_time","answer_time"))
+    if(!AllMemberExist(body,res,"session_id","course_id","content","question_time","answer_time","isexpired"))
         return std::nullopt;
     else
     {
@@ -142,9 +141,10 @@ NetInterFace::ParseNextContext(rapidjson::Document& body,cinatra::request& req, 
         unsigned int course_id=body["course_id"].GetInt();
         unsigned int question_time=body["question_time"].GetInt();
         unsigned int answer_time=body["answer_time"].GetInt();
+        unsigned int isexpired=body["isexpired"].GetInt();
         std::string_view content=body["content"].GetString();
 
-        return std::make_tuple(session_id,course_id,question_time,answer_time,content);
+        return std::make_tuple(session_id,course_id,question_time,answer_time,isexpired,content);
     }
 }
 

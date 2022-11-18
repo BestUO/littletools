@@ -1,6 +1,8 @@
 #pragma once
 
 #include "global.h"
+#include "dmthreadpool.hpp"
+#include "callback_function/qainfo_callback.hpp"
 #include <map>
 #include <shared_mutex>
 #include <optional>
@@ -14,10 +16,29 @@ public:
         return &instance;
     }
     std::shared_ptr<Session> GetSession(unsigned int session_id, unsigned int course_id);
-    bool ProcessSession(std::shared_ptr<Session> session, std::string_view content, std::chrono::system_clock::time_point question_time, 
-                std::chrono::system_clock::time_point answer_time);
+    template<class ...Args>
+    bool ProcessSession(std::shared_ptr<Session> session, std::tuple<Args...> params)
+    {
+        auto [session_id,course_id,question_time,answer_time,isexpired,content] = params;
+        if(session->current_qa)
+        {
+            session->current_qa->course_id = session->course_info->course_id;
+            session->current_qa->session_id = session->session_id;
+            session->current_qa->question_time = std::chrono::system_clock::from_time_t(question_time);
+            session->current_qa->answer_time = std::chrono::system_clock::from_time_t(answer_time);
+            session->current_qa->isexpired = isexpired;
+            if(content.find("http") == 0)
+                session->current_qa->answer_audio_path = content;
+            else
+                session->current_qa->answer_txt = content;
+            DMThreadPool::GetInstance()->GetThreadPool()->EnqueueFun(QAInfoCallBackFunction::StoreInDB,session->current_qa);
+        }
+        session->current_qa = std::make_shared<QAInfo>();
+        return CompleteQAInfo(session);
+    }
     void DeleteSession(unsigned int session_id);
     void StopSessionManager();
+
 private:
     std::map<unsigned int,std::shared_ptr<Session>> __session_map;
     std::shared_mutex __rwlock;

@@ -8,9 +8,10 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 ADD_SUBDIRECTORY(net_interface)
 ADD_SUBDIRECTORY(course_manager)
 ADD_SUBDIRECTORY(session_manager)
+ADD_SUBDIRECTORY(score_manager)
 
 add_executable(${DM} ${DM_SOURCE})
-target_link_libraries(${DM} net_interface sessionmanager mysqlclient pthread)
+target_link_libraries(${DM} net_interface sessionmanager mysqlclient scoremanager pthread)
 
 set(OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/dialogmanager)
 ADD_CUSTOM_TARGET(dialogmanger_copyfile ALL
