@@ -48,6 +48,10 @@ public:
 protected:
     virtual void WorkerRun(bool original)
     {
+        ormpp::dbng<ormpp::mysql> mysqlclient;
+        settingParser mysql_example;
+        sqlconnect conne = mysql_example.GetSettinghParser("conf/trimule_config.json");
+        mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str(), conne.db_timeout, conne.db_port);
         while (!Worker<T>::_stop)
         {
             auto e = Worker<T>::_queue->GetObjBulk();
@@ -55,7 +59,7 @@ protected:
             {
                 while (!e->empty())
                 {
-                    DealElement(std::move(e->front()));
+                    DealElement(mysqlclient, std::move(e->front()));
                     e->pop();
                 }
             }
@@ -69,7 +73,7 @@ protected:
     }
 
     virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
-    DealElement(std::string &&s)
+    DealElement(ormpp::dbng<ormpp::mysql> &mysqlclient, std::string &&s)
     {
         if (s.size() > 1)
         {
@@ -77,7 +81,6 @@ protected:
 
             if (s[0] == '0') // cm ctive
             {
-                ormpp::dbng<ormpp::mysql> mysqlclient;
                 CallBackData callog;
                 CallBackManage cache_action;
                 std::string str = real_data;
@@ -96,12 +99,6 @@ protected:
             }
         }
     }
-
-    // virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
-    // DealElement(std::string &&s)
-    // {
-    //     return;
-    // }
 };
 
 int CheckUnUpdateId(const std::vector<std::string> &vec)
