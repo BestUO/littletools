@@ -45,12 +45,18 @@ public:
 
     std::string GetCourseInfo(unsigned int course_id)
     {
-        auto &pool = ormpp::connection_pool<ormpp::dbng<ormpp::mysql>>::instance();
-        auto conn = pool.get();
-        auto content = conn->query<std::tuple<std::string>>("select content from aia_course where id=?",course_id);
-        pool.return_back(conn);
+        auto fun = [&course_id](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)
+        {
+            auto result = std::move(conn->query<std::tuple<std::string>>("select content from aia_course where id=?",course_id)); 
+            return result;
+        };
+        auto content = std::move(ExecuteCommand(std::function(fun)));
+
         if(content.empty())
+        {
+            LOGGER->info("course_id {} is empty",course_id);
             return "";
+        }
         else
             return std::get<0>(content.front());
     }
@@ -58,26 +64,34 @@ public:
     auto GetQuestionDetail(unsigned int questiondetail_id)
     {
         using type = std::tuple<int, int, std::string, std::string, std::string, std::string, std::string>;
-        auto &pool = ormpp::connection_pool<ormpp::dbng<ormpp::mysql>>::instance();
-        auto conn = pool.get();
-        auto content = conn->query<type>
-            ("select id,standard,similars,answer,keywords,prompt_txt,prompt_steps from aia_question where id=?",questiondetail_id);
-        pool.return_back(conn);
+        auto fun = [&questiondetail_id](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)
+        {
+            auto result = std::move(conn->query<type>
+                            ("select id,standard,similars,answer,keywords,prompt_txt,prompt_steps from aia_question where id=?",questiondetail_id)); 
+            return result;
+        };
+        auto content = std::move(ExecuteCommand(std::function(fun)));
+
         if(content.empty())
+        {
+            LOGGER->info("questiondetail_id {} is empty",questiondetail_id);
             return type();
+        }
         else
             return content.front();
     }
 
     auto GetTTSStatement(std::string ttsstatement_ids)
     {
-        std::string sql = "select statement.id, statement.statement, soundcache.path from aia_tts_statement as statement,aia_tts_sound_cache as soundcache where statement.id in ("+
-        ttsstatement_ids + ") and statement.file_id = soundcache.id";
-        auto &pool = ormpp::connection_pool<ormpp::dbng<ormpp::mysql>>::instance();
-        auto conn = pool.get();
-        auto result = conn->query<std::tuple<int, std::string, std::string>>(sql);
-        pool.return_back(conn);
-        return result;
+        using type = std::tuple<int, std::string, std::string>;
+        auto fun = [&ttsstatement_ids](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)
+        {
+            std::string sql = "select statement.id, statement.statement, soundcache.path from aia_tts_statement as statement,aia_tts_sound_cache as soundcache where statement.id in ("+
+                ttsstatement_ids + ") and statement.file_id = soundcache.id";
+            auto result = std::move(conn->query<type>(sql)); 
+            return result;
+        };
+        return ExecuteCommand(std::function(fun));
     }
 
 private:
@@ -87,6 +101,21 @@ private:
         InitConnectionPool(config.value());
     }
     ~DBOperate()=default;
+
+    template<class ...Args>
+    std::vector<std::tuple<Args...>> ExecuteCommand(std::function<std::vector<std::tuple<Args...>>(std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)> f)
+    {
+        auto &pool = ormpp::connection_pool<ormpp::dbng<ormpp::mysql>>::instance();
+        auto conn = pool.get();
+        while(!conn)
+        {
+            LOGGER->info("connection_pool is not enough");
+            conn = pool.get();
+        }
+        auto result = std::move(f(conn));
+        pool.return_back(conn);
+        return result;
+    }
 
     bool InitConnectionPool(rapidjson::Document &config)
     {
