@@ -10,7 +10,6 @@ add_definitions(-DORMPP_ENABLE_MYSQL)
 
 include_directories(${THIRD_PARTY_PATH}/include)
 
-ADD_SUBDIRECTORY(kafka)
 ADD_SUBDIRECTORY(queue)
 ADD_SUBDIRECTORY(trimule)
 ADD_SUBDIRECTORY(dialogmanager)

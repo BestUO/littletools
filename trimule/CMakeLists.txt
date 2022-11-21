@@ -17,11 +17,6 @@ ADD_SUBDIRECTORY(dbstruct)
 ADD_SUBDIRECTORY(redispool)
 ADD_SUBDIRECTORY(settingParser)
 
-set(TOOL_COMPOSE trimule)
-set(TOOL_COMPOSE_SOURCE trimule.cpp)
-add_executable(${TOOL_COMPOSE} ${TOOL_COMPOSE_SOURCE})
-target_link_libraries(${TOOL_COMPOSE} pthread mysqlclient jsoncpp settingParser GetCallRecord redisclient CallBack)
-
 set(OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/Trimule)
 ADD_CUSTOM_TARGET(trimule_copyfile ALL
 COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_PATH}/conf/
@@ -34,3 +29,8 @@ COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/README.md ${
 # COMMAND ${CMAKE_COMMAND} -E remove_directory  ${PROJECT_SOURCE_DIR}/build/trimule
 # COMMAND mv ${OUTPUT_PATH} ${PROJECT_SOURCE_DIR}/build/trimule
 )
+
+set(TOOL_COMPOSE trimule)
+set(TOOL_COMPOSE_SOURCE trimule.cpp)
+add_executable(${TOOL_COMPOSE} ${TOOL_COMPOSE_SOURCE})
+target_link_libraries(${TOOL_COMPOSE} pthread mysqlclient jsoncpp settingParser GetCallRecord redisclient CallBack)
