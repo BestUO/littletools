@@ -31,7 +31,8 @@ public:
                 session->current_qa->answer_audio_path = content;
             else
                 session->current_qa->answer_txt = content;
-            DMThreadPool::GetInstance()->GetThreadPool()->EnqueueFun(QAInfoCallBackFunction::StoreInDB,session->current_qa);
+            auto result = DMThreadPool::GetInstance()->GetThreadPool()->EnqueueFun(QAInfoCallBackFunction::StoreInDB,session->current_qa);
+            LOGGER->info(result.get());
         }
         session->current_qa = std::make_shared<QAInfo>();
         return CompleteQAInfo(session);

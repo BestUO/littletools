@@ -5,7 +5,7 @@
 class QAInfoCallBackFunction
 {
 public:
-    static void StoreInDB(std::shared_ptr<QAInfo> qainfo)
+    static std::string StoreInDB(std::shared_ptr<QAInfo> qainfo)
     {
         auto scoremanager = ScoreManager::GetInstance();
         auto question_detail = qainfo->question_detail.lock();
@@ -29,5 +29,6 @@ public:
         //打分、数据落盘
         LOGGER->info("QAInfo落盘 course_id:{} session_id:{} node_id:{}", 
                     qainfo->course_id, qainfo->session_id, current_node->node_id);
+        return "score json";
     }
 };
