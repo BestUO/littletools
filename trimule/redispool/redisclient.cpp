@@ -51,8 +51,8 @@ void RedisOperate::CacheData(const std::string &key,const std::string &str)
 
 void RedisOperate::DelKey(const std::string &key)
 {
-    int num = redis.del(key);
-    LOGGER->info("{} key delete",num);
+    redis.del(key);
+    LOGGER->info("key {} delete",key);
 }
 
 void RedisOperate::DelKey(const std::vector<std::string> &key)
@@ -112,6 +112,6 @@ void RedisOperate::LREMForList(const std::string &list_name,const std::vector<st
 void RedisOperate::Rpush(const std::string &list_name,const std::vector<std::string> &values)
 {
     int num = values.size();
-    redis.rpush(list_name,values.begin(),values.end());
-    LOGGER->info("{} elements insert list",num);
+    auto p = redis.rpush(list_name,values.begin(),values.end());
+    LOGGER->info("{} elements insert list and total is {}",num,p);
 }

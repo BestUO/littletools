@@ -208,7 +208,7 @@ std::string CallRecord::CheckInfo(std::string &info)
             if (!record["cc_number"].isNull() && record["cc_number"].asString() != "")
             {
 
-                if (!record["switch_number"].isNull() || record["cc_number"].asString() == "")
+                if (!record["switch_number"].isNull())
                     return "902";
                 else
                     return "903"; // switch_number为空

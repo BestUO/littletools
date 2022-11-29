@@ -90,7 +90,7 @@ protected:
                 CallInfo data = record.GetCallRecord(real_data, a);
         
                 callog.cc_number = data.cc_number;
-                cache_action.CacheCmData(callog, str, class_judge,mysqlclient);
+                cache_action.CacheCmData(callog, str, class_judge, mysqlclient);
             }
             else // oc  web
             {

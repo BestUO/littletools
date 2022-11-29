@@ -34,7 +34,7 @@ public:
     void CheckUnUpdateId(const std::string &eid,const std::string &start_time,const std::string &end_time);
     bool CheckTimeOut(const IdMuster &muster);
     std::string GetCmDataId(const std::string &id);
-    IdMuster ParseCmId(const std::string &cm_id);
+    IdMuster ParseCmId(std::string_view key);
    
 };
 

@@ -230,45 +230,39 @@ void DataCache::CallBackActionQueue()
                 std::string data_cache = instance.SearchRules(now_id);
                 LOGGER->info("begin call back!!!  data is {}", data_cache);
                 CallBackAction(data_cache, muster.url);
-                instance.DelKey(now_id);
                 instance.LREMForList(list_name, {now_id});
             }
             else
-            {
-                instance.DelKey(now_id);
                 instance.LREMForList(list_name, {now_id});
-            }
         }
         list.clear();
     }
 }
 
-IdMuster DataCache::ParseCmId(const std::string &cm_id)
+IdMuster DataCache::ParseCmId(std::string_view key)
 {
     IdMuster muster;
-    int id_num = 0;
-    int pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+    int pos1 = 0, pos2 = 0;
 
-    if (count(cm_id.begin(), cm_id.end(), '-') == 1)
+    int delimcount = count(key.begin(), key.end(), '-');
+
+    if (delimcount == 1)
     {
 
-        pos1 = cm_id.rfind('-');
-        muster.calllog_id = cm_id.substr(0, pos1);
-        muster.time = cm_id.substr(pos1 + 1, (cm_id.size() - pos1 - 1));
+        pos1 = key.rfind("-");
+        muster.calllog_id = key.substr(0, pos1);
+        muster.time = key.substr(pos1 + 1, (key.size() - pos1 - 1));
 
-    }
-    else if (count(cm_id.begin(), cm_id.end(), '-') == 2)
-    {
-        pos1 = cm_id.rfind('-');
-        int pos2 = cm_id.rfind('-', pos1 + 1);
-        muster.calllog_id = cm_id.substr(0, pos1);
-        muster.url = cm_id.substr(pos1 + 1, pos2 - pos1 - 1);
-        muster.time = cm_id.substr(pos2 + 1, (cm_id.size() - pos2 - 1));
     }
     else
     {
-        LOGGER->info("parse error ,redis data have problem");
+        pos1 = key.rfind("-");
+        int pos2 = key.substr(0,pos1).rfind("-");
+        muster.calllog_id = key.substr(0, pos2);
+        muster.url = key.substr(pos2 + 1, pos1-pos2-1);
+        muster.time = key.substr(pos1 + 1, pos2 - pos1 - 1);
     }
+
     return muster;
 }
 
