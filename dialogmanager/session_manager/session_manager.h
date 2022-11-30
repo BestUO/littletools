@@ -19,22 +19,26 @@ public:
     template<class ...Args>
     bool ProcessSession(std::shared_ptr<Session> session, std::tuple<Args...> params)
     {
-        auto [session_id,course_id,question_time,answer_time,isexpired,content] = params;
+        auto [session_id,course_id,question_time,answer_time,is_expired,content] = params;
+        std::string asr_result;
+        int score = 0;
         if(session->current_qa)
         {
             session->current_qa->course_id = session->course_info->course_id;
             session->current_qa->session_id = session->session_id;
             session->current_qa->question_time = std::chrono::system_clock::from_time_t(question_time);
             session->current_qa->answer_time = std::chrono::system_clock::from_time_t(answer_time);
-            session->current_qa->isexpired = isexpired;
+            session->current_qa->is_expired = is_expired;
             if(content.find("http") == 0)
                 session->current_qa->answer_audio_path = content;
             else
                 session->current_qa->answer_txt = content;
             auto result = DMThreadPool::GetInstance()->GetThreadPool()->EnqueueFun(QAInfoCallBackFunction::StoreInDB,session->current_qa);
-            LOGGER->info(result.get());
+            std::tie(asr_result,score) = result.get();
         }
         session->current_qa = std::make_shared<QAInfo>();
+        session->current_qa->last_asr_result = std::move(asr_result);
+        session->current_qa->last_score = std::move(score);
         return CompleteQAInfo(session);
     }
     void DeleteSession(unsigned int session_id);

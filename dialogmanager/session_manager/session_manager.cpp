@@ -122,7 +122,8 @@ TTSStatement SessionManager::GetTTSStatement(std::shared_ptr<QuestionDetail> que
 void SessionManager::InsertToTimerManager(std::shared_ptr<Session> session)
 {
     auto timermanager = TimerManager<unsigned int>::GetInstance();
-    timermanager->AddAlarm(std::chrono::system_clock::now() + std::chrono::minutes(30), session->session_id, [this,key=session->session_id]()
+    timermanager->DeleteAlarm(session->session_id);
+    timermanager->AddAlarm(std::chrono::system_clock::now() + std::chrono::minutes(5), session->session_id, [this,key=session->session_id]()
     {
         DeleteSessionMap(key);
     });

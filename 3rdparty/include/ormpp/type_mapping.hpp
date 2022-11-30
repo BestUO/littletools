@@ -40,6 +40,11 @@ REGISTER_TYPE(float, MYSQL_TYPE_FLOAT)
 REGISTER_TYPE(double, MYSQL_TYPE_DOUBLE)
 REGISTER_TYPE(int64_t, MYSQL_TYPE_LONGLONG)
 
+
+inline int type_to_id(identity<unsigned int>) noexcept {
+    return MYSQL_TYPE_LONG;
+}
+
 inline int type_to_id(identity<std::string>) noexcept {
   return MYSQL_TYPE_VAR_STRING;
 }

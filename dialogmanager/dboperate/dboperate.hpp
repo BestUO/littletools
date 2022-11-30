@@ -34,6 +34,29 @@
 // };
 // REFLECTION(aicall_tts_file_cache, id, TTS_text, TTS_version_code, tts_src, tts_duration, create_time, access_time, extension)
 
+struct aia_course_practise
+{
+    unsigned int id;
+    unsigned int course_id;
+    unsigned int practise_id;
+    unsigned int node_id;
+    unsigned int question_id;
+    unsigned int question_statement_id;
+    unsigned int question_time;
+    unsigned int answer_time;
+    unsigned int status;//todo
+    std::string answer_text;
+    std::string answer_record_file;
+    unsigned int answer_duration;
+    std::string answer_match;
+    std::string answer_analyse;
+    unsigned int create_time;
+    unsigned int update_time;
+};
+REFLECTION(aia_course_practise, id, course_id, practise_id, node_id)
+//REFLECTION(aia_course_practise, id, course_id, practise_id, node_id, question_id, question_statement_id, question_time, answer_time)
+
+
 class DBOperate
 {
 public:
@@ -63,11 +86,11 @@ public:
 
     auto GetQuestionDetail(unsigned int questiondetail_id)
     {
-        using type = std::tuple<int, int, std::string, std::string, std::string, std::string, std::string>;
+        using type = std::tuple<int, int, std::string, std::string, std::string, std::string, std::string,int,int>;
         auto fun = [&questiondetail_id](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)
         {
             auto result = std::move(conn->query<type>
-                            ("select id,standard,similars,answer,keywords,prompt_txt,prompt_steps from aia_question where id=?",questiondetail_id)); 
+                            ("select id,standard,similars,answer,keywords,prompt_txt,prompt_steps,perfect_tolerance,max_tolerance from aia_question where id=?",questiondetail_id)); 
             return result;
         };
         auto content = std::move(ExecuteCommand(std::function(fun)));
@@ -94,6 +117,14 @@ public:
         return ExecuteCommand(std::function(fun));
     }
 
+    auto GenerateCoursePractiseDetail(const aia_course_practise &detail) {
+        using type = std::tuple<int, std::string, std::string>;
+        auto fun = [&detail](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn) {
+            return conn->insert(detail);
+        };
+        return ExecuteCommand(std::function(fun));
+    }
+
 private:
     DBOperate()
     {
@@ -113,6 +144,20 @@ private:
             conn = pool.get();
         }
         auto result = std::move(f(conn));
+        pool.return_back(conn);
+        return result;
+    }
+
+    int ExecuteCommand(const std::function<int (std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)>& f)
+    {
+        auto &pool = ormpp::connection_pool<ormpp::dbng<ormpp::mysql>>::instance();
+        auto conn = pool.get();
+        while(!conn)
+        {
+            LOGGER->info("connection_pool is not enough");
+            conn = pool.get();
+        }
+        auto result = f(conn);
         pool.return_back(conn);
         return result;
     }

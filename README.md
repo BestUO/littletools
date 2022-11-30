@@ -1,10 +1,18 @@
-# littletools
+## littletools
 C++17 for Ringqueue，timemanager，threadpool，Rdkafka，rpccore
 
-# Trimule
-Httpserver for receive call info and store in db
+## Dialogmanager
+Httpserver for manage dialog session and store info in db
+### require 
+c++17
+### Make
+mkdir build && cd build  
+cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target dialogmanager -j 1
+### Config
+conf/dialog_manager_config.json 
 
-## HowtoRunTrimule
+## Trimule
+Httpserver for receive call info and store in db
 ### require 
 c++17
 ### Make
@@ -15,13 +23,3 @@ cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target trimule -j 2;make tr
 cd Trimule  
 sh docker_build.sh  
 sh docker_run.sh  
-
-# Dialogmanager
-Httpserver for manage dialog session and store info in db
-### require 
-c++17
-### Make
-mkdir build && cd build  
-cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target dialogmanager -j 1
-### Config
-conf/dialog_manager_config.json 

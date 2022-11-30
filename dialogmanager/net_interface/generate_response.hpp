@@ -55,10 +55,13 @@ public:
     {
         auto tmp = current_qa->question_detail.lock();
         return std::make_tuple(std::pair<std::string,int>("status",STATUS::SUCCESS),
-            std::pair<std::string,int>("statement_id",current_qa->tts_statement.tts_statement_id),
             std::pair<std::string,int>("node_id",current_qa->current_node.lock()->node_id),
+            std::pair<std::string,std::string>("last_asr_result",current_qa->last_asr_result),
+            std::pair<std::string,int>("last_score",current_qa->last_score),
+            std::pair<std::string,int>("statement_id",current_qa->tts_statement.tts_statement_id),
             std::pair<std::string,std::string>("question",current_qa->tts_statement.question),
             std::pair<std::string,std::string>("audio_path",current_qa->tts_statement.audio_path),
+            std::pair<std::string,int>("perfect_tolerance",tmp?tmp->perfect_tolerance:0),
             std::pair<std::string,int>("question_id",tmp?tmp->question_id:0),
             std::pair<std::string,std::string>("prompt_steps",tmp?tmp->prompt_steps:""),
             std::pair<std::string,std::string>("prompt_txt",tmp?tmp->prompt_txt:""));

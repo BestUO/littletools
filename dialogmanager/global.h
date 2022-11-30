@@ -24,6 +24,8 @@ struct QuestionDetail
     std::string keywords;
     std::string prompt_txt;
     std::string prompt_steps;
+    int perfect_tolerance;
+    int max_tolerance;
 };
 
 struct Question
@@ -64,7 +66,7 @@ struct QAInfo
     unsigned int session_id;
     std::chrono::system_clock::time_point question_time;
     std::chrono::system_clock::time_point answer_time;
-    unsigned int isexpired;
+    unsigned int is_expired;
     std::string answer_txt;
     std::string answer_audio_path;
     std::string answer_analyse;
@@ -73,9 +75,8 @@ struct QAInfo
     std::weak_ptr<QuestionDetail> question_detail;
     TTSStatement tts_statement;
     std::string answer_stander;
-
-    ~QAInfo()
-    {std::cout << "byd QAInfo" << std::endl;}
+    std::string last_asr_result;
+    int last_score;
 };
 
 struct Session

@@ -165,12 +165,14 @@ Question CourseManager::NodeParseQuestion(const rapidjson::Value & value,
 std::shared_ptr<QuestionDetail> CourseManager::CreateQuestionDetail(unsigned int questiondetail_id)
 {
     auto tmp = std::make_shared<QuestionDetail>();
-    auto [id, standard, similars, answer, keywords,prompt_txt,prompt_steps] = DBOperate::GetInstance()->GetQuestionDetail(questiondetail_id);
+    auto [id, standard, similars, answer, keywords,prompt_txt,prompt_steps,perfect_tolerance,max_tolerance] = DBOperate::GetInstance()->GetQuestionDetail(questiondetail_id);
     tmp->question_id = id;
     tmp->answer = std::move(answer);
     tmp->keywords = std::move(keywords);
     tmp->prompt_txt = std::move(prompt_txt);
     tmp->prompt_steps = std::move(prompt_steps);
+    tmp->perfect_tolerance = perfect_tolerance;
+    tmp->max_tolerance = max_tolerance;
     tmp->ttsstatement = std::move(GetTTSStatementInfo(standard,std::move(similars)));
     return tmp;
 }
