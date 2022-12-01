@@ -3,6 +3,12 @@
 #include "tools/timermanager.hpp"
 #include <random>
 
+SessionManager::SessionManager()
+{
+    auto config = JsonSimpleWrap::GetPaser("conf/dialog_manager_config.json");
+    __fileprefix = config.value()["fileprefix"].GetString();
+}
+
 std::shared_ptr<Session> SessionManager::GetSession(unsigned int session_id, unsigned int course_id)
 {
     std::shared_ptr<Session> session= nullptr;

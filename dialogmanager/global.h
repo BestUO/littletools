@@ -4,7 +4,7 @@
 #include "ormpp/mysql.hpp"
 #include "ormpp/connection_pool.hpp"
 #include "ormpp/dbng.hpp"
-
+#include <filesystem>
 #define SPDLOG_FILENAME "log/DialogerManagerLogger.log"
 #define SPDLOGGERNAME "DialogerManagerLogger"
 #define LOGGER spdlog::get(SPDLOGGERNAME)
@@ -68,7 +68,7 @@ struct QAInfo
     std::chrono::system_clock::time_point answer_time;
     unsigned int is_expired;
     std::string answer_txt;
-    std::string answer_audio_path;
+    std::filesystem::path answer_audio_path;
     std::string answer_analyse;
 
     std::weak_ptr<Node> current_node;

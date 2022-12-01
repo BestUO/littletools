@@ -34,6 +34,7 @@
         "port":"16379",
         "password":"123"
     },
-    "queue_sync_time":1
+    "queue_sync_time":1,
+    "fileprefix":"/var/pbx"
 }
 

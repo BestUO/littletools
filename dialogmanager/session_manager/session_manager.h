@@ -6,6 +6,7 @@
 #include <map>
 #include <shared_mutex>
 #include <optional>
+#include <filesystem>
 
 class SessionManager
 {
@@ -29,8 +30,10 @@ public:
             session->current_qa->question_time = std::chrono::system_clock::from_time_t(question_time);
             session->current_qa->answer_time = std::chrono::system_clock::from_time_t(answer_time);
             session->current_qa->is_expired = is_expired;
-            if(content.find("http") == 0)
-                session->current_qa->answer_audio_path = content;
+            auto tmppath = __fileprefix;
+            tmppath.append(content);
+            if(std::filesystem::exists(tmppath))
+                session->current_qa->answer_audio_path = tmppath;
             else
                 session->current_qa->answer_txt = content;
             auto result = DMThreadPool::GetInstance()->GetThreadPool()->EnqueueFun(QAInfoCallBackFunction::StoreInDB,session->current_qa);
@@ -47,8 +50,9 @@ public:
 private:
     std::map<unsigned int,std::shared_ptr<Session>> __session_map;
     std::shared_mutex __rwlock;
+    std::filesystem::path __fileprefix;
 
-    SessionManager()=default;
+    SessionManager();
     ~SessionManager()=default;
 
     std::optional<std::shared_ptr<Session>> GetFromSessionMap(unsigned int session_id);
