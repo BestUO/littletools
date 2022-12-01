@@ -142,7 +142,7 @@ void CallBackManage::GetOCSyncData(CallBackData &data, ormpp::dbng<ormpp::mysql>
     LOGGER->info("command_clue is {}", command_clue);
 
         // label
-    std::string db_name_label = "aicall_calllog_labe";
+    std::string db_name_label = "aicall_calllog_label";
     std::vector<std::string> values_label = {"label"};
     std::vector<std::string> condition_label = {data.calllog_id};
     std::vector<std::string> condition_name_label{"calllog_id"};
