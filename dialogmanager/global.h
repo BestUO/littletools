@@ -14,6 +14,8 @@ struct TTSStatement
     unsigned int tts_statement_id=0;
     std::string question="";
     std::string audio_path="";
+    int ttssound = 0;
+    int ttsspeed = 0;
 };
 
 struct QuestionDetail
@@ -82,6 +84,8 @@ struct QAInfo
 struct Session
 {
     unsigned int session_id=0;
+    int ttssound = 0;
+    int ttsspeed = 0;
     std::chrono::system_clock::time_point create_time = std::chrono::system_clock::now();
     std::shared_ptr<CourseInfo> course_info = nullptr;
     std::weak_ptr<Node> current_node = std::weak_ptr<Node>();

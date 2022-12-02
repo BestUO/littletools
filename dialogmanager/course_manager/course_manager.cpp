@@ -181,8 +181,11 @@ std::vector<TTSStatement> CourseManager::GetTTSStatementInfo(unsigned int standa
 { 
     std::vector<TTSStatement> tmp;
     similars += (similars.empty()?"":",") + std::to_string(standard);
-    for(auto& [id, statement, path]:DBOperate::GetInstance()->GetTTSStatement(similars))
-        tmp.emplace_back(TTSStatement{(unsigned int)id, statement, path});
+
+    for(auto& [id, statement, path, sound_id, tts_speed]:DBOperate::GetInstance()->GetTTSSoundCache(similars))
+        tmp.emplace_back(TTSStatement{(unsigned int)id, statement, path, sound_id, tts_speed});
+    for(auto& [id, statement, path]:DBOperate::GetInstance()->GetUploadSoundfile(similars))
+        tmp.emplace_back(TTSStatement{(unsigned int)id, statement, path, 0, 0});
     return tmp;
 }
 

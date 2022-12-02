@@ -104,13 +104,26 @@ public:
             return content.front();
     }
 
-    auto GetTTSStatement(std::string ttsstatement_ids)
+    auto GetTTSSoundCache(std::string ttsstatement_ids)
+    {
+        using type = std::tuple<int, std::string, std::string,int,int>;
+        auto fun = [&ttsstatement_ids](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)
+        {
+            std::string sql = "select statement.id, statement.statement, soundcache.path, soundcache.sound_id, soundcache.tts_speed from aia_tts_statement as statement,aia_tts_sound_cache as soundcache where statement.id in ("+
+                ttsstatement_ids + ") and statement.id = soundcache.statement_id";
+            auto result = std::move(conn->query<type>(sql)); 
+            return result;
+        };
+        return ExecuteCommand(std::function(fun));
+    }
+
+    auto GetUploadSoundfile(std::string ttsstatement_ids)
     {
         using type = std::tuple<int, std::string, std::string>;
         auto fun = [&ttsstatement_ids](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)
         {
-            std::string sql = "select statement.id, statement.statement, soundcache.path from aia_tts_statement as statement,aia_tts_sound_cache as soundcache where statement.id in ("+
-                ttsstatement_ids + ") and statement.file_id = soundcache.id";
+            std::string sql = "select statement.id, statement.statement, file.path from aia_tts_statement as statement,aia_files as file where statement.id in ("+
+                ttsstatement_ids + ") and statement.file_id = file.id";
             auto result = std::move(conn->query<type>(sql)); 
             return result;
         };
@@ -121,6 +134,18 @@ public:
         using type = std::tuple<int, std::string, std::string>;
         auto fun = [&detail](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn) {
             return conn->insert(detail);
+        };
+        return ExecuteCommand(std::function(fun));
+    }
+
+    auto GetSoundInfo(std::string session_id)
+    {
+        using type = std::tuple<std::string>;
+        auto fun = [&session_id](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)
+        {
+            std::string sql = "select sound from aia_course_practise where id = " + session_id;
+            auto result = std::move(conn->query<type>(sql)); 
+            return result;
         };
         return ExecuteCommand(std::function(fun));
     }

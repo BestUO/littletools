@@ -58,10 +58,12 @@ private:
     std::optional<std::shared_ptr<Session>> GetFromSessionMap(unsigned int session_id);
     std::shared_ptr<Session> CreateSessionInsertToMap(unsigned int session_id, unsigned int course_id);
     std::tuple<std::vector<std::weak_ptr<QuestionDetail>>, std::string> GetTotalQuestionDetail(std::weak_ptr<Node> node);
-    TTSStatement GetTTSStatement(std::shared_ptr<QuestionDetail> question_detail);
+    TTSStatement GetTTSStatement(std::shared_ptr<QuestionDetail> question_detail,int ttssound, int ttsspeed);
     bool CompleteQAInfo(std::shared_ptr<Session> session);
     std::optional<std::weak_ptr<Node>> GetNextNode(std::weak_ptr<Node> node);
     bool NodeHaveQuestionsLeft(std::shared_ptr<Session> session);
     void InsertToTimerManager(std::shared_ptr<Session> session);
     void DeleteSessionMap(unsigned int session_id);
+    auto GetSoundAndSpeed(unsigned int session_id);
+    std::vector<TTSStatement> FilterTTSStatement(std::vector<TTSStatement> ttsstatement,int ttssound, int ttsspeed);
 };

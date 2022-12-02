@@ -32,6 +32,19 @@ std::optional<std::shared_ptr<Session>> SessionManager::GetFromSessionMap(unsign
         return std::nullopt;
 }
 
+auto SessionManager::GetSoundAndSpeed(unsigned int session_id)
+{
+    auto sound = DBOperate::GetInstance()->GetSoundInfo(std::to_string(session_id));
+    if(sound.empty())
+        return std::tuple(0,0);
+    else
+    {
+        //{"soundId":1,"ttsSpeed":50}
+        auto tmp = JsonSimpleWrap::GetPaser(std::get<0>(sound.front()));
+        return std::tuple(tmp.value()["soundId"].GetInt (),tmp.value()["ttsSpeed"].GetInt());
+    }
+}
+
 std::shared_ptr<Session> SessionManager::CreateSessionInsertToMap(unsigned int session_id, unsigned int course_id)
 {
     LOGGER->info("cant find session {} so create", session_id);
@@ -42,6 +55,7 @@ std::shared_ptr<Session> SessionManager::CreateSessionInsertToMap(unsigned int s
     {
         auto session = std::make_shared<Session>(session_id,courseinfo);
         session->current_node = courseinfo->root;
+        std::tie(session->ttssound,session->ttsspeed) = GetSoundAndSpeed(session_id);
         std::tie(session->left_questions, session->node_text) = GetTotalQuestionDetail(session->current_node);
         session->current_qa = nullptr;
 
@@ -99,7 +113,7 @@ bool SessionManager::NodeHaveQuestionsLeft(std::shared_ptr<Session> session)
             session->left_questions.pop_back();
 
             session->current_qa->question_detail = question_detail;
-            session->current_qa->tts_statement = GetTTSStatement(question_detail);
+            session->current_qa->tts_statement = GetTTSStatement(question_detail,session->ttssound, session->ttsspeed);
             session->current_qa->answer_stander = question_detail->answer;
         }
         flag = true;
@@ -120,9 +134,25 @@ std::optional<std::weak_ptr<Node>> SessionManager::GetNextNode(std::weak_ptr<Nod
         return nodeptr->childs[std::random_device()()%nodeptr->childs.size()];
 }
 
-TTSStatement SessionManager::GetTTSStatement(std::shared_ptr<QuestionDetail> question_detail)
+std::vector<TTSStatement> SessionManager::FilterTTSStatement(std::vector<TTSStatement> ttsstatement,int ttssound, int ttsspeed)
 {
-    return question_detail->ttsstatement[std::random_device()()%question_detail->ttsstatement.size()];
+    for (std::vector<TTSStatement>::iterator it = ttsstatement.begin(); it != ttsstatement.end();)
+    {
+        if (((*it).ttssound == 0 && (*it).ttsspeed == 0) || ((*it).ttssound == ttssound && (*it).ttsspeed == ttsspeed))
+            ++it;
+        else
+            it = ttsstatement.erase(it);
+    }
+    return ttsstatement;
+}
+
+TTSStatement SessionManager::GetTTSStatement(std::shared_ptr<QuestionDetail> question_detail,int ttssound, int ttsspeed)
+{
+    auto tmp = std::move(FilterTTSStatement(question_detail->ttsstatement,ttssound, ttsspeed));
+    if(tmp.empty())
+        return TTSStatement();
+    else
+        return tmp[std::random_device()()%tmp.size()];
 }
 
 void SessionManager::InsertToTimerManager(std::shared_ptr<Session> session)
