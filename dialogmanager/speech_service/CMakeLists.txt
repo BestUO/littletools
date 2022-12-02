@@ -1,6 +1,5 @@
 project(speechservice)
 
-MESSAGE(${THIRD_PARTY_PATH}/lib/alinls)
 include_directories(${THIRD_PARTY_PATH}/include/alinls)
 link_directories(${THIRD_PARTY_PATH}/lib/alinls)
 
