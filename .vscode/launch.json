@@ -55,7 +55,7 @@
             "name": "dialogmanager",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/dialogmanager/dialogmanager",
+            "program": "${workspaceFolder}/build/Dialogmanager/dialogmanager",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

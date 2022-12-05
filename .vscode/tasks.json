@@ -41,7 +41,7 @@
         {
             "label": "build dialogmanager",
             "args": [
-                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target dialogmanager -j 1"
+                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target dialogmanager -j 1; make dialogmanger_copyfile"
             ],
             "group": {
                 "kind": "build",
