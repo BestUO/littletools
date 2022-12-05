@@ -123,7 +123,7 @@ std::string HttpRequester::PostUrl(const std::string &url, const std::string &po
     curl = curl_easy_init();
 
     std::string response;
-    LOGGER->info("post url is {}",url);
+    LOGGER->info("post url is {}, params is {}",url, post_param);
     struct curl_slist* headers = header;
     if (curl)
     {
@@ -150,14 +150,11 @@ std::string HttpRequester::PostUrl(const std::string &url, const std::string &po
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 
         res = curl_easy_perform(curl);
-        LOGGER->info("post url : {} {}, rescode : {}",url,post_param,res);
+        LOGGER->info("rescode: {} response: {}",res, response);
     }
-
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
 
-    LOGGER->info("PostUrl response {}" , response);
-    
     return response;
 }
 std::string HttpRequester::PostUrlNlp(const std::string &url, const std::string &post_param, bool json_type, curl_slist *header, std::string authorization)

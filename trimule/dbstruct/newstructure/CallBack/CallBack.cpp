@@ -46,14 +46,13 @@ void CallBackManage::CallBackHandle(CallInfo &cm_data, const std::tuple<std::str
 
 void CallBackManage::MutipleCallBackManage(CallBackData data, CallBackRules rule, const int &class_judge, const std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> &id_cluster, const bool &callback_class, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
-
     std::shared_ptr<RedisOperate> instance = std::make_shared<RedisOperate>();
     // instance->RedisConnect();
     std::string locate = data.eid + "-" + data.task_id;
     if (instance->SearchRules(locate) == "null")
     {
         rule = MakeCallBackRulesFromMySql(id_cluster, mysqlclient);
-        instance->CacheRules(locate, SetRulesRedisCache(rule));
+        instance->CacheData(locate, SetRulesRedisCache(rule),600);
     }
     else
     {
@@ -94,7 +93,7 @@ void CallBackManage::MutipleCallBackManage(CallBackData data, CallBackRules rule
 bool CallBackManage::OC_sync_judge(const std::string &calllog_id, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
     auto sync_judge = mysqlclient.query<std::tuple<std::string, std::string>>("select call_result,cc_number  from calllog where id = " + calllog_id);
-    LOGGER->info("command is select call_result,cc_number from calllog where id =  {}", calllog_id);
+    LOGGER->info("select call_result,cc_number from calllog where id =  {}", calllog_id);
     if (!sync_judge.size())
         return false;
     std::string cc_number = std::get<1>(sync_judge[0]);
@@ -110,18 +109,15 @@ std::string CallBackManage::GetCallBackUrl(const std::string &eid, ormpp::dbng<o
 
     std::string suffix = "/callRecordDetail";
     auto url = mysqlclient.query<std::tuple<std::string>>("select value from aicall_config where `key` = 'api_callback_domain' and eid = " + eid);
-    LOGGER->info("get callback url is   select value from aicall_config where `key` = 'api_callback_domain' and eid = {}", eid);
+    LOGGER->info("select value from aicall_config where `key` = 'api_callback_domain' and eid = {}", eid);
     if (url.size())
     {
-        LOGGER->info("url is {}", std::get<0>(url[0]) + suffix);
         std::string real_url = std::get<0>(url[0]) + suffix;
+        LOGGER->info("url is {}", real_url);
         return real_url;
     }
     else
-    {
-        LOGGER->info("null url");
         return "";
-    }
 }
 
 void CallBackManage::GetOCSyncData(CallBackData &data, ormpp::dbng<ormpp::mysql> &mysqlclient)
@@ -576,13 +572,10 @@ void CallBackManage::CacheCmData(const CallBackData &data, std::string &cache_da
         id = data.cc_number + "-cm_whole"; // cm_whole
         set_name = "cm_id_cluster_ocweb";
     }
-    LOGGER->info("cache cm_data,which id is {}", id);
-
     // instance->RedisConnect();
-    std::vector<std::string> list{id};
 
     instance->CacheData(id, cache_data);
-    instance->Rpush(set_name, list);
+    instance->Rpush(set_name, {id});
 }
 
 std::string CallBackManage::MakeCacheJson(const CallBackData &data) // from code cache
@@ -620,7 +613,7 @@ std::string CallBackManage::MakeCacheJson(const CallBackData &data) // from code
     rapidjson::Writer<rapidjson::StringBuffer> writer(strBuffer);
     doc.Accept(writer);
     std::string res = strBuffer.GetString();
-    LOGGER->info("oc has not sync,apicallback data is {}", res);
+    LOGGER->info("MakeCacheJson is {}", res);
 
     return res;
 }
@@ -662,7 +655,6 @@ std::string CallBackManage::CollectInfoXML2JSON(const std::string &xml)
 
 std::string CallBackManage::MergeCacheJson(const CallBackData &data, const std::string &redis_cache) // from redis cache  ,add these data
 {
-
     std::string clue_no = data.clue_no;
     std::string uuid = data.uuid;
     if (!data.clue_no.empty())
@@ -706,8 +698,6 @@ std::string CallBackManage::MergeCacheJson(const CallBackData &data, const std::
         root.AddMember("clue_no", val.SetString(clue_no.c_str(), allocator), allocator);
         root.AddMember("task_id", val.SetString(data.task_id.c_str(), allocator), allocator);
         std::string collect_info = CollectInfoXML2JSON(calllog_txt);
-        LOGGER->info("info is {}", collect_info);
-
         root.AddMember("collect_info", val.SetString(collect_info.c_str(), allocator), allocator);
         root.AddMember("buttons", val.SetString(data.buttons.c_str(), allocator), allocator);
     }
@@ -719,7 +709,7 @@ std::string CallBackManage::MergeCacheJson(const CallBackData &data, const std::
     rapidjson::StringBuffer strBuffer;
     rapidjson::Writer<rapidjson::StringBuffer> writer(strBuffer);
     doc.Accept(writer);
-    LOGGER->info("oc has sync ,apicallback data is {}", strBuffer.GetString());
+    LOGGER->info("MergeCacheJson is {}", strBuffer.GetString());
     return strBuffer.GetString();
 }
 
@@ -855,9 +845,7 @@ std::string CallBackManage::GetParas(std::string params, Args... args)
 
 void CallBackManage::CallBackAction(const std::string &data, const std::string &url)
 {
-    HttpRequester post;
-    std::string response = post.PostUrl(url, data, true);
-    LOGGER->info("retcode is {}", post.ParseReponseStatus(response));
+    HttpRequester::PostUrl(url, data, true);
 }
 
 std::string CallBackManage::GetCallRecordFromCm(CallBackData &data, ormpp::dbng<ormpp::mysql> &mysqlclient)
@@ -951,12 +939,12 @@ void CallBackManage::MakeQueueCache(const std::string &str)
     }
 }
 
-void CallBackManage::PrepareId(CallBackData &data, CallBackRules &rule, const int &cc_or_calllog_id, const std::string &id, std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> &id_cluster, ormpp::dbng<ormpp::mysql> &mysqlclient)
+void CallBackManage::PrepareId(CallBackData &data, CallBackRules &rule, const std::string &wherecondition, std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> &id_cluster, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
     UpdateMessage GetId;
     try
     {
-        id_cluster = GetId.GetIdFromMysql(cc_or_calllog_id, id, mysqlclient);
+        id_cluster = GetId.GetIdFromMysql(mysqlclient, wherecondition);
     }
     catch (exception &e)
     {
@@ -973,8 +961,3 @@ void CallBackManage::PrepareId(CallBackData &data, CallBackRules &rule, const in
     rule.task_id = stoi_s(std::get<static_cast<int>(IdCluster::TaskId)>(id_cluster));
     data.url = GetCallBackUrl(data.eid, mysqlclient);
 }
-
-// int main()
-// {
-//     return 0;
-// }

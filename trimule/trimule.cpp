@@ -113,7 +113,7 @@ void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
 {
     server.set_http_handler<cinatra::GET, cinatra::POST>("/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
                                                          {
-        LOGGER->info("message is {}",std::string(req.body()));
+        LOGGER->info("/ receive message is {}",std::string(req.body()));
         CallRecord check;
         std::string check_info = std::string(req.body());
         std::string check_res = check.CheckInfo(check_info);
@@ -129,7 +129,7 @@ void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
                                                          {
 
                                     //checkweboc data
-        LOGGER->info("message is {}",std::string(req.body()));
+        LOGGER->info("GetCallRecord/ receive message is {}",std::string(req.body()));
         CallRecord check;
         std::string check_info = std::string(req.body());
         std::string check_res = check.CheckWebOcInfo(check_info);
@@ -143,7 +143,7 @@ void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
                                                          {
 
                                     //checkweboc data
-        LOGGER->info("message is {}",std::string(req.body()));
+        LOGGER->info("CheckUnSync/ receive message is {}",std::string(req.body()));
         CallRecord check;
         std::string check_info = std::string(req.body());
         std::string check_res = check.CheckUnSync(check_info);

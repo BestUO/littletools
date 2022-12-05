@@ -18,7 +18,6 @@ class RedisOperate
 public:
     RedisOperate() : connection_options_(_build_options()),
                      redis(connection_options_){};
-    void CacheRules(const std::string &key, const std::string &rules);
     std::string SearchRules(const std::string &str);
     void CacheData(const std::string &key, const std::string &str, int time);
     void CacheData(const std::string &key, const std::string &str);

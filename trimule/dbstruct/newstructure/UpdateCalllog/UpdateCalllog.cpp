@@ -29,12 +29,15 @@ void UpdateMessage::HandleSQL(std::string &s, ormpp::dbng<ormpp::mysql> &mysqlcl
 	int a = 2;
 	CallInfo callog = record.GetCallRecord(s, a);
 
-	std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> result;
-	if (class_judge == 0)
-		{result = GetIdFromMysql(class_judge, callog.cc_number, mysqlclient);CheckCallResultSilence(callog,mysqlclient,class_judge,callog.cc_number);}
-	else
-		{result = GetIdFromMysql(class_judge, calllog_id, mysqlclient);CheckCallResultSilence(callog,mysqlclient,class_judge,calllog_id);}
+    std::string wherecondition = "";
 
+	if (class_judge == 0)
+		wherecondition = R"(cc_number = ')" + callog.cc_number + R"(')";
+	else
+		wherecondition = R"(id = ')" + calllog_id + R"(')";
+
+    auto result = GetIdFromMysql(mysqlclient, wherecondition);
+    CheckCallResultSilence(callog,mysqlclient,wherecondition);
 	if (std::get<0>(result) != "")
 	{
 		std::string id = std::get<0>(result);
@@ -55,56 +58,30 @@ void UpdateMessage::HandleSQL(std::string &s, ormpp::dbng<ormpp::mysql> &mysqlcl
 	}
 }
 
-void UpdateMessage::CheckCallResultSilence(CallInfo &callog,ormpp::dbng<ormpp::mysql> &mysqlclient,const int &class_judge,const std::string &condition)
+std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> UpdateMessage::GetIdFromMysql(ormpp::dbng<ormpp::mysql> &mysqlclient,const std::string &wherecondition)
 {
-std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> null_tu = std::make_tuple("", "", "", "", "", "");
-	if (class_judge == 0)
-	{
-		std::string cc_ = R"(cc_number = ')" + condition + R"(')";
-		auto res = mysqlclient.query<std::tuple<std::string, std::string, std::string, std::string, std::string, std::string>>("select call_result from calllog where " + cc_);
-		LOGGER->info("CheckCallResultSilence  use cc_number select,command is,select call_result from calllog where {}", cc_);
-		if (res.size()&&stoi(std::get<0>(res[0]))==1)
-			{
-				callog.call_result = 1;
-				LOGGER->info("{} hangup with noinput",cc_);
-			}
-	}
-	else
-	{
-		std::string calllog_id = R"(id = ')" + condition + R"(')";
-		auto res = mysqlclient.query<std::tuple<std::string, std::string, std::string, std::string, std::string, std::string>>("select call_result from calllog where " + calllog_id);
-		LOGGER->info("CheckCallResultSilence  use calllog_id select,command is,select call_result from calllog where {}", calllog_id);
+	std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> null_tu = std::make_tuple("", "", "", "", "", "");
 
-		if (res.size()&&stoi(std::get<0>(res[0]))==1)
-			{callog.call_result = 1;
-			LOGGER->info("{} hangup with noinput",calllog_id);}
-	}
-
+    auto res = mysqlclient.query<std::tuple<std::string, std::string, std::string, std::string, std::string, std::string>>("select id, clue_id ,task_id,enterprise_uid,call_count,caller_phone from calllog where " + wherecondition);
+    LOGGER->info("select id, clue_id ,task_id,enterprise_uid,call_count,caller_phone from calllog where {}", wherecondition);
+    if (res.size())
+        return res[0];
+    else
+        return null_tu;
 }
 
-std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> UpdateMessage::GetIdFromMysql(const int &class_judge, const std::string &condition, ormpp::dbng<ormpp::mysql> &mysqlclient)
+void UpdateMessage::CheckCallResultSilence(CallInfo &callog,ormpp::dbng<ormpp::mysql> &mysqlclient,const std::string &wherecondition)
 {
+    std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> null_tu = std::make_tuple("", "", "", "", "", "");
 
-	std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> null_tu = std::make_tuple("", "", "", "", "", "");
-	if (class_judge == 0)
-	{
-		std::string cc_ = R"(cc_number = ')" + condition + R"(')";
-		auto res = mysqlclient.query<std::tuple<std::string, std::string, std::string, std::string, std::string, std::string>>("select id, clue_id ,task_id,enterprise_uid,call_count,caller_phone from calllog where " + cc_);
-		LOGGER->info("GetIdFromMysql  use cc_number select,command is,select id, clue_id ,task_id,enterprise_uid,call_count,caller_phone from calllog where {}", cc_);
-		if (res.size())
-			return res[0];
-	}
-	else
-	{
-		std::string calllog_id = R"(id = ')" + condition + R"(')";
-		auto res = mysqlclient.query<std::tuple<std::string, std::string, std::string, std::string, std::string, std::string>>("select id, clue_id ,task_id,enterprise_uid,call_count,caller_phone from calllog where " + calllog_id);
-		LOGGER->info("GetIdFromMysql  use calllog_id select,command is,select id, clue_id ,task_id,enterprise_uid,call_count,caller_phone from calllog where {}", calllog_id);
+    auto res = mysqlclient.query<std::tuple<std::string, std::string, std::string, std::string, std::string, std::string>>("select call_result from calllog where " + wherecondition);
+    LOGGER->info("select call_result from calllog where {}", wherecondition);
 
-		if (res.size())
-			return res[0];
-	}
-	LOGGER->info("GetIdFromMysql id illegal");
-	return null_tu;
+    if (res.size()&&stoi(std::get<0>(res[0]))==1)
+    {
+        callog.call_result = 1;
+        LOGGER->info("{} hangup with noinput",wherecondition);
+    }
 }
 
 void UpdateMessage::UpdateCalllog(CallInfo &calllog, const std::string &id, ormpp::dbng<ormpp::mysql> &mysqlclient)
@@ -162,7 +139,6 @@ void UpdateMessage::CheckAndUpdateAicallCalllogContinuousSync(CallInfo &calllog,
 		LOGGER->info("calllog id {} do not  need update aicall_calllog_continuous_sync ", id);
 		return;
 	}
-
 
 	auto intention_type_res = mysqlclient.query<std::tuple<std::string>>("select intention_type from  calllog where id = " + id);
 

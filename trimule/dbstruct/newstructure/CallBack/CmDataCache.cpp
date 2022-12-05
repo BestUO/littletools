@@ -24,18 +24,15 @@ void DataCache::PollingQueue()
     settingParser mysql_example;
     sqlconnect conne = mysql_example.GetSettinghParser("conf/trimule_config.json");
     std::string port = to_string(conne.db_port);
-  try
+    try
     {
         if(!mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str(), conne.db_timeout, conne.db_port))
         throw 1;
     }
-    catch (int  i)
+    catch (int i)
     {
         if(i)
-        {
             LOGGER->info("mysql maybe error ,please take a check ");
-            cout<<"mysql error"<<endl;
-        }
         return;
     }
     
@@ -55,20 +52,20 @@ void DataCache::PollingQueue()
         }
         for (auto &now_id : list)
         {
-            LOGGER->info("PollingQueue  id is {}", now_id);
+            LOGGER->info("PollingQueue id is {}", now_id);
             IdMuster muster = ParseCmId(now_id);
             if (muster.time != "oc" && muster.time != "web" && muster.time != "now")
             {
                 CallBackRules rule;
                 CallBackData data;
                 std::string cm_data_cache = instance.SearchRules(now_id);
-                int calllog_or_cc_number = 1;
+                std::string wherecondition = R"(id = ')" + muster.calllog_id + R"(')";
                 std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> id_cluster;
 
                 if (cm_data_cache != "null")
                 {
                     data = CacheCmJsonSwitch(cm_data_cache);
-                    PrepareId(data, rule, calllog_or_cc_number, muster.calllog_id, id_cluster, mysqlclient);
+                    PrepareId(data, rule, wherecondition, id_cluster, mysqlclient);
                     GetRulesFromRedis(rule);
                     if (OC_sync_judge(muster.calllog_id, mysqlclient) || CheckTimeOut(muster))
                     {
@@ -153,22 +150,22 @@ void DataCache::OcWebPollingQueue()
             CallBackData data;
             IdMuster muster = ParseCmId(now_id);
             std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> id_cluster;
-            int calllog_or_cc_number;
+
+            std::string wherecondition = "";
             if (muster.time == "cm_whole")
-            {
-                calllog_or_cc_number = 0;
-            } // 0:use cc_number ,1:use calllog_id}
+                wherecondition = R"(cc_number = ')" + muster.calllog_id + R"(')";
             else
-                calllog_or_cc_number = 1;
+                wherecondition = R"(id = ')" + muster.calllog_id + R"(')";
+
 
             if (muster.calllog_id != "")
-                PrepareId(data, rule, calllog_or_cc_number, muster.calllog_id, id_cluster, mysqlclient); // muster.calllog_id  maybe  cc_number
+                PrepareId(data, rule, wherecondition, id_cluster, mysqlclient); // muster.calllog_id  maybe  cc_number
             else
-                {
-                    LOGGER->info("cc_number or calllog_id is null ,now_id is {} ,delete it",now_id);
-                    instance.DelKey(now_id);
-                    instance.LREMForList(list_name, {now_id});
-                }
+            {
+                LOGGER->info("cc_number or calllog_id is null ,now_id is {} ,delete it",now_id);
+                instance.DelKey(now_id);
+                instance.LREMForList(list_name, {now_id});
+            }
             if (!OC_sync_judge(data.calllog_id, mysqlclient) && !CheckTimeOut(muster))
             {
                 LOGGER->info("calllog {} not sync ", data.calllog_id);
@@ -230,10 +227,14 @@ void DataCache::CallBackActionQueue()
                 std::string data_cache = instance.SearchRules(now_id);
                 LOGGER->info("begin call back!!!  data is {}", data_cache);
                 CallBackAction(data_cache, muster.url);
+                instance.DelKey(now_id);
                 instance.LREMForList(list_name, {now_id});
             }
             else
+            {
+                instance.DelKey(now_id);
                 instance.LREMForList(list_name, {now_id});
+            }
         }
         list.clear();
     }
