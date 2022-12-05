@@ -64,6 +64,6 @@ private:
     bool NodeHaveQuestionsLeft(std::shared_ptr<Session> session);
     void InsertToTimerManager(std::shared_ptr<Session> session);
     void DeleteSessionMap(unsigned int session_id);
-    auto GetSoundAndSpeed(unsigned int session_id);
+    auto GetSoundAndSpeedAndStartTime(unsigned int session_id);
     std::vector<TTSStatement> FilterTTSStatement(std::vector<TTSStatement> ttsstatement,int ttssound, int ttsspeed);
 };

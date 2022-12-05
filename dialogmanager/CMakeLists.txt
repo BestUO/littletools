@@ -1,5 +1,5 @@
 set(DM dialogmanager)
-set(DM_SOURCE dialogmanager.cpp)
+set(DM_SOURCE dialogmanager.cpp global.cpp)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ../lib)
 # set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/build/lib)
 

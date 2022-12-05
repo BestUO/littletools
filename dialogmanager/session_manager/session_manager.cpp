@@ -32,17 +32,12 @@ std::optional<std::shared_ptr<Session>> SessionManager::GetFromSessionMap(unsign
         return std::nullopt;
 }
 
-auto SessionManager::GetSoundAndSpeed(unsigned int session_id)
+auto SessionManager::GetSoundAndSpeedAndStartTime(unsigned int session_id)
 {
-    auto sound = DBOperate::GetInstance()->GetSoundInfo(std::to_string(session_id));
-    if(sound.empty())
-        return std::tuple(0,0);
-    else
-    {
-        //{"soundId":1,"ttsSpeed":50}
-        auto tmp = JsonSimpleWrap::GetPaser(std::get<0>(sound.front()));
-        return std::tuple(tmp.value()["soundId"].GetInt (),tmp.value()["ttsSpeed"].GetInt());
-    }
+    auto [sound,start_time] = DBOperate::GetInstance()->GetSoundInfo(session_id).front();
+    //sound:{"soundId":1,"ttsSpeed":50}
+    auto tmp = JsonSimpleWrap::GetPaser(sound);
+    return std::tuple(tmp.value()["soundId"].GetInt (),tmp.value()["ttsSpeed"].GetInt(),start_time);
 }
 
 std::shared_ptr<Session> SessionManager::CreateSessionInsertToMap(unsigned int session_id, unsigned int course_id)
@@ -55,7 +50,7 @@ std::shared_ptr<Session> SessionManager::CreateSessionInsertToMap(unsigned int s
     {
         auto session = std::make_shared<Session>(session_id,courseinfo);
         session->current_node = courseinfo->root;
-        std::tie(session->ttssound,session->ttsspeed) = GetSoundAndSpeed(session_id);
+        std::tie(session->ttssound,session->ttsspeed,session->start_time) = GetSoundAndSpeedAndStartTime(session_id);
         std::tie(session->left_questions, session->node_text) = GetTotalQuestionDetail(session->current_node);
         session->current_qa = nullptr;
 

@@ -1,3 +1,4 @@
+#pragma once
 #include "global.h"
 #include "tools/jsonwrap.hpp"
 // struct AIACourse
@@ -34,7 +35,7 @@
 // };
 // REFLECTION(aicall_tts_file_cache, id, TTS_text, TTS_version_code, tts_src, tts_duration, create_time, access_time, extension)
 
-struct aia_course_practise
+struct aia_course_practise_detail
 {
     unsigned int id;
     unsigned int course_id;
@@ -53,7 +54,7 @@ struct aia_course_practise
     unsigned int create_time;
     unsigned int update_time;
 };
-REFLECTION(aia_course_practise, id, course_id, practise_id, node_id)
+REFLECTION(aia_course_practise_detail, id, course_id, practise_id, node_id)
 //REFLECTION(aia_course_practise, id, course_id, practise_id, node_id, question_id, question_statement_id, question_time, answer_time)
 
 
@@ -130,22 +131,35 @@ public:
         return ExecuteCommand(std::function(fun));
     }
 
-    auto GenerateCoursePractiseDetail(const aia_course_practise &detail) {
-        using type = std::tuple<int, std::string, std::string>;
+    auto GenerateCoursePractiseDetail(const aia_course_practise_detail &detail) {
         auto fun = [&detail](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn) {
             return conn->insert(detail);
         };
         return ExecuteCommand(std::function(fun));
     }
 
-    auto GetSoundInfo(std::string session_id)
+    auto GetSoundInfo(int session_id)
     {
-        using type = std::tuple<std::string>;
+        using type = std::tuple<std::string,int>;
         auto fun = [&session_id](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)
         {
-            std::string sql = "select sound from aia_course_practise where id = " + session_id;
-            auto result = std::move(conn->query<type>(sql)); 
+            std::string sql = "select sound,start_time from aia_course_practise where id = ?";
+            auto result = std::move(conn->query<type>(sql,session_id)); 
             return result;
+        };
+        return ExecuteCommand(std::function(fun));
+    }
+
+    auto CoursePratiseUpdate(int duration, int end_time, int session_id)
+    {
+        auto fun = [&session_id,duration=duration,end_time=end_time](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)
+        {
+            std::string sql = "update aia_course_practise set duration = " + std::to_string(duration) + ",end_time=" + std::to_string(end_time) + " where id = " + std::to_string(session_id);
+            auto result = std::move(conn->execute(sql));
+            return result;
+            // std::string sql = "update aia_course_practise set duration=?, end_time=? where id = ?";
+            // auto result = std::move(conn->execute(sql,duration,end_time,session_id));
+            // return result;
         };
         return ExecuteCommand(std::function(fun));
     }
@@ -158,8 +172,23 @@ private:
     }
     ~DBOperate()=default;
 
-    template<class ...Args>
-    std::vector<std::tuple<Args...>> ExecuteCommand(std::function<std::vector<std::tuple<Args...>>(std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)> f)
+    // template<class ...Args>
+    // std::vector<std::tuple<Args...>> ExecuteCommand(std::function<std::vector<std::tuple<Args...>>(std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)> f)
+    // {
+    //     auto &pool = ormpp::connection_pool<ormpp::dbng<ormpp::mysql>>::instance();
+    //     auto conn = pool.get();
+    //     while(!conn)
+    //     {
+    //         LOGGER->info("connection_pool is not enough");
+    //         conn = pool.get();
+    //     }
+    //     auto result = std::move(f(conn));
+    //     pool.return_back(conn);
+    //     return result;
+    // }
+
+    template<class R>
+    R ExecuteCommand(std::function<R(std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)> f)
     {
         auto &pool = ormpp::connection_pool<ormpp::dbng<ormpp::mysql>>::instance();
         auto conn = pool.get();
@@ -169,20 +198,6 @@ private:
             conn = pool.get();
         }
         auto result = std::move(f(conn));
-        pool.return_back(conn);
-        return result;
-    }
-
-    int ExecuteCommand(const std::function<int (std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)>& f)
-    {
-        auto &pool = ormpp::connection_pool<ormpp::dbng<ormpp::mysql>>::instance();
-        auto conn = pool.get();
-        while(!conn)
-        {
-            LOGGER->info("connection_pool is not enough");
-            conn = pool.get();
-        }
-        auto result = f(conn);
         pool.return_back(conn);
         return result;
     }

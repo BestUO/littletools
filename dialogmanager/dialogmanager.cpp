@@ -5,6 +5,7 @@
 #include "global.h"
 #include "net_interface/net_interface.h"
 #include "tools/threadpool.hpp"
+
 void Initspdlog()
 {
     spdlog::flush_every(std::chrono::seconds(5));

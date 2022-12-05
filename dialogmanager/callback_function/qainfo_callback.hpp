@@ -37,7 +37,7 @@ public:
         LOGGER->info("QAInfo落盘 course_id:{} session_id:{} node_id:{}",
                      qainfo->course_id, qainfo->session_id, current_node->node_id);
 
-        aia_course_practise detail = {0, course_id, practise_id, node_code, question_id, question_statement_id,
+        aia_course_practise_detail detail = {0, course_id, practise_id, node_code, question_id, question_statement_id,
                                       question_time, answer_time, status, answer_txt, answer_record_file,
                                       answer_duration, answer_match, answer_analyse, create_time, update_time};
         DBOperate::GetInstance()->GenerateCoursePractiseDetail(detail);
