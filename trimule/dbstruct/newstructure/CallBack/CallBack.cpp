@@ -27,36 +27,33 @@ void SplitString(const std::string &s, std::vector<std::string> &tokens, const s
         pos = s.find_first_of(delimiters, lastPos);
     }
 }
-void CallBackManage::CallBackHandle(CallInfo &cm_data, const std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> &id_cluster, const int &callback_class, ormpp::dbng<ormpp::mysql> &mysqlclient)
+void CallBackManage::CallBackHandle(CallInfo &cm_data, const std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> &id_cluster, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
     LOGGER->info("begin CallBackHandle");
     CallBackData data;
-    CallBackRules rule;
     data.eid = std::get<static_cast<int>(IdCluster::EnterpriseUid)>(id_cluster);
     data.task_id = std::get<static_cast<int>(IdCluster::TaskId)>(id_cluster);
     data.clue_id = std::get<static_cast<int>(IdCluster::ClueId)>(id_cluster);
     data.calllog_id = std::get<static_cast<int>(IdCluster::CalllogId)>(id_cluster);
     data.call_count = std::get<static_cast<int>(IdCluster::CallCount)>(id_cluster);
-    rule.eid = stoi_s(std::get<static_cast<int>(IdCluster::EnterpriseUid)>(id_cluster));
-    rule.task_id = stoi_s(std::get<static_cast<int>(IdCluster::TaskId)>(id_cluster));
-    data.url = GetCallBackUrl(data.eid, mysqlclient);
     CmDataSwitch(cm_data, data);
-    MutipleCallBackManage(data, rule, callback_class, id_cluster, callback_class, mysqlclient);
+    MutipleCallBackManage(data, mysqlclient);
 }
 
-void CallBackManage::MutipleCallBackManage(CallBackData data, CallBackRules rule, const int &class_judge, const std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> &id_cluster, const bool &callback_class, ormpp::dbng<ormpp::mysql> &mysqlclient)
+void CallBackManage::MutipleCallBackManage(CallBackData &data, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
     std::shared_ptr<RedisOperate> instance = std::make_shared<RedisOperate>();
-    // instance->RedisConnect();
-    std::string locate = data.eid + "-" + data.task_id;
-    if (instance->SearchRules(locate) == "null")
+    CallBackRules rule(stoi_s(data.task_id),stoi_s(data.eid));
+    std::string rule_key = data.eid + "-" + data.task_id;
+    std::string rule_value = std::move(instance->GetValue(rule_key));
+    if (rule_value.empty())
     {
-        rule = MakeCallBackRulesFromMySql(id_cluster, mysqlclient);
-        instance->CacheData(locate, SetRulesRedisCache(rule),600);
+        rule = MakeCallBackRulesFromMySql(data.eid, data.task_id, mysqlclient);
+        instance->CacheData(rule_key, SetRulesRedisCache(rule),600);
     }
     else
     {
-        GetRulesFromRedis(rule);
+        rule = GetRulesFromRedis(data.eid, data.task_id, rule_value);
         ParseIntetionAndCallResult(rule);
         ParseApiCallbackSceneStatus(rule);
     }
@@ -72,15 +69,12 @@ void CallBackManage::MutipleCallBackManage(CallBackData data, CallBackRules rule
                 std::string caback_data = MergeCacheJson(data, cm_data_json);
                 // callback
                 LOGGER->info("data is sync ,begin callback");
-                int call_class = 2;
-                CacheCmData(data, caback_data, call_class, mysqlclient);
+                CacheCmData(data, caback_data, 2, mysqlclient);
             }
         }
         else
         {
-            int call_class = 0;
-            std::string str = "";
-            CacheCmData(data, str, call_class, mysqlclient);
+            CacheCmData(data, "", 0, mysqlclient);
             LOGGER->info("data is not sync ,donot callback");
         }
     }
@@ -98,6 +92,7 @@ bool CallBackManage::OC_sync_judge(const std::string &calllog_id, ormpp::dbng<or
         return false;
     std::string cc_number = std::get<1>(sync_judge[0]);
     int call_result = stoi_s(std::get<0>(sync_judge[0]));
+    LOGGER->info("call_result = {}",call_result);
     if ((call_result == 4 || call_result == 13 || call_result == 14 || (call_result > 0 && cc_number != "")))
         return 1;
     else
@@ -124,19 +119,6 @@ void CallBackManage::GetOCSyncData(CallBackData &data, ormpp::dbng<ormpp::mysql>
 {
 
     LOGGER->info("GetOCSyncData eid is {}", data.eid);
-    GenerateSQL sql_command;
-
-    // clue
-    std::string db_name_clue = "outcall_clue";
-    std::vector<std::string> values_clue = {"label", "alias"};
-    std::vector<std::string> condition_clue = {data.clue_id};
-    std::vector<std::string> condition_name_clue{"id"};
-    std::vector<std::string> condition_symbols_clue = {"="};
-
-    std::string command_clue = sql_command.MysqlGenerateSelectSQL(db_name_clue, values_clue, condition_clue, condition_name_clue, condition_symbols_clue);
-    auto result_outcall_clue = mysqlclient.query<std::tuple<std::string, std::string>>(command_clue.c_str());
-    LOGGER->info("command_clue is {}", command_clue);
-
         // label
     std::string db_name_label = "aicall_calllog_label";
     std::vector<std::string> values_label = {"label"};
@@ -144,9 +126,8 @@ void CallBackManage::GetOCSyncData(CallBackData &data, ormpp::dbng<ormpp::mysql>
     std::vector<std::string> condition_name_label{"calllog_id"};
     std::vector<std::string> condition_symbols_label = {"="};
 
-    std::string command_label = sql_command.MysqlGenerateSelectSQL(db_name_label, values_label, condition_label, condition_name_label, condition_symbols_label);
+    std::string command_label = GenerateSQL::MysqlGenerateSelectSQL(db_name_label, values_label, condition_label, condition_name_label, condition_symbols_label);
     auto result_outcall_label = mysqlclient.query<std::tuple<std::string, std::string>>(command_label.c_str());
-    LOGGER->info("command_label is {}", command_label);
 
     if (result_outcall_label.size())
     {
@@ -168,7 +149,7 @@ void CallBackManage::GetOCSyncData(CallBackData &data, ormpp::dbng<ormpp::mysql>
         std::vector<std::string> calllog_columns = {"duration", "call_result", "transfer_number", "transfer_duration", "call_record_url", "manual_status", "answer_time", "hangup_time", "call_time", "cc_number"};
 
         values_calllog.insert(values_calllog.end(), calllog_columns.begin(), calllog_columns.end());
-        std::string command_calllog = sql_command.MysqlGenerateSelectSQL(db_name_calllog, values_calllog, condition_calllog, condition_name_calllog, condition_symbols_calllog);
+        std::string command_calllog = GenerateSQL::MysqlGenerateSelectSQL(db_name_calllog, values_calllog, condition_calllog, condition_name_calllog, condition_symbols_calllog);
         auto result_calllog = mysqlclient.query<std::tuple<std::string, std::string, std::string, std::string,
                                                            std::string, std::string, std::string, std::string,
                                                            std::string, std::string, std::string, std::string,
@@ -199,16 +180,13 @@ void CallBackManage::GetOCSyncData(CallBackData &data, ormpp::dbng<ormpp::mysql>
             data.call_time = stoi_s(std::get<static_cast<int>(calllog_enum::call_time)>(result_calllog[0]));
             data.cc_number = std::get<static_cast<int>(calllog_enum::cc_number)>(result_calllog[0]);
         }
-
-        LOGGER->info("command_calllog is {}", command_calllog);
     }
     else
     {
-        std::string command_calllog = sql_command.MysqlGenerateSelectSQL(db_name_calllog, values_calllog, condition_calllog, condition_name_calllog, condition_symbols_calllog);
+        std::string command_calllog = GenerateSQL::MysqlGenerateSelectSQL(db_name_calllog, values_calllog, condition_calllog, condition_name_calllog, condition_symbols_calllog);
         auto result_calllog = mysqlclient.query<std::tuple<std::string, std::string, std::string,
                                                            std::string, std::string, std::string, std::string,
                                                            std::string, std::string, std::string, std::string>>(command_calllog.c_str());
-        LOGGER->info("command_calllog is {}", command_calllog);
         if (result_calllog.size())
         {
             data.intention_type = std::get<static_cast<int>(calllog_enum::intention_type)>(result_calllog[0]);
@@ -231,10 +209,9 @@ void CallBackManage::GetOCSyncData(CallBackData &data, ormpp::dbng<ormpp::mysql>
     std::vector<std::string> condition_task = {data.eid, data.task_id};
     std::vector<std::string> condition_name_task{"enterprise_uid", "id"};
     std::vector<std::string> condition_symbols_task = {"=", "="};
-    std::string command_task = sql_command.MysqlGenerateSelectSQL(db_name_task, values_task, condition_task, condition_name_task, condition_symbols_task);
+    std::string command_task = GenerateSQL::MysqlGenerateSelectSQL(db_name_task, values_task, condition_task, condition_name_task, condition_symbols_task);
 
     auto result_outcall_task = mysqlclient.query<std::tuple<std::string, std::string, std::string, std::string>>(command_task.c_str());
-    LOGGER->info("command_task is {}", command_task);
 
     if (result_outcall_task.size())
     {
@@ -281,64 +258,56 @@ void CallBackManage::CmDataSwitch(CallInfo &cm_data, CallBackData &data)
     data.call_time = stoi_s(cm_data.start_time);
 }
 
-CallBackRules CallBackManage::MakeCallBackRulesFromMySql(const std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> &id_cluster, ormpp::dbng<ormpp::mysql> &mysqlclient)
+CallBackRules CallBackManage::MakeCallBackRulesFromMySql(const std::string &eid, const std::string &taskid, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
 
     CallBackRules rules;
-    rules.eid = stoi_s(std::get<static_cast<int>(IdCluster::EnterpriseUid)>(id_cluster));
-    rules.task_id = stoi_s(std::get<static_cast<int>(IdCluster::TaskId)>(id_cluster));
+    rules.eid = stoi_s(eid);
+    rules.task_id = stoi_s(taskid);
 
-    GenerateSQL general_sql;
     // outcall_task
     std::string calllog_id, clue_id, task_id;
     std::string db_name_outcall_task = "outcall_task";
     std::vector<std::string> values_outcall_task = {"uuid", "auto_recall_scenes", "auto_recall_status", "auto_recall_max_times","delete_flag"};
-    std::vector<std::string> condition_outcall_task{std::get<static_cast<int>(IdCluster::TaskId)>(id_cluster), std::get<static_cast<int>(IdCluster::EnterpriseUid)>(id_cluster)};
+    std::vector<std::string> condition_outcall_task{taskid, eid};
     std::vector<std::string> condition_name_outcall_task{"id", "enterprise_uid"};
     std::vector<std::string> condition_symbols_outcall_task{"=", "="};
 
-    std::string outcall_task_rule = general_sql.MysqlGenerateSelectSQL(db_name_outcall_task, values_outcall_task, condition_outcall_task, condition_name_outcall_task, condition_symbols_outcall_task);
-    LOGGER->info("command is {}", outcall_task_rule);
+    std::string outcall_task_rule = GenerateSQL::MysqlGenerateSelectSQL(db_name_outcall_task, values_outcall_task, condition_outcall_task, condition_name_outcall_task, condition_symbols_outcall_task);
     auto result_outcall_task = mysqlclient.query<std::tuple<std::string, std::string, std::string, std::string,std::string>>(outcall_task_rule.c_str());
-    LOGGER->info("size is {}", result_outcall_task.size());
-
-    // aicall_config
-    std::string db_name_aicall_config = "aicall_config";
-    std::vector<std::string> values_aicall_config = {"`value`"};
-    std::vector<std::string> condition_name_aicall_config = {"eid", "`key`"};
-    std::vector<std::string> condition_aicall_config = {std::get<int(IdCluster::EnterpriseUid)>(id_cluster), "api_callback_scene_status"};
-    std::vector<std::string> condition_symbols_aicall_config = {"=", "="};
-    std::string aicall_config_rule = general_sql.MysqlGenerateSelectSQL(db_name_aicall_config, values_aicall_config, condition_aicall_config, condition_name_aicall_config, condition_symbols_aicall_config);
-    auto result_aicall_config = mysqlclient.query<std::tuple<std::string>>(aicall_config_rule);
-    LOGGER->info("command is {}", aicall_config_rule);
-
-    condition_aicall_config = {std::get<int(IdCluster::EnterpriseUid)>(id_cluster), "api_status"};
-    aicall_config_rule = general_sql.MysqlGenerateSelectSQL(db_name_aicall_config, values_aicall_config, condition_aicall_config, condition_name_aicall_config, condition_symbols_aicall_config);
-    auto result_aicall_config_api = mysqlclient.query<std::tuple<std::string>>(aicall_config_rule);
-    LOGGER->info("command is {}", aicall_config_rule);
-
-    // TEST_CHECK(result_aicall_config.size() == 1);
-    if (result_aicall_config.size())
-    {
-        rules.api_callback_scene_status = std::get<static_cast<int>(aicall_config_enum::api_callback_scene_status)>(result_aicall_config[0]);
-        rules.api_status = stoi_s(std::get<0>(result_aicall_config_api[0]));
-    }
-    else
-    {
-        LOGGER->info("enterprise {} api_callback_scene_status no data", rules.eid);
-    }
     if (result_outcall_task.size())
     {
         rules.auto_recall_scenes = std::get<static_cast<int>(outcall_task_enum::auto_recall_scenes)>(result_outcall_task[0]);
         rules.auto_recall_status = stoi_s(std::get<static_cast<int>(outcall_task_enum::auto_recall_status)>(result_outcall_task[0]));
         rules.auto_recall_max_times = stoi_s(std::get<static_cast<int>(outcall_task_enum::auto_recall_max_times)>(result_outcall_task[0]));
         rules.delete_flag = std::get<4>(result_outcall_task[0]);
-        LOGGER->info("rules.delete_flag {}", rules.delete_flag);
+    }
+    else
+        LOGGER->info("enterprise {} auto_recall_scenes.... no data", rules.eid);
+
+    // aicall_config
+    std::string db_name_aicall_config = "aicall_config";
+    std::vector<std::string> values_aicall_config = {"`value`"};
+    std::vector<std::string> condition_name_aicall_config = {"eid", "`key`"};
+    std::vector<std::string> condition_aicall_config = {eid, "api_callback_scene_status"};
+    std::vector<std::string> condition_symbols_aicall_config = {"=", "="};
+    std::string aicall_config_rule = GenerateSQL::MysqlGenerateSelectSQL(db_name_aicall_config, values_aicall_config, condition_aicall_config, condition_name_aicall_config, condition_symbols_aicall_config);
+    auto result_aicall_config = mysqlclient.query<std::tuple<std::string>>(aicall_config_rule);
+
+    if (result_aicall_config.size())
+    {
+        rules.api_callback_scene_status = std::get<static_cast<int>(aicall_config_enum::api_callback_scene_status)>(result_aicall_config[0]);
+
+        condition_aicall_config = {eid, "api_status"};
+        aicall_config_rule = GenerateSQL::MysqlGenerateSelectSQL(db_name_aicall_config, values_aicall_config, condition_aicall_config, condition_name_aicall_config, condition_symbols_aicall_config);
+        auto result_aicall_config_api = mysqlclient.query<std::tuple<std::string>>(aicall_config_rule);
+        rules.api_status = stoi_s(std::get<0>(result_aicall_config_api[0]));
     }
     else
     {
-        LOGGER->info("enterprise {} auto_recall_scenes.... no data", rules.eid);
+        LOGGER->info("enterprise {} api_callback_scene_status no data", rules.eid);
     }
+
     ParseIntetionAndCallResult(rules);
     ParseApiCallbackSceneStatus(rules);
     return rules;
@@ -437,8 +406,6 @@ void CallBackManage::ParseIntetionAndCallResult(CallBackRules &rules)
 
 std::string CallBackManage::SetRulesRedisCache(const CallBackRules &rules)
 {
-
-    LOGGER->info("SetRulesRedisCache, result is {} and so on", rules.uuid);
     rapidjson::Document doc;
     rapidjson::Value val;
     std::string result;
@@ -461,40 +428,45 @@ std::string CallBackManage::SetRulesRedisCache(const CallBackRules &rules)
     return str_buf.GetString();
 }
 
-bool CallBackManage::GetRulesFromRedis(CallBackRules &rules)
+CallBackRules CallBackManage::GetRulesFromRedis(const std::string &eid, const std::string &taskid, const std::string rule_value)
 {
-
-    std::string location = std::to_string(rules.eid) + '-' + std::to_string(rules.task_id);
-    // LOGGER->info("eid is {} ,task_id is {} ",rules.eid,rules.task_id);
-    std::shared_ptr<RedisOperate> instance = std::make_shared<RedisOperate>();
-    // instance->RedisConnect();
-    std::string rule = instance->SearchRules(location);
-    rapidjson::Document doc;
-    LOGGER->info("GetRulesFromRedis search {}   ,rules is {}", location, rule);
-    doc.Parse(rule.c_str());
-    if (doc.IsObject())
+    CallBackRules rules(stoi_s(taskid),stoi_s(eid));
+    if(!rule_value.empty())
     {
-        rules.api_callback_scene_status = doc["detail_judge"].GetString();
-        rules.global_judge = doc["global_judge"].GetInt();
-        rules.scope_judge = doc["scope_judge"].GetInt();
-        rules.uuid = doc["uuid"].GetString();
-        rules.intention_type_judge = doc["intention_type_judge"].GetString();
-        rules.call_result_judge = doc["call_result_judge"].GetString();
-        rules.auto_recall_status = doc["auto_recall_status"].GetInt();
-        rules.api_status = doc["api_status"].GetInt();
-        rules.auto_recall_max_times = doc["auto_recall_max_times"].GetInt();
-        rules.delete_flag = doc["delete_flag"].GetString();
-        LOGGER->info("get rules from redis intention_type_judge is {} call_result_judge is {}  auto_recall_status is {} auto_recall_max_times is {} ", rules.intention_type_judge, rules.call_result_judge, rules.auto_recall_status, rules.auto_recall_max_times);
-        return 1;
+        rapidjson::Document doc;
+        doc.Parse(rule_value.c_str());
+        if (doc.IsObject())
+        {
+            rules.api_callback_scene_status = doc["detail_judge"].GetString();
+            rules.global_judge = doc["global_judge"].GetInt();
+            rules.scope_judge = doc["scope_judge"].GetInt();
+            rules.uuid = doc["uuid"].GetString();
+            rules.intention_type_judge = doc["intention_type_judge"].GetString();
+            rules.call_result_judge = doc["call_result_judge"].GetString();
+            rules.auto_recall_status = doc["auto_recall_status"].GetInt();
+            rules.api_status = doc["api_status"].GetInt();
+            rules.auto_recall_max_times = doc["auto_recall_max_times"].GetInt();
+            rules.delete_flag = doc["delete_flag"].GetString();
+            LOGGER->info("get rules from redis intention_type_judge is {} call_result_judge is {}  auto_recall_status is {} auto_recall_max_times is {} ", 
+                    rules.intention_type_judge, rules.call_result_judge, rules.auto_recall_status, rules.auto_recall_max_times);
+        }
     }
-    return 0;
+    return rules;
+}
+
+CallBackRules CallBackManage::GetRulesFromRedis(const std::string &eid, const std::string &taskid)
+{
+    std::string location = eid + '-' + taskid;
+    std::shared_ptr<RedisOperate> instance = std::make_shared<RedisOperate>();
+    std::string rule_value = instance->GetValue(location);
+    LOGGER->info("GetRulesFromRedis search {}   ,rules is {}", location, rule_value);
+    return GetRulesFromRedis(eid,taskid,std::move(rule_value));
 }
 
 bool CallBackManage::AutoTaskMatch(const CallBackRules &rules, const CallBackData &data)
 {
     if (rules.intention_type_judge != "000000000000000")
     {
-
         if ((rules.intention_type_judge)[stoi_s(data.intention_type)] == '1')
             return 1;
     }
@@ -516,7 +488,7 @@ bool CallBackManage::CallBackJudge(const CallBackRules &rules, const CallBackDat
             {
                 if (rules.auto_recall_max_times == stoi_s(data.call_count))
                 {
-                    LOGGER->info("pass callback check");
+                    LOGGER->info("pass1 callback check");
                     return 1;
                 }
                 else
@@ -524,58 +496,58 @@ bool CallBackManage::CallBackJudge(const CallBackRules &rules, const CallBackDat
             }
             else
             {
-                LOGGER->info("pass callback check");
+                LOGGER->info("pass2 callback check");
                 return 1;
             }
         }
         else
         {
-            LOGGER->info("pass callback check");
+            LOGGER->info("pass3 callback check");
             return 1;
         }
     }
     return 0;
 }
 
-void CallBackManage::CacheCmData(const CallBackData &data, std::string &cache_data, const int &class_judge, ormpp::dbng<ormpp::mysql> &mysqlclient)
+void CallBackManage::CacheCmData(const CallBackData &data, const std::string &real_data, const int &class_judge, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
-    auto now = time(NULL);
-    std::stringstream sstream;
-    sstream << now;
-    std::string time_ = sstream.str();
-    std::string id;
-    std::shared_ptr<RedisOperate> instance = std::make_shared<RedisOperate>();
+    std::string key;
     std::string set_name = "cm_id_cluster";
+    std::string cache_data = real_data;
+
     if (class_judge == 0)
     {
-        id = data.calllog_id + "-" + time_; // from func handle mysql usual
+        auto now = time(NULL);
+        std::stringstream sstream;
+        sstream << now;
+        key = data.calllog_id + "-" + sstream.str(); // from func handle mysql usual
         cache_data = MakeCacheJson(data);
     }
     else if (class_judge == 1)
     {
-        id = data.calllog_id + "-web"; // web callback
+        key = data.calllog_id + "-web"; // web callback
         set_name = "cm_id_cluster_ocweb";
     }
     else if (class_judge == 2)
     {
         std::string url = GetCallBackUrl(data.eid, mysqlclient);
-        id = data.calllog_id + "-" + url + "-now"; // cm and oc  must callback now
+        key = data.calllog_id + "-" + url + "-now"; // cm and oc  must callback now
         set_name = "cm_id_cluster_now";
     }
     else if (class_judge == 3)
     {
-        id = data.calllog_id + "-oc"; // oc callback
+        key = data.calllog_id + "-oc"; // oc callback
         set_name = "cm_id_cluster_ocweb";
     }
     else if (class_judge == 4)
     {
-        id = data.cc_number + "-cm_whole"; // cm_whole
+        key = data.cc_number + "-cm_whole"; // cm_whole
         set_name = "cm_id_cluster_ocweb";
     }
     // instance->RedisConnect();
-
-    instance->CacheData(id, cache_data);
-    instance->Rpush(set_name, {id});
+    std::shared_ptr<RedisOperate> instance = std::make_shared<RedisOperate>();
+    instance->CacheData(key, cache_data);
+    instance->Rpush(set_name, {key});
 }
 
 std::string CallBackManage::MakeCacheJson(const CallBackData &data) // from code cache
@@ -923,41 +895,31 @@ WebOcApiData CallBackManage::ParsePostData(const std::string &str)
     }
     return result;
 }
-void CallBackManage::MakeQueueCache(const std::string &str)
+void CallBackManage::MakeQueueCache(const std::string &str, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
     WebOcApiData result = ParsePostData(str);
-
-    UpdateMessage GetId;
     for (int i = 0; i < result.calllog_id_array.size(); i++)
     {
-        int a = 1;
         CallBackData data;
         data.calllog_id = result.calllog_id_array[i];
-        std::string nu = "";
-        ormpp::dbng<ormpp::mysql> mysqlclient;
-        CacheCmData(data, nu, result.type, mysqlclient);
+        CacheCmData(data, "", result.type, mysqlclient);
     }
 }
 
-void CallBackManage::PrepareId(CallBackData &data, CallBackRules &rule, const std::string &wherecondition, std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> &id_cluster, ormpp::dbng<ormpp::mysql> &mysqlclient)
+void CallBackManage::PrepareId(CallBackData &data, const std::string &wherecondition, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
-    UpdateMessage GetId;
     try
     {
-        id_cluster = GetId.GetIdFromMysql(mysqlclient, wherecondition);
+        auto id_cluster = UpdateMessage::GetIdFromMysql(mysqlclient, wherecondition);
+        data.eid = std::get<static_cast<int>(IdCluster::EnterpriseUid)>(id_cluster);
+        data.task_id = std::get<static_cast<int>(IdCluster::TaskId)>(id_cluster);
+        data.clue_id = std::get<static_cast<int>(IdCluster::ClueId)>(id_cluster);
+        data.calllog_id = std::get<static_cast<int>(IdCluster::CalllogId)>(id_cluster);
+        data.call_count = std::get<static_cast<int>(IdCluster::CallCount)>(id_cluster);
+        data.caller_phone = std::get<static_cast<int>(IdCluster::CallerPhone)>(id_cluster);
     }
     catch (exception &e)
     {
         LOGGER->info("mysql maybe error ,please take a check ");
     }
-
-    data.eid = std::get<static_cast<int>(IdCluster::EnterpriseUid)>(id_cluster);
-    data.task_id = std::get<static_cast<int>(IdCluster::TaskId)>(id_cluster);
-    data.clue_id = std::get<static_cast<int>(IdCluster::ClueId)>(id_cluster);
-    data.calllog_id = std::get<static_cast<int>(IdCluster::CalllogId)>(id_cluster);
-    data.call_count = std::get<static_cast<int>(IdCluster::CallCount)>(id_cluster);
-    data.caller_phone = std::get<static_cast<int>(IdCluster::CallerPhone)>(id_cluster);
-    rule.eid = stoi_s(std::get<static_cast<int>(IdCluster::EnterpriseUid)>(id_cluster));
-    rule.task_id = stoi_s(std::get<static_cast<int>(IdCluster::TaskId)>(id_cluster));
-    data.url = GetCallBackUrl(data.eid, mysqlclient);
 }

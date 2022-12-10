@@ -111,7 +111,7 @@ std::string HttpRequester::GetUrl(const std::string &url, curl_slist *header)
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
 
-    LOGGER->info("GetUrl   response is {}",response);
+    LOGGER->info("GetUrl response is {}",response);
     
     return response;
 }
@@ -157,47 +157,7 @@ std::string HttpRequester::PostUrl(const std::string &url, const std::string &po
 
     return response;
 }
-std::string HttpRequester::PostUrlNlp(const std::string &url, const std::string &post_param, bool json_type, curl_slist *header, std::string authorization)
-{
-    CURL *curl;
-    CURLcode res;
-    curl = curl_easy_init();
 
-    std::string response;
-
-    struct curl_slist* headers = header;
-    if (curl)
-    {
-        if(json_type)
-            headers=curl_slist_append(headers, "Content-Type:application/json;charset=UTF-8");
-        if(!authorization.empty())
-            curl_slist_append(headers, ("Authorization:Bearer "+authorization).c_str());
-
-        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_param.c_str());
-        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-        //do not verify ssl certificate
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-
-        //timeout
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 0.5);
-        curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 0.5);
-
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-
-        res = curl_easy_perform(curl);
-        LOGGER->info("post url : {}  , post_param is  {}  rescode :  {}",url,post_param,res);
-    }
-
-    curl_slist_free_all(headers);
-    curl_easy_cleanup(curl);
-
-    LOGGER->info("response {}", response);
-
-    return response;
-}
 int HttpRequester::GetResponseData(const std::string &response,rapidjson::Value *&data, rapidjson::Document &doc)
 {
     doc.Parse(response.c_str());

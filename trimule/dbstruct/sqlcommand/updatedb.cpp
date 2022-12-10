@@ -43,30 +43,18 @@ std::string GenerateSQL::MysqlGenerateSelectSQL(std::string db_name, std::vector
                                          std::vector<std::string> condition_name, std::vector<std::string> condition_symbols)
 {
     std::string command = "select ";
-    
-    int num=0;
 
     for (int i = 0; i < values.size(); i++)
     {
         if (values[i] != "")
-        {   
-            num++;
-            command += " " + values[i] + " ";
-            if (i != values.size() - 1)
-                command += ",";
-        }
+            command += values[i] + ",";
     }
-   
-    if(num!=0&&command[command.size()-1]==',')
-         command.pop_back();
+    command.pop_back();
     command+= " from "+db_name ;
     command+=MysqlGenerateMySqlCondition(condition,condition_name,condition_symbols);
 
-    if (num==0)
-         return "no command";
-
+    LOGGER->info("command is {}", command);
     return command;
-
 }
 
 
@@ -86,7 +74,5 @@ std::string GenerateSQL::MysqlGenerateMySqlCondition(const std::vector<std::stri
         else if (condition[i] != "")
             command += " " + condition_name[i] + " " + condition_symbols[i] + " \"" + condition[i] + "\" ";
     }
-
-
     return command;
  }

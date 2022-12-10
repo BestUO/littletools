@@ -23,11 +23,6 @@ public:
                                 curl_slist *header = nullptr,
                                 std::string authorization = "",
                                 std::string secret_key = "");
-    static std::string PostUrlNlp(const std::string &url,
-                               const std::string &post_param,
-                               bool json_type=false,
-                               curl_slist *header = nullptr,
-                               std::string authorization = "");
     static std::string GetUrl(const std::string &url, curl_slist *header);
     static std::string GenStr(uint8_t len);
     static std::string MD5(const std::string &src);

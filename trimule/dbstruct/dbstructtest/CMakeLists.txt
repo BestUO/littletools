@@ -17,4 +17,4 @@ link_directories(${THIRD_PARTY_PATH}/lib/rdkafka)
 
 add_library(${PROJECT_NAME} dbstruct.cpp dbstruct.h)
 
-target_link_libraries(${PROJECT_NAME} jsoncpp   settingParser mysqlclient )
+target_link_libraries(${PROJECT_NAME} jsoncpp   settingparser mysqlclient )

@@ -4,7 +4,7 @@
 #include <redis++/redis++.h>
 #include <iostream>
 #include "spdlog/spdlog.h"
-#include "../settingParser/settingParser.h"
+#include "../settingparser/settingparser.h"
 #include <unordered_set>
 #include <list>
 #include <vector>
@@ -18,7 +18,7 @@ class RedisOperate
 public:
     RedisOperate() : connection_options_(_build_options()),
                      redis(connection_options_){};
-    std::string SearchRules(const std::string &str);
+    std::string GetValue(const std::string &str);
     void CacheData(const std::string &key, const std::string &str, int time);
     void CacheData(const std::string &key, const std::string &str);
     void DelKey(const std::string &key);
@@ -34,8 +34,7 @@ private:
     ConnectionOptions _build_options()
     {
         ConnectionOptions opts;
-        settingParser redis_settting;
-        redis_account conne = redis_settting.GetRedisSetting("conf/trimule_config.json");
+        redis_account conne = SettingParser::GetRedisSetting("conf/trimule_config.json");
         opts.host = conne.host;         // Required.
         opts.port = stoi(conne.port);   // Optional. The default port is 6379.
         opts.password = conne.password; // Optional. No password by default.

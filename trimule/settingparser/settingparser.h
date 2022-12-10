@@ -21,12 +21,12 @@ struct redis_account{
     std::string port;
     std::string password;
 };
-class settingParser
+class SettingParser
 {
 public:
-    sqlconnect GetSettinghParser(std::string filepath);
-    redis_account  GetRedisSetting(std::string filepath);
-    int GetSleepTime(std::string filepath);
+    static sqlconnect GetSettinghParser(std::string filepath);
+    static redis_account  GetRedisSetting(std::string filepath);
+    static int GetSleepTime(std::string filepath);
 };
 
 //。。。

@@ -3,13 +3,13 @@
 #include <json/json.h>
 #include <string>
 using namespace std;
-CallInfo CallRecord::GetCallRecord(std::string &s, int &framework_class)
+CallInfo CallRecord::GetCallRecord(const std::string &real_data, int framework_class)
 {
     CallInfo result;
     Json::Reader reader;
     Json::Value root;
 
-    if (reader.parse(s, root))
+    if (reader.parse(real_data, root))
     {
         Json::Value data = root;
 
@@ -311,7 +311,6 @@ int CallRecord::GetHangupType(int &stop_reason, int &customer_fail_reason)
 }
 int CallRecord::GetCallResult(int &stop_reason, int &customer_fail_reason)
 {
-
     switch (customer_fail_reason)
     {
     case 9:

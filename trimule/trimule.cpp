@@ -7,7 +7,7 @@
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/rotating_file_sink.h"
 #include "spdlog/async.h"
-#include "settingParser/settingParser.h"
+#include "settingparser/settingparser.h"
 #include "dbstruct/newstructure/UpdateCalllog/UpdateCalllog.h"
 #include "dbstruct/newstructure/CallBack/CallBack.h"
 #include "dbstruct/newstructure/CallBack/CmDataCache.h"
@@ -49,8 +49,7 @@ protected:
     virtual void WorkerRun(bool original)
     {
         ormpp::dbng<ormpp::mysql> mysqlclient;
-        settingParser mysql_example;
-        sqlconnect conne = mysql_example.GetSettinghParser("conf/trimule_config.json");
+        sqlconnect conne = SettingParser::GetSettinghParser("conf/trimule_config.json");
         mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str(), conne.db_timeout, conne.db_port);
         while (!Worker<T>::_stop)
         {
@@ -81,21 +80,15 @@ protected:
 
             if (s[0] == '0') // cm ctive
             {
+                CallInfo data = CallRecord::GetCallRecord(real_data, 2);
+
                 CallBackData callog;
-                CallBackManage cache_action;
-                std::string str = real_data;
-                int class_judge = 4;
-                CallRecord record;
-                int a=2;
-                CallInfo data = record.GetCallRecord(real_data, a);
-        
                 callog.cc_number = data.cc_number;
-                cache_action.CacheCmData(callog, str, class_judge, mysqlclient);
+                CallBackManage::CacheCmData(callog, real_data, 4, mysqlclient);
             }
             else // oc  web
             {
-                CallBackManage cache_action;
-                cache_action.MakeQueueCache(real_data);
+                CallBackManage::MakeQueueCache(real_data,mysqlclient);
             }
         }
     }
@@ -112,53 +105,47 @@ template <class T>
 void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
 {
     server.set_http_handler<cinatra::GET, cinatra::POST>("/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
-                                                         {
+    {
         LOGGER->info("/ receive message is {}",std::string(req.body()));
-        CallRecord check;
         std::string check_info = std::string(req.body());
-        std::string check_res = check.CheckInfo(check_info);
+        std::string check_res = CallRecord::CheckInfo(check_info);
    
         std::string que_str ='0'+check_info;
-        int type = 0;
         if(check_res!="900"&&check_res!="901")
         {threadpool->EnqueueStr(que_str);}
-
-		res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+check_res+"\"}"); });
+		res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+check_res+"\"}"); 
+    });
 
     server.set_http_handler<cinatra::GET, cinatra::POST>("/GetCallRecord/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
-                                                         {
-
-                                    //checkweboc data
+    {
+        //checkweboc data
         LOGGER->info("GetCallRecord/ receive message is {}",std::string(req.body()));
-        CallRecord check;
         std::string check_info = std::string(req.body());
-        std::string check_res = check.CheckWebOcInfo(check_info);
+        std::string check_res = CallRecord::CheckWebOcInfo(check_info);
 
         std::string que_str ='1'+check_info;
-        int type = 1;
         threadpool->EnqueueStr(que_str);
-		res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+check_res+"\"}"); });
+		res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+check_res+"\"}"); 
+    });
 
     server.set_http_handler<cinatra::GET, cinatra::POST>("/CheckUnSync/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
-                                                         {
-
-                                    //checkweboc data
+    {
+        //checkweboc data
         LOGGER->info("CheckUnSync/ receive message is {}",std::string(req.body()));
-        CallRecord check;
         std::string check_info = std::string(req.body());
-        std::string check_res = check.CheckUnSync(check_info);
+        std::string check_res = CallRecord::CheckUnSync(check_info);
 
         if(check_res=="902")
         {
-            std::vector<std::string> vec = check.ParseUnSync(check_info);
+            std::vector<std::string> vec = CallRecord::ParseUnSync(check_info);
             if(vec.size()==3)
             {
                 std::thread aicall_calllog_subsidiary(CheckUnUpdateId,vec);
                 aicall_calllog_subsidiary.detach();
             }
         }
-        
-		res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+check_res+"\"}"); });
+		res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+check_res+"\"}"); 
+    });
 }
 
 int PollingQueue()

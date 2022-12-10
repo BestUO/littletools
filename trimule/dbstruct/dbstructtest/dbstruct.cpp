@@ -1,5 +1,5 @@
 #include "dbstruct.h"
-#include "../../settingParser/settingParser.h"
+#include "../../settingparser/settingparser.h"
 
 // MySql* MySql::getInstance()
 // {   
@@ -10,7 +10,7 @@
 // void MySql::connect()
 // {
 
-//     settingParser mysql_example;
+//     settingparser mysql_example;
 //     sqlconnect conne = mysql_example.GetSettinghParser("conf/trimule_config.json");
 
 //     mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str());

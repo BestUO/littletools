@@ -1,11 +1,11 @@
-#include "settingParser.h"
+#include "settingparser.h"
 #include <iostream>
 // #include <json/json.h>
 #include <fstream>
 using namespace std;
 
 
-sqlconnect settingParser::GetSettinghParser(std::string filepath)
+sqlconnect SettingParser::GetSettinghParser(std::string filepath)
 {
 
     sqlconnect connect;
@@ -38,7 +38,7 @@ sqlconnect settingParser::GetSettinghParser(std::string filepath)
     return connect;
 }
 
-redis_account  settingParser::GetRedisSetting(std::string filepath)
+redis_account SettingParser::GetRedisSetting(std::string filepath)
 {
     redis_account connect;
     std::string str = "";
@@ -61,7 +61,7 @@ redis_account  settingParser::GetRedisSetting(std::string filepath)
     return connect;
 }
 
-int settingParser::GetSleepTime(std::string filepath)
+int SettingParser::GetSleepTime(std::string filepath)
 {
     std::string str = "";
     Json::Reader reader;

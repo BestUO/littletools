@@ -47,6 +47,8 @@ struct CallBackRules
     std::string delete_flag;
     CallBackRules() : task_id(0), eid(0), api_status(0),callback(0),global_judge(0),
                       call_count(0), auto_recall_max_times(0), auto_recall_status(0), scope_judge(0), uuid(""), api_callback_scene_status("0"), intention_type_judge("000000000000000"), call_result_judge("000000000000000"), auto_recall_scenes(""),delete_flag("0") {}
+    CallBackRules(int task_id,int eid) : task_id(task_id), eid(eid), api_status(0),callback(0),global_judge(0),
+                      call_count(0), auto_recall_max_times(0), auto_recall_status(0), scope_judge(0), uuid(""), api_callback_scene_status("0"), intention_type_judge("000000000000000"), call_result_judge("000000000000000"), auto_recall_scenes(""),delete_flag("0") {}
 };
 
 struct CallBackData
@@ -83,12 +85,11 @@ struct CallBackData
     std::string buttons;
 
     std::string call_progress;
-    std::string url;
     CallBackData() : eid(""), clue_id(""), record_url(""), answer_time(""), hangup_time(""), duration_time(0), transfer_number(""),
                      transfer_duration(0), switch_number(""), manual_status(0), cc_number(""), call_result(0),
                      hangup_type(0), call_time(0), uuid(""), task_id(""), script_name(""), callee_phone(""), caller_phone(""),
                      calllog_txt(""), intention_type("0"), label(""), call_count("0"), match_global_keyword(""),
-                     clue_no(""), collect_info(""), buttons(""), calllog_id(""), call_progress(""), url("") {}
+                     clue_no(""), collect_info(""), buttons(""), calllog_id(""), call_progress("") {}
 };
 
 struct OC_data
@@ -247,36 +248,37 @@ class CallBackManage : public CallRecord
 {
 
 public:
-    WebOcApiData ParsePostData(const std::string &str);
-    void MakeQueueCache(const std::string &str);
-    void CallBackHandle(CallInfo &cm_data, const std::tuple<std::string, std::string, std::string, std::string, std::string,std::string> &id_cluster, const int &class_judge,ormpp::dbng<ormpp::mysql> &mysqlclient);
-    void CmDataSwitch(CallInfo &cm_data, CallBackData &data);
-    void GetOCSyncData(CallBackData &data,ormpp::dbng<ormpp::mysql> &mysqlclient);
-    void ParseIntetionAndCallResult(CallBackRules &rules);
-    CallBackRules MakeCallBackRulesFromMySql(const std::tuple<std::string, std::string, std::string,std::string, std::string, std::string> &id_cluster,ormpp::dbng<ormpp::mysql> &mysqlclient);
-    std::string SetRulesRedisCache(const CallBackRules &rules);
-    bool GetRulesFromRedis(CallBackRules &rules);
-    bool CallBackJudge(const CallBackRules &rules, const CallBackData &data);
-    bool OC_sync_judge(const std::string &calllog_id,ormpp::dbng<ormpp::mysql> &mysqlclient);
-    CallBackData CacheCmJsonSwitch(const std::string &cm_data);
-    std::string MergeCacheJson(const CallBackData &data, const std::string &redis_cache);
-    std::string GetCallRecordFromCm( CallBackData &data,ormpp::dbng<ormpp::mysql> &mysqlclient);
-    std::pair<std::string, std::string> GetSignkey(std::string keyname, std::string signatureKey, const uint id,ormpp::dbng<ormpp::mysql> &mysqlclient);
+    static WebOcApiData ParsePostData(const std::string &str);
+    static void MakeQueueCache(const std::string &str, ormpp::dbng<ormpp::mysql> &mysqlclient);
+    static void CallBackHandle(CallInfo &cm_data, const std::tuple<std::string, std::string, std::string, std::string, std::string,std::string> &id_cluster,ormpp::dbng<ormpp::mysql> &mysqlclient);
+    static void CmDataSwitch(CallInfo &cm_data, CallBackData &data);
+    static void GetOCSyncData(CallBackData &data,ormpp::dbng<ormpp::mysql> &mysqlclient);
+    static void ParseIntetionAndCallResult(CallBackRules &rules);
+    static CallBackRules MakeCallBackRulesFromMySql(const std::string &eid, const std::string &taskid, ormpp::dbng<ormpp::mysql> &mysqlclient);
+    static std::string SetRulesRedisCache(const CallBackRules &rules);
+    static CallBackRules GetRulesFromRedis(const std::string &eid, const std::string &taskid);
+    static bool CallBackJudge(const CallBackRules &rules, const CallBackData &data);
+    static bool OC_sync_judge(const std::string &calllog_id,ormpp::dbng<ormpp::mysql> &mysqlclient);
+    static CallBackData CacheCmJsonSwitch(const std::string &cm_data);
+    static std::string MergeCacheJson(const CallBackData &data, const std::string &redis_cache);
+    static std::string GetCallRecordFromCm( CallBackData &data,ormpp::dbng<ormpp::mysql> &mysqlclient);
+    static std::pair<std::string, std::string> GetSignkey(std::string keyname, std::string signatureKey, const uint id,ormpp::dbng<ormpp::mysql> &mysqlclient);
     template <typename... Args>
     static std::string GetParas(std::string params, Args... args);
-    std::string PostUrl2(std::string keyname, std::string signatureKey, const std::string &url, const std::string &post_param, bool usepost);
+    static std::string PostUrl2(std::string keyname, std::string signatureKey, const std::string &url, const std::string &post_param, bool usepost);
 
-    void MutipleCallBackManage(CallBackData data, CallBackRules rule, const int &class_judge, const std::tuple<std::string,std::string, std::string, std::string, std::string, std::string> &id_cluster, const bool &callback_class,ormpp::dbng<ormpp::mysql> &mysqlclient);
-    std::string GetCallBackUrl(const std::string &eid,ormpp::dbng<ormpp::mysql> &mysqlclient);
-    void CallBackAction(const std::string &data, const std::string &url);
-    void PrepareId(CallBackData &data, CallBackRules &rule, const std::string &wherecondition, std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> &id_cluster, ormpp::dbng<ormpp::mysql> &mysqlclient);
-    void CacheCmData(const CallBackData &data, std::string &result, const int &class_judge,ormpp::dbng<ormpp::mysql> &mysqlclient);
+    static void MutipleCallBackManage(CallBackData &data, ormpp::dbng<ormpp::mysql> &mysqlclient);
+    static std::string GetCallBackUrl(const std::string &eid,ormpp::dbng<ormpp::mysql> &mysqlclient);
+    static void CallBackAction(const std::string &data, const std::string &url);
+    static void PrepareId(CallBackData &data, const std::string &wherecondition, ormpp::dbng<ormpp::mysql> &mysqlclient);
+    static void CacheCmData(const CallBackData &data,const std::string &real_data, const int &class_judge,ormpp::dbng<ormpp::mysql> &mysqlclient);
 // private:
-    bool AutoTaskMatch(const CallBackRules &rules, const CallBackData &data);
+    static bool AutoTaskMatch(const CallBackRules &rules, const CallBackData &data);
     
-    std::string MakeCacheJson(const CallBackData &data);
-    void ParseApiCallbackSceneStatus(CallBackRules &rules);
-    std::string CollectInfoXML2JSON(const std::string &xml);
+    static std::string MakeCacheJson(const CallBackData &data);
+    static void ParseApiCallbackSceneStatus(CallBackRules &rules);
+    static std::string CollectInfoXML2JSON(const std::string &xml);
+    static CallBackRules GetRulesFromRedis(const std::string &eid, const std::string &taskid, const std::string rule_value);
 };
 
 #endif

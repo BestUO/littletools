@@ -18,21 +18,19 @@
 class UpdateMessage
 {
 public:
-    void HandleSQL(std::string &s,ormpp::dbng<ormpp::mysql> &mysqlclient,const int &class_judge = 0,const std::string &calllog_id="");
-    std::tuple<std::string, std::string,std::string,std::string,std::string,std::string> GetIdFromMysql(ormpp::dbng<ormpp::mysql> &mysqlclient,const std::string &wherecondition);
+    static void HandleSQL(std::string &message_from_cm, ormpp::dbng<ormpp::mysql> &mysqlclient,const std::string &wherecondition = "",const std::string &calllog_id="");
+    static std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> GetIdFromMysql(ormpp::dbng<ormpp::mysql> &mysqlclient,const std::string &wherecondition);
 private: 
-    void UpdateCalllog(CallInfo &callog,const std::string &id,ormpp::dbng<ormpp::mysql> &mysqlclient);
-    void UpdateOutCallClue(CallInfo &callog,std::string &clue_id,ormpp::dbng<ormpp::mysql> &mysqlclient);
-    void UpdateAiCalllogExtension(CallInfo &callog,std::string &calllog_id,ormpp::dbng<ormpp::mysql> &mysqlclient);
-    void CheckAndUpdateAicallCalllogContinuousSync(CallInfo &callog,const std::string &id,ormpp::dbng<ormpp::mysql> &mysqlclient);
-    void UpdateAicallCalllogSubsidiary(const std::string &calllog_id,ormpp::dbng<ormpp::mysql> &mysqlclient);
-    void ExecuteCommand(std::string &s,std::string children_db_name,ormpp::dbng<ormpp::mysql> &mysqlclient);
-    void CheckCallResultSilence(CallInfo &callog,ormpp::dbng<ormpp::mysql> &mysqlclient,const std::string &wherecondition);//if callresult from sql is 1 ,donot update cm's callresult
+    static void UpdateCalllog(CallInfo &callog,const std::string &id,ormpp::dbng<ormpp::mysql> &mysqlclient);
+    static void UpdateOutCallClue(CallInfo &callog,std::string &clue_id,ormpp::dbng<ormpp::mysql> &mysqlclient);
+    static void UpdateAiCalllogExtension(CallInfo &callog,std::string &calllog_id,ormpp::dbng<ormpp::mysql> &mysqlclient);
+    static void CheckAndUpdateAicallCalllogContinuousSync(CallInfo &callog,const std::string &id,ormpp::dbng<ormpp::mysql> &mysqlclient);
+    static void UpdateAicallCalllogSubsidiary(const std::string &calllog_id,ormpp::dbng<ormpp::mysql> &mysqlclient);
+    static void ExecuteCommand(std::string &s,std::string children_db_name,ormpp::dbng<ormpp::mysql> &mysqlclient);
+    static void CheckCallResultSilence(CallInfo &callog,ormpp::dbng<ormpp::mysql> &mysqlclient,const std::string &wherecondition);//if callresult from sql is 1 ,donot update cm's callresult
     // int  NewGetHangupCauseFromCallRecord(CallInfo info);
     // int  GetCallResult(int cause); 
-    std::string CalculateTransferManualCost(CallInfo &callog);
-
-
+    static std::string CalculateTransferManualCost(CallInfo &callog);
 };
 
 #endif

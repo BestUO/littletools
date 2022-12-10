@@ -33,13 +33,13 @@ void RedisOperate::CacheData(const std::string &key,const std::string &str,int t
 {
     redis.set(key,str);
     redis.expire(key,std::chrono::seconds(time));
-    LOGGER->info("keys is {}, value is {}, expire timeis {}",str,key,time);
+    LOGGER->info("keys is {}, value is {}, expire timeis {}",key,str,time);
 }
 
 void RedisOperate::CacheData(const std::string &key,const std::string &str)
 {
     redis.set(key,str);
-    LOGGER->info("keys is {}, value is {}",str,key);
+    LOGGER->info("keys is {}, value is {}",key,str);
 }
 
 void RedisOperate::DelKey(const std::string &key)
@@ -54,13 +54,13 @@ void RedisOperate::DelKey(const std::vector<std::string> &key)
 }
 
 
-std::string RedisOperate::SearchRules(const std::string &str)
+std::string RedisOperate::GetValue(const std::string &str)
 {
     auto value = redis.get(str);
     if(value)
         return *value;
     else 
-        return "null";
+        return "";
 }
 
 std::unordered_set<std::string> RedisOperate::GetSetFromRedis(const std::string & set)
