@@ -51,45 +51,76 @@ struct CallBackRules
                       call_count(0), auto_recall_max_times(0), auto_recall_status(0), scope_judge(0), uuid(""), api_callback_scene_status("0"), intention_type_judge("000000000000000"), call_result_judge("000000000000000"), auto_recall_scenes(""),delete_flag("0") {}
 };
 
+struct Record
+{
+    int task_id=0;
+    std::string script_name="";
+    std::string callee_phone="";
+    std::string cc_number="";
+    std::string calllog_txt="";
+    int call_result=0;
+    int call_time=0;
+    int duration=0;
+    int intention_type=0;
+    int manual_status=0;
+    int call_count=0;
+    std::string record_url="";
+    int answer_time=0; // sql confirm_timestamp
+    int hangup_time=0; // end_time
+    std::string match_global_keyword="";
+    int transfer_duration=0;
+    std::string transfer_number="";
+    std::string buttons="";
+    int calllog_id=0;
+    std::string caller_phone="";
+    std::string switch_number="";
+    int hangup_type=0;
+    std::string label="";
+    std::string clue_no="";
+    int call_state = 0;
+};
+
+struct CallBackDataNew
+{
+    std::string uuid="";
+    Record record;
+    std::string clue_id="";
+};
+
 struct CallBackData
 {
-    std::string eid;
-    std::string clue_id;
-    std::string calllog_id;
-    std::string task_id;
+    std::string eid="";
+    std::string clue_id="";
+    std::string calllog_id="";
+    std::string task_id="";
     // May be cm/oc  data
-    std::string record_url;
-    std::string answer_time; // sql confirm_timestamp
-    std::string hangup_time; // end_time
-    int duration_time;
-    std::string transfer_number;
-    int transfer_duration;
-    std::string switch_number;
-    int manual_status;
-    std::string cc_number;
-    int call_result;
-    int hangup_type;
-    int call_time;
+    std::string record_url="";
+    std::string answer_time=""; // sql confirm_timestamp
+    std::string hangup_time=""; // end_time
+    int duration_time=0;
+    std::string transfer_number="";
+    int transfer_duration=0;
+    std::string switch_number="";
+    int manual_status=0;
+    std::string cc_number="";
+    int call_result=0;
+    int hangup_type=0;
+    int call_time=0;
     // OC_data
-    std::string uuid;
-    std::string script_name;
-    std::string callee_phone;
-    std::string caller_phone;
-    std::string calllog_txt;
-    std::string intention_type;
-    std::string label;
-    std::string call_count;
-    std::string match_global_keyword;
-    std::string clue_no;
-    std::string collect_info;
-    std::string buttons;
+    std::string uuid="";
+    std::string script_name="";
+    std::string callee_phone="";
+    std::string caller_phone="";
+    std::string calllog_txt="";
+    std::string intention_type="0";
+    std::string label="";
+    std::string call_count="0";
+    std::string match_global_keyword="";
+    std::string clue_no="";
+    std::string collect_info="";
+    std::string buttons="";
 
-    std::string call_progress;
-    CallBackData() : eid(""), clue_id(""), record_url(""), answer_time(""), hangup_time(""), duration_time(0), transfer_number(""),
-                     transfer_duration(0), switch_number(""), manual_status(0), cc_number(""), call_result(0),
-                     hangup_type(0), call_time(0), uuid(""), task_id(""), script_name(""), callee_phone(""), caller_phone(""),
-                     calllog_txt(""), intention_type("0"), label(""), call_count("0"), match_global_keyword(""),
-                     clue_no(""), collect_info(""), buttons(""), calllog_id(""), call_progress("") {}
+    std::string call_progress="";
 };
 
 struct OC_data

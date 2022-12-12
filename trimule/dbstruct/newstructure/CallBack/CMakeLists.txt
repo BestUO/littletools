@@ -8,7 +8,6 @@ add_library(${PROJECT_NAME} CallBack.cpp CallBack.h CmDataCache.h CmDataCache.cp
 set(CallBackProject CallBa)
 set(CallBackProject_SOURCE CallBack.cpp)
 
-
 find_package(OpenSSL REQUIRED) 
 # find_package(CURL REQUIRED) 
 include_directories(${CURL_INCLUDE_DIR})

@@ -190,7 +190,6 @@ void UpdateMessage::UpdateAicallCalllogSubsidiary(const std::string &calllog_id,
 }
 void UpdateMessage::ExecuteCommand(std::string &sql_command, std::string children_db_name, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
-
 	LOGGER->info("update command is {}", sql_command);
 	if (sql_command == "no command")
 		LOGGER->info("{}", children_db_name + " update failed ,no command");

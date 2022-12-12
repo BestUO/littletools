@@ -31,6 +31,8 @@
 #define SPDLOGGERNAME "TrimuleLogger"
 #define LOGGER spdlog::get(SPDLOGGERNAME)
 
+#include "synicmanager.hpp"
+
 void initspdlog()
 {
     spdlog::flush_every(std::chrono::seconds(5));
@@ -167,7 +169,7 @@ int CallBackActionQueue()
     return 0;
 }
 
-int main()
+void oldfun()
 {
     initspdlog();
     auto config = JsonSimpleWrap::GetPaser("conf/trimule_config.json");
@@ -192,7 +194,132 @@ int main()
     call_back_action_queue.detach();
 
     server.run();
-   
+}
+
+template <class T>
+class UpdateMySQLWorker : public Worker<T>
+{
+public:
+    UpdateMySQLWorker(std::shared_ptr<T> queue) : Worker<T>(queue){};
+
+protected:
+    virtual void WorkerRun(bool original)
+    {
+        ormpp::dbng<ormpp::mysql> mysqlclient;
+        sqlconnect conne = SettingParser::GetSettinghParser("conf/trimule_config.json");
+        mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str(), conne.db_timeout, conne.db_port);
+        while (!Worker<T>::_stop)
+        {
+            auto e = Worker<T>::_queue->GetObjBulk();
+            if (e)
+            {
+                while (!e->empty())
+                {
+                    DealElement(mysqlclient, std::move(e->front()));
+                    e->pop();
+                }
+            }
+            else
+            {
+                if (!original)
+                    break;
+                Worker<T>::_queue->WaitComingObj();
+            }
+        }
+    }
+
+    virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
+    DealElement(ormpp::dbng<ormpp::mysql> &mysqlclient, std::string &&message)
+    {
+        std::string calllog_id = std::move(MessageProcess::UpdateAllInfo(message,mysqlclient));
+        if(1)
+        {
+            std::string cbstring = MessageProcess::GetCallBackString(std::move(calllog_id), mysqlclient);
+            LOGGER->info("callbac info is {}",cbstring);
+        }
+    }
+};
+
+template <class T>
+void SetHttpHandler(cinatra::http_server &server, T threadpool)
+{
+    server.set_http_handler<cinatra::GET, cinatra::POST>("/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
+    {
+        LOGGER->info("/ receive message is {}",std::string(req.body()));
+        auto [check_res,ccnumber] = CallRecord::CheckCCNumber(req.body());
+
+        auto instance = SynicManager::GetInstance();
+        if(auto opt=instance->GetFromSynicMap(ccnumber);opt != std::nullopt)
+        {
+            threadpool->EnqueueStr(std::move(std::move(req.body().data())));
+            instance->DeleteFromSynicMap(ccnumber);
+        }
+        else
+            instance->InsertToSynicMap(ccnumber,req.body());
+        res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+std::to_string(check_res)+"\"}"); 
+    });
+
+    server.set_http_handler<cinatra::GET, cinatra::POST>("/trimule/ocready/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
+    {
+        //checkweboc data
+        LOGGER->info("/trimule/ocready/ receive message is {}",std::string(req.body()));
+        auto [check_res,ccnumber] = CallRecord::CheckCCNumber(req.body());
+
+        auto instance = SynicManager::GetInstance();
+        if(auto opt=instance->GetFromSynicMap(ccnumber);opt != std::nullopt)
+        {
+            threadpool->EnqueueStr(std::move(opt.value().data()));
+            instance->DeleteFromSynicMap(ccnumber);
+        }
+        else
+            instance->InsertToSynicMap(ccnumber,req.body());
+		res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+std::to_string(check_res)+"\"}"); 
+    });
+
+
+    server.set_http_handler<cinatra::GET, cinatra::POST>("/trimule/synicfromcm/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
+    {
+        //checkweboc data
+        LOGGER->info("/trimule/syniccm/ receive message is {}",std::string(req.body()));
+        auto [check_res,ccnumber] = CallRecord::CheckCCNumber(req.body());
+        if(check_res==CallRecord::RESPONSECODE::SUCCESS)
+        {
+            ormpp::dbng<ormpp::mysql> mysqlclient;
+            sqlconnect conne = SettingParser::GetSettinghParser("conf/trimule_config.json");
+            mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str(), conne.db_timeout, conne.db_port);
+
+            SynicManager::GetInstance()->DeleteFromSynicMap(ccnumber);
+            // std::string message = MessageProcess::GetCallRecordFromCm(ccnumber, mysqlclient);
+            // threadpool->EnqueueStr(std::move(message));
+        }
+
+		res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+std::to_string(check_res)+"\"}"); 
+    });
+}
+
+
+void newfun()
+{
+    initspdlog();
+    auto config = JsonSimpleWrap::GetPaser("conf/trimule_config.json");
+    int max_thread_num = 1;
+    cinatra::http_server server(max_thread_num);
+    server.listen((*config)["httpserver_setting"]["host"].GetString(), (*config)["httpserver_setting"]["port"].GetString());
+
+
+    using QueueType = std::conditional_t<false, LockQueue<std::string>, FreeLockRingQueue<std::string>>;
+    auto queuetask = std::shared_ptr<QueueType>(new QueueType);
+    std::shared_ptr<Worker<QueueType>> worker = std::make_shared<UpdateMySQLWorker<QueueType>>(queuetask);
+    std::shared_ptr<ThreadPool<QueueType>> threadpool(new ThreadPool(queuetask, worker, 2, 2));
+
+    SetHttpHandler(server, threadpool);
+
+    server.run();
+}
+
+int main()
+{
+    newfun();
 
   
     return 0;

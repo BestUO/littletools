@@ -343,3 +343,21 @@ int CallRecord::GetCallResult(int &stop_reason, int &customer_fail_reason)
         return CallResult::CALL_FAIL;
     }
 }
+
+std::tuple<CallRecord::RESPONSECODE,std::string> CallRecord::CheckCCNumber(std::string_view body)
+{
+    Json::Reader reader;
+    Json::Value root;
+
+    if (reader.parse(body.data(), root))
+    {
+        auto records = root["records"];
+        if (records.isArray() && records.size() > 0)
+        {
+            auto record = records[0];
+            if (!record["cc_number"].isNull() && record["cc_number"].asString() != "")
+                return {RESPONSECODE::SUCCESS, record["cc_number"].asString()};
+        }
+    }
+    return {RESPONSECODE::FAIL,""};
+}

@@ -20,8 +20,8 @@ class UpdateMessage
 public:
     static void HandleSQL(std::string &message_from_cm, ormpp::dbng<ormpp::mysql> &mysqlclient,const std::string &wherecondition = "",const std::string &calllog_id="");
     static std::tuple<std::string, std::string, std::string, std::string, std::string, std::string> GetIdFromMysql(ormpp::dbng<ormpp::mysql> &mysqlclient,const std::string &wherecondition);
-private: 
     static void UpdateCalllog(CallInfo &callog,const std::string &id,ormpp::dbng<ormpp::mysql> &mysqlclient);
+public:
     static void UpdateOutCallClue(CallInfo &callog,std::string &clue_id,ormpp::dbng<ormpp::mysql> &mysqlclient);
     static void UpdateAiCalllogExtension(CallInfo &callog,std::string &calllog_id,ormpp::dbng<ormpp::mysql> &mysqlclient);
     static void CheckAndUpdateAicallCalllogContinuousSync(CallInfo &callog,const std::string &id,ormpp::dbng<ormpp::mysql> &mysqlclient);

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <json/json.h>
+#include <string_view>
 
 struct CallInfo 
 {
@@ -80,6 +81,11 @@ class CallRecord{
         static int GetHangupType(int &stop_reason,int &customer_fail_reason);
         static int GetCallResult(int &stop_reason,int &customer_fail_reason);
          
+    private:
+        enum RESPONSECODE{SUCCESS,FAIL};
+    public:
+        static std::tuple<RESPONSECODE,std::string> CheckCCNumber(std::string_view body);
+
  };
 
 #endif

@@ -1,5 +1,4 @@
-#ifndef DATACACHE_H
-#define DATACACHE_H
+#pragma once
 #include "CallBack.h"
 #include <unordered_set>
 #include <vector>
@@ -11,9 +10,7 @@
 #include "spdlog/async.h"
 #include "../UpdateCalllog/UpdateCalllog.h"
 #include "HttpRequester.h"
-#define SPDLOG_FILENAME "log/TrimuleLogger.log"
-#define SPDLOGGERNAME "TrimuleLogger"
-#define LOGGER spdlog::get(SPDLOGGERNAME)
+#include "global.hpp"
 
 struct IdMuster{
     std::string calllog_id;
@@ -38,4 +35,25 @@ public:
    
 };
 
-#endif
+class MessageProcess
+{
+public:
+    static std::string UpdateAllInfo(std::string_view message, ormpp::dbng<ormpp::mysql> &mysqlclient);
+    static std::string GetCallBackString(std::string_view calllog_id, ormpp::dbng<ormpp::mysql> &mysqlclient);
+    static std::string GetCallRecordFromCm(std::string_view calllog_id, ormpp::dbng<ormpp::mysql> &mysqlclient);
+private:
+    static CallInfo GetCallRecord(std::string_view real_data, int framework_class);
+    static int GetManualType(int &stop_reason, int &customer_fail_reason,int &conversation_type);
+    static int GetHangupType(int &stop_reason,int &customer_fail_reason);
+    static int GetCallResult(int &stop_reason,int &customer_fail_reason);
+    static auto GetIdsWithCCNumber(ormpp::dbng<ormpp::mysql> &mysqlclient,const std::string &cc_number);
+
+    static void GetLabelInfo(CallBackDataNew &data, std::string_view calllog_id, ormpp::dbng<ormpp::mysql> &mysqlclient);
+    static void GetCallLogInfo(CallBackDataNew &data, std::string_view calllog_id, ormpp::dbng<ormpp::mysql> &mysqlclient);
+    static void GetCallLogExtensionInfo(CallBackDataNew &data, std::string_view calllog_id, ormpp::dbng<ormpp::mysql> &mysqlclient);
+    static void GetClueInfo(CallBackDataNew &data, ormpp::dbng<ormpp::mysql> &mysqlclient);
+    static void GetTaskInfo(CallBackDataNew &data, ormpp::dbng<ormpp::mysql> &mysqlclient);
+    static std::string GenerateCallBackString(CallBackDataNew &data);
+    static std::string CollectInfoXML2JSON(const std::string &xml);
+    static std::vector<std::string> Split(const std::string& str, const std::string& delims);
+};

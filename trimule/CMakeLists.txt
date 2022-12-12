@@ -4,6 +4,7 @@ add_definitions(-DORMPP_ENABLE_MYSQL)
 include_directories(${THIRD_PARTY_PATH}/include)
 include_directories(${THIRD_PARTY_PATH}/include/cinatra)
 include_directories(${PROJECT_SOURCE_DIR}/tools)
+include_directories(${PROJECT_SOURCE_DIR}/trimule)
 include_directories(${PROJECT_SOURCE_DIR})
 
 link_directories(${THIRD_PARTY_PATH}/lib)
@@ -31,6 +32,6 @@ COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/README.md ${
 )
 
 set(TOOL_COMPOSE trimule)
-set(TOOL_COMPOSE_SOURCE trimule.cpp)
+set(TOOL_COMPOSE_SOURCE trimule.cpp synicmanager.hpp)
 add_executable(${TOOL_COMPOSE} ${TOOL_COMPOSE_SOURCE})
 target_link_libraries(${TOOL_COMPOSE} pthread mysqlclient jsoncpp settingparser GetCallRecord redisclient CallBack)
