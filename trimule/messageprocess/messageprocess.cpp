@@ -1,288 +1,12 @@
-#include <iostream>
-#include "CmDataCache.h"
-#include <ctime>
-#include "../../../redispool/redisclient.h"
-
-void DataCache::PollingQueue()
-{
-    std::vector<std::string> list;
-    RedisOperate instance;
-    std::string list_name = "cm_id_cluster";
-    ormpp::dbng<ormpp::mysql> mysqlclient;
-    sqlconnect conne = SettingParser::GetSettinghParser("conf/trimule_config.json");
-    std::string port = to_string(conne.db_port);
-    try
-    {
-        if(!mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str(), conne.db_timeout, conne.db_port))
-        throw 1;
-    }
-    catch (int i)
-    {
-        if(i)
-            LOGGER->info("mysql maybe error ,please take a check ");
-        return;
-    }
-    
-    int sleep_judge = 0;
-    int time = SettingParser::GetSleepTime("conf/trimule_config.json");
-    LOGGER->info("PollingQueue sleep time is {} second", time);
-    while (true)
-    {
-        if (list.empty())
-        {
-            list = instance.GetListFromRedis(list_name);
-            if (list.empty())
-            {
-                sleep(time);
-                continue;
-            }
-        }
-        for (auto &key : list)
-        {
-            LOGGER->info("from {} key is {}", list_name, key);
-            IdMuster muster = ParseCmId(key);
-            if (muster.time != "oc" && muster.time != "web" && muster.time != "now")
-            {
-                std::string cm_data_cache = instance.GetValue(key);
-                
-                if (!cm_data_cache.empty())
-                {
-                    CallBackData data = CacheCmJsonSwitch(cm_data_cache);
-                    CallBackRules rule = GetRulesFromRedis(data.eid, data.task_id);
-                    std::string wherecondition = R"(id = ')" + muster.calllog_id + R"(')";
-                    PrepareId(data, wherecondition, mysqlclient);
-
-                    if (OC_sync_judge(muster.calllog_id, mysqlclient) || CheckTimeOut(muster))
-                    {
-                        instance.DelKey(key);
-                        instance.LREMForList(list_name, {key});
-                        GetOCSyncData(data, mysqlclient);
-                        if (CallBackJudge(rule, data))
-                        {
-                            // callback
-                            std::string caback_data = MergeCacheJson(data, cm_data_cache);
-                            CallBackManage::CacheCmData(data, caback_data, 2, mysqlclient);
-                        }
-                    }
-                    else
-                        sleep(time);
-                }
-                else
-                {
-                    instance.LREMForList(list_name, {key});
-                    LOGGER->info("null cm_data_cache ,donot callback");
-                }
-            }
-        }
-        list.clear();
-    }
-}
-
-void DataCache::OcWebPollingQueue()
-{
-    std::vector<std::string> list;
-    RedisOperate instance;
-    std::string list_name = "cm_id_cluster_ocweb";
-    ormpp::dbng<ormpp::mysql> mysqlclient;
-    sqlconnect conne = SettingParser::GetSettinghParser("conf/trimule_config.json");
-
-    try
-    {
-        if(!mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str(), conne.db_timeout, conne.db_port))
-        throw 1;
-    }
-    catch (int  i)
-    {
-        if(i)
-        {
-            LOGGER->info("mysql maybe error ,please take a check ");
-            cout<<"mysql error"<<endl;
-        }
-        return;
-    }
-
-    int time = SettingParser::GetSleepTime("conf/trimule_config.json");
-
-    LOGGER->info("OcWebPollingQueue  sleep time is {} second", time);
-    while (true)
-    {
-        if (list.empty())
-        {
-            list = instance.GetListFromRedis(list_name);
-            if (list.empty())
-            {
-                sleep(time);
-                continue;
-            }
-        }
-        for (auto &key : list)
-        {
-            LOGGER->info("from {} key is {}", list_name, key);
-            IdMuster muster = ParseCmId(key);
-
-            std::string wherecondition = "";
-            if (muster.time == "cm_whole")
-                wherecondition = R"(cc_number = ')" + muster.calllog_id + R"(')";
-            else
-                wherecondition = R"(id = ')" + muster.calllog_id + R"(')";
-
-            if (muster.calllog_id != "")
-            {
-                CallBackData data;
-                PrepareId(data, wherecondition, mysqlclient); // muster.calllog_id  maybe  cc_number
-                if (!OC_sync_judge(data.calllog_id, mysqlclient) && !CheckTimeOut(muster))
-                {
-                    LOGGER->info("calllog {} not sync ", data.calllog_id);
-                    sleep(time);
-                    continue;
-                }
-
-                std::string message_from_cm = "";
-                if (muster.time == "web")
-                    message_from_cm = GetCallRecordFromCm(data, mysqlclient);
-                else if (muster.time == "oc")
-                {}
-                else if (muster.time == "cm_whole")
-                    message_from_cm = instance.GetValue(key);
-
-                if (data.calllog_id != "" && !message_from_cm.empty())
-                    UpdateMessage::HandleSQL(message_from_cm, mysqlclient, wherecondition, data.calllog_id);
-            }
-            else
-                LOGGER->info("cc_number or calllog_id is null ,key is {} ,delete it",key);
-            instance.DelKey(key);
-            instance.LREMForList(list_name, {key});
-        }
-        list.clear();
-    }
-}
-
-void DataCache::CallBackActionQueue()
-{
-    std::vector<std::string> list;
-    RedisOperate instance;
-    std::string list_name = "cm_id_cluster_now";
-    int time = SettingParser::GetSleepTime("conf/trimule_config.json");
-    LOGGER->info("CallBackActionQueue  sleep time is {} second", time);
-    while (true)
-    {
-        if (list.empty())
-        {
-            list = instance.GetListFromRedis(list_name);
-            if (list.empty())
-            {
-                sleep(time);
-                continue;
-            }
-        }
-        for (auto &key : list)
-        {
-            LOGGER->info("from {} key is {}", list_name, key);
-            IdMuster muster = ParseCmId(key);
-            if (muster.time == "now")
-            {
-                std::string data_cache = instance.GetValue(key);
-                LOGGER->info("begin call back!!!  data is {}", data_cache);
-                if(!data_cache.empty())
-                    CallBackAction(data_cache, muster.url);
-            }
-            instance.DelKey(key);
-            instance.LREMForList(list_name, {key});
-        }
-        list.clear();
-    }
-}
-
-IdMuster DataCache::ParseCmId(std::string_view key)
-{
-    IdMuster muster;
-    int pos1 = 0, pos2 = 0;
-
-    int delimcount = count(key.begin(), key.end(), '-');
-
-    if (delimcount == 1)
-    {
-
-        pos1 = key.rfind("-");
-        muster.calllog_id = key.substr(0, pos1);
-        muster.time = key.substr(pos1 + 1, (key.size() - pos1 - 1));
-
-    }
-    else
-    {
-        pos1 = key.rfind("-");
-        int pos2 = key.substr(0,pos1).rfind("-");
-        muster.calllog_id = key.substr(0, pos2);
-        muster.url = key.substr(pos2 + 1, pos1-pos2-1);
-        muster.time = key.substr(pos1 + 1, pos2 - pos1 - 1);
-    }
-
-    return muster;
-}
-
-int stoi_l(const std::string &str)
-{
-    int i = 0;
-    try
-    {
-        i = std::stoi(str);
-    }
-    catch (...)
-    {
-    }
-    return i;
-}
-
-
-bool DataCache::CheckTimeOut(const IdMuster &muster)
-{
-    auto now = time(NULL);
-    std::stringstream sstream;
-    sstream << now;
-    std::string time_ = sstream.str();
-    if (stoi(time_) - stoi_l(muster.time) >= 600)
-    {
-        LOGGER->info("Callback_data is timeout,force callback");
-        return 1;
-    }
-    else
-        return 0;
-}
-
-void DataCache::CheckUnUpdateId(const std::string &eid, const std::string &mini_time, const std::string &max_time)
-{
-    ormpp::dbng<ormpp::mysql> mysqlclient;
-    sqlconnect conne = SettingParser::GetSettinghParser("conf/trimule_config.json");
-    try
-    {
-        if(!mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str(), conne.db_timeout, conne.db_port))
-        throw 1;
-    }
-    catch (int  i)
-    {
-        if(i)
-        {
-            LOGGER->info("mysql maybe error ,please take a check ");
-            cout<<"mysql error"<<endl;
-        }
-        return;
-    }
-    // mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str(), conne.db_timeout, conne.db_port);
-
-    auto res = mysqlclient.query<std::tuple<std::string>>("SELECT id from calllog WHERE enterprise_uid = " + eid + " and create_time >= " + mini_time + " and create_time <= " + max_time + " and id in (select calllog_id from aicall_calllog_subsidiary where update_status = 0) ");
-
-    LOGGER->info("code is SELECT id from calllog WHERE enterprise_uid =  {}  and create_time >= {} and create_time <= {} and id in (select calllog_id from aicall_calllog_subsidiary where update_status = 0) ", eid, mini_time, max_time);
-
-    LOGGER->info("Trimule may has core,so we has found {} calllog has not update now.", res.size());
-
-    for (int i = 0; i < res.size(); i++)
-    {
-        CallBackData data;
-        data.calllog_id = std::get<0>(res[i]);
-        LOGGER->info("calllog is {}", data.calllog_id);
-        CacheCmData(data, "", 1, mysqlclient);
-    }
-}
+#include "messageprocess.h"
+#include "dbupdate.h"
+#include "httpclient/HttpRequester.h"
+#include "global.hpp"
+#include "json/json.h"
+#include "tinyxml2/tinyxml2.h"
+#include "rapidjson/rapidjson.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/document.h"
 
 CallInfo MessageProcess::GetCallRecord(std::string_view real_data, int framework_class)
 {
@@ -310,7 +34,7 @@ CallInfo MessageProcess::GetCallRecord(std::string_view real_data, int framework
             int num;
             std::string::size_type pos = str.find("秒");
             if (pos == std::string::npos)
-                return stoi(str);
+                return std::stoi(str);
             for (int i = 0; i < str.size(); i++)
             {
                 if (str[i] < 0)
@@ -319,7 +43,7 @@ CallInfo MessageProcess::GetCallRecord(std::string_view real_data, int framework
                     break;
                 }
             }
-            return stoi(str);
+            return std::stoi(str);
         };
         // if (!data.isObject() || data["enterprise_type"].isNull() || data["record_url"].isNull() ||
         //     data["records"].isNull())
@@ -344,7 +68,7 @@ CallInfo MessageProcess::GetCallRecord(std::string_view real_data, int framework
                     return result;
 
                 auto &call_type = record["call_type"];
-                int type = call_type.isString() && !call_type.isNull() ? stoi(call_type.asString()) : 1;
+                int type = call_type.isString() && !call_type.isNull() ? std::stoi(call_type.asString()) : 1;
                 auto &duration_time = !record["valid_duration"].isNull() == true ? record["valid_duration"] : record["duration_time"];
                 auto &end_time = record["end_time"];
                 auto &call_state = record["call_state"];
@@ -354,7 +78,7 @@ CallInfo MessageProcess::GetCallRecord(std::string_view real_data, int framework
                     result.cc_number = record["cc_number"].asString();
 
                 if (record["customer_fail_reason"].asString() != "0")
-                    result.customer_fail_reason = stoi(record["customer_fail_reason"].asString());
+                    result.customer_fail_reason = std::stoi(record["customer_fail_reason"].asString());
 
                 result.stop_reason = record["stop_reason"].asInt();
 
@@ -381,14 +105,14 @@ CallInfo MessageProcess::GetCallRecord(std::string_view real_data, int framework
                     int motinor_duration = 0;
                     if (conversation_time.asString() != "" && conversation_time.asString() != "0" && transfer_confirm_time.asString() != "" && transfer_confirm_time.asString() != "0")
                     {
-                        motinor_duration = stoi(conversation_time.asString()) - stoi(transfer_confirm_time.asString());
+                        motinor_duration = std::stoi(conversation_time.asString()) - std::stoi(transfer_confirm_time.asString());
                     }
 
                     if (transfer_manual_cost.isString())
                     {
                         int duration = 0;
                         if(transfer_manual_cost.asString() != "" && transfer_manual_cost.asString() != "0")
-                            duration = stoi(transfer_manual_cost.asString());//oc transfer_manual_cost = ring_duration + monitor_duration
+                            duration = std::stoi(transfer_manual_cost.asString());//oc transfer_manual_cost = ring_duration + monitor_duration
                         
                         result.transfer_manual_cost = std::to_string(duration + motinor_duration);
                     }
@@ -406,7 +130,7 @@ CallInfo MessageProcess::GetCallRecord(std::string_view real_data, int framework
                     if (transfer_confirm_time.isString())
                         result.transfer_confirm_time = transfer_confirm_time.asString();
                     if (call_state.isString())
-                        result.transfer_call_state = stoi(call_state.asString(), 0);
+                        result.transfer_call_state = std::stoi(call_state.asString(), 0);
 
                     if (send_query_msg_timestamp.isString())
                         result.send_query_msg_timestamp = std::string(send_query_msg_timestamp.asString());
@@ -414,7 +138,7 @@ CallInfo MessageProcess::GetCallRecord(std::string_view real_data, int framework
                         result.send_invite_timestamp = std::string(send_invite_timestamp.asString());
 
                     // int monitor_duration = 0;
-                    // if(stoi)
+                    // if(std::stoi)
                 }
                 else if(result.flow_number == 0 )// ai_
                 {
@@ -436,36 +160,36 @@ CallInfo MessageProcess::GetCallRecord(std::string_view real_data, int framework
                         result.duration_time = remove_Chinese(duration_time.asString());
 
                     if (call_state.isString())
-                        result.call_state = stoi(call_state.asString(), 0);
+                        result.call_state = std::stoi(call_state.asString(), 0);
                     if (start_time.isString())
                         result.start_time = start_time.asString();
                     if (call_type.isString())
-                        result.call_type = stoi(call_type.asString());
+                        result.call_type = std::stoi(call_type.asString());
 
                     result.switch_number = !record["switch_number"].isNull() ? record["switch_number"].asString() : "";
                 }
                 if (framework_class == 2)
                 {
-                    auto str_associaction = [=](string str, int class_judge) -> string
+                    auto str_associaction = [=](std::string str, int class_judge) -> std::string
                     {
-                        if (stoi(str) >= 0 && stoi(str) <= 9)
+                        if (std::stoi(str) >= 0 && std::stoi(str) <= 9)
                         {
-                            string str1 = class_judge == 2 ? "20" : "10";
+                            std::string str1 = class_judge == 2 ? "20" : "10";
                             return str1 + str;
                         }
                         else
                         {
-                            string str1 = class_judge == 2 ? "2" : "1";
+                            std::string str1 = class_judge == 2 ? "2" : "1";
                             return str1 + str;
                         }
                     };
                     if (result.customer_fail_reason != 0)
                     {
-                        result.call_state = stoi(str_associaction(std::to_string(result.customer_fail_reason), 2));
+                        result.call_state = std::stoi(str_associaction(std::to_string(result.customer_fail_reason), 2));
                     }
                     else if (result.stop_reason != 0)
                     {
-                        result.call_state = stoi(str_associaction(to_string(result.stop_reason), 1));
+                        result.call_state = std::stoi(str_associaction(std::to_string(result.stop_reason), 1));
                     }
                 }
             }
@@ -561,7 +285,7 @@ auto MessageProcess::GetIdsWithCCNumber(ormpp::dbng<ormpp::mysql> &mysqlclient,c
         return type();
 }
 
-std::string MessageProcess::UpdateAllInfo(std::string_view message, ormpp::dbng<ormpp::mysql> &mysqlclient)
+std::tuple<std::string,std::string,std::string> MessageProcess::UpdateAllInfo(std::string_view message, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
 	LOGGER->info("UpdateAllInfo message {}", message);
 	CallInfo callog = GetCallRecord(message, 2);
@@ -572,7 +296,7 @@ std::string MessageProcess::UpdateAllInfo(std::string_view message, ormpp::dbng<
     UpdateMessage::UpdateAiCalllogExtension(callog, calllog_id, mysqlclient);
     UpdateMessage::UpdateAicallCalllogSubsidiary(calllog_id, mysqlclient);
     LOGGER->info("calllog_id is {},clue_id is {},task_id is {},eid is {}", calllog_id, clue_id, task_id, eid);
-    return calllog_id;
+    return {calllog_id,task_id,eid};
 }
 
 std::string MessageProcess::CollectInfoXML2JSON(const std::string &xml)
@@ -609,7 +333,7 @@ std::string MessageProcess::CollectInfoXML2JSON(const std::string &xml)
     return jsonstr;
 }
 
-std::string MessageProcess::GenerateCallBackString(CallBackDataNew &data)
+std::string MessageProcess::GenerateCallBackString(CallBackData &data)
 {
     rapidjson::Document doc;
     rapidjson::Document::AllocatorType &allocator = doc.GetAllocator();
@@ -660,7 +384,7 @@ std::string MessageProcess::GenerateCallBackString(CallBackDataNew &data)
 std::string MessageProcess::GetCallBackString(std::string_view calllog_id, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
     // CallBackManage::CallBackHandle(callog, result, mysqlclient);
-    CallBackDataNew data;
+    CallBackData data;
     GetLabelInfo(data,calllog_id,mysqlclient);
     GetCallLogInfo(data,calllog_id,mysqlclient);
     GetCallLogExtensionInfo(data,calllog_id,mysqlclient);
@@ -669,7 +393,7 @@ std::string MessageProcess::GetCallBackString(std::string_view calllog_id, ormpp
     return GenerateCallBackString(data);
 }
 
-void MessageProcess::GetLabelInfo(CallBackDataNew &data, std::string_view calllog_id, ormpp::dbng<ormpp::mysql> &mysqlclient)
+void MessageProcess::GetLabelInfo(CallBackData &data, std::string_view calllog_id, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
     std::string sql = "select label from aicall_calllog_label where calllog_id=?";
     auto results = mysqlclient.query<std::tuple<std::string>>(sql,calllog_id.data());
@@ -679,36 +403,36 @@ void MessageProcess::GetLabelInfo(CallBackDataNew &data, std::string_view calllo
         data.record.label.pop_back();
 }
 
-void MessageProcess::GetCallLogInfo(CallBackDataNew &data, std::string_view calllog_id, ormpp::dbng<ormpp::mysql> &mysqlclient)
+void MessageProcess::GetCallLogInfo(CallBackData &data, std::string_view calllog_id, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
     auto tmp = MakeMyTuple("task_id", "script_name", "callee_phone", "cc_number", "calllog_txt", "call_result", "call_time", "duration", "intention_type", "manual_status",
         "call_count", "call_record_url", "answer_time", "hangup_time", "match_global_keyword", "transfer_duration", "transfer_number","buttons","caller_phone","clue_id");
     auto results = mysqlclient.query<decltype(tmp)>("select " + TupleToString(tmp) + " from calllog where id=?",calllog_id.data());
 
-    data.record.calllog_id = stoi(calllog_id.data());
-    data.record.task_id = stoi(std::get<0>(results[0]));
+    data.record.calllog_id = std::stoi(calllog_id.data());
+    data.record.task_id = std::stoi(std::get<0>(results[0]));
     data.record.script_name = std::get<1>(results[0]);
     data.record.callee_phone = std::get<2>(results[0]);
     data.record.cc_number = std::get<3>(results[0]);
     data.record.calllog_txt = std::get<4>(results[0]);
-    data.record.call_result = stoi(std::get<5>(results[0]));
-    data.record.call_time = stoi(std::get<6>(results[0]));
-    data.record.duration = stoi(std::get<7>(results[0]));
-    data.record.intention_type = stoi(std::get<8>(results[0]));
-    data.record.manual_status = stoi(std::get<9>(results[0]));
-    data.record.call_count = stoi(std::get<10>(results[0]));
+    data.record.call_result = std::stoi(std::get<5>(results[0]));
+    data.record.call_time = std::stoi(std::get<6>(results[0]));
+    data.record.duration = std::stoi(std::get<7>(results[0]));
+    data.record.intention_type = std::stoi(std::get<8>(results[0]));
+    data.record.manual_status = std::stoi(std::get<9>(results[0]));
+    data.record.call_count = std::stoi(std::get<10>(results[0]));
     data.record.record_url = std::get<11>(results[0]);
-    data.record.answer_time = stoi(std::get<12>(results[0]));
-    data.record.hangup_time = stoi(std::get<13>(results[0]));
+    data.record.answer_time = std::stoi(std::get<12>(results[0]));
+    data.record.hangup_time = std::stoi(std::get<13>(results[0]));
     data.record.match_global_keyword = std::get<14>(results[0]);
-    data.record.transfer_duration = stoi(std::get<15>(results[0]));
+    data.record.transfer_duration = std::stoi(std::get<15>(results[0]));
     data.record.transfer_number = std::get<16>(results[0]);
     data.record.buttons = std::get<17>(results[0]);
     data.record.caller_phone = std::get<18>(results[0]);
     data.clue_id = std::get<19>(results[0]);
 }
 
-void MessageProcess::GetCallLogExtensionInfo(CallBackDataNew &data, std::string_view calllog_id, ormpp::dbng<ormpp::mysql> &mysqlclient)
+void MessageProcess::GetCallLogExtensionInfo(CallBackData &data, std::string_view calllog_id, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
     auto tmp = MakeMyTuple("switch_number", "hangup_type", "call_state");
     auto results = mysqlclient.query<decltype(tmp)>("select " + TupleToString(tmp) + " from aicall_calllog_extension where calllog_id=?",calllog_id.data());
@@ -717,7 +441,7 @@ void MessageProcess::GetCallLogExtensionInfo(CallBackDataNew &data, std::string_
     data.record.call_state = std::stoi(std::get<2>(results[0]));
 }
 
-void MessageProcess::GetTaskInfo(CallBackDataNew &data, ormpp::dbng<ormpp::mysql> &mysqlclient)
+void MessageProcess::GetTaskInfo(CallBackData &data, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
     std::string sql = "select uuid from outcall_task where id=?";
     auto results = mysqlclient.query<std::tuple<std::string>>(sql,data.record.task_id);
@@ -745,7 +469,7 @@ std::vector<std::string> MessageProcess::Split(const std::string& str, const std
     return output;
 }
 
-void MessageProcess::GetClueInfo(CallBackDataNew &data, ormpp::dbng<ormpp::mysql> &mysqlclient)
+void MessageProcess::GetClueInfo(CallBackData &data, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
     std::string sql = "select alias from outcall_clue where id=?";
     auto results = mysqlclient.query<std::tuple<std::string>>(sql, data.clue_id);
@@ -765,59 +489,111 @@ void MessageProcess::GetClueInfo(CallBackDataNew &data, ormpp::dbng<ormpp::mysql
         data.record.clue_no = alias;
 }
 
-std::string MessageProcess::GetCallRecordFromCm(std::string_view calllog_id, ormpp::dbng<ormpp::mysql> &mysqlclient)
+std::pair<std::string, std::string> MessageProcess::GetSignkey(std::string_view url, std::string keyname, std::string signatureKey)
 {
+    std::pair<std::string, std::string> pair{"", ""};
 
-//     std::string command = "select server_ip,https_port,enterprise_id from ai.enterprise_info where id = " + data.eid + " limit 1;";
-//     std::string server_ip = "";
-//     ushort https_port = 0;
-//     std::string enterprise_id = "";
-//     auto ip_port = mysqlclient.query<std::tuple<std::string, std::string, std::string>>(command);
-//     LOGGER->info("command is {}", command);
-//     if (data.cc_number == "")
-//     {
-//         std::string command = "select cc_number from calllog where id = " + data.calllog_id + " limit 1;";
-//         LOGGER->info("command is {}", command);
-//         auto res = mysqlclient.query<std::tuple<std::string>>(command);
-//         if (res.size())
-//             data.cc_number = std::get<0>(res[0]);
-//         else
-//             LOGGER->info("cannot find cc_number");
-//     }
-//     if (ip_port.size())
-//     {
-//         server_ip = std::get<0>(ip_port[0]);
-//         https_port = static_cast<ushort>(stoi_s(std::get<1>(ip_port[0])));
-//         enterprise_id = std::get<2>(ip_port[0]);
-//         std::string url = "https://" + server_ip + ":" + std::to_string(https_port);
-//         LOGGER->info("We prepare to get into the new program and ccgeid is{}", enterprise_id);
-//         std::string post_param = "ccgeid=" + enterprise_id + "&cc_number=" + data.cc_number;
-//         url = url + "/robot/call_record?" + post_param;
+    rapidjson::Document doc;
+    std::string real_data = HttpRequester::PostUrl2(keyname, signatureKey, url.data(), "", true);
+    doc.Parse(real_data.c_str());
+    if (doc.IsObject())
+    {
+        std::string str = "";
+        if (doc["info"].IsString())
+            str = doc["info"].GetString();
 
-//         std::string key_name = "robot_cm_default_secret";
-//         std::string signatureKey = "robot.cm.default.secret.da123456780e6fy5";
-//         auto pair = GetSignkey(key_name, signatureKey, stoi_s(data.eid), mysqlclient);
-//         if (!pair.first.empty())
-//         {
-//             std::string response = PostUrl2(pair.first, pair.second, url, post_param, false);
-//             std::string real_response;
-//             WebOcApiData result;
-//             rapidjson::Document doc;
-//             rapidjson::Value root(rapidjson::kObjectType);
-//             doc.Parse(response.c_str());
+        if (doc["info"].IsString() && str == "Success")
+        {
+            pair.first = doc["data"]["name"].GetString();
+            pair.second = doc["data"]["value"].GetString();
+        }
+    }
 
-//             if (doc.IsObject() && doc.HasMember("data"))
-//             {
-//                 rapidjson::StringBuffer str_buf;
-//                 rapidjson::Writer<rapidjson::StringBuffer> writer(str_buf);
-//                 doc["data"].Accept(writer);
-//                 real_response = std::move(str_buf.GetString());
-//             }
+    return pair;
+}
 
-//             LOGGER->info("cm response is {}  parse data is {}", response, real_response);
-//             return real_response;
-//         }
-//     }
-//     LOGGER->info("no response");
-//     return "";
+std::tuple<std::string,std::string> MessageProcess::GetUrlAndCCgeid(std::string_view cc_number, ormpp::dbng<ormpp::mysql> &mysqlclient)
+{
+    auto results = mysqlclient.query<std::tuple<std::string, std::string, std::string>>("select server_ip,https_port,enterprise_id from ai.enterprise_info where id = \
+            (select enterprise_uid from calllog where cc_number= ?);",cc_number.data());
+    auto [server_ip,https_port,ccgeid] = results[0];
+
+    std::string url = "https://" + server_ip + ":" + https_port;
+    LOGGER->info("GetCallRecordFromCm ccgeid is {}", ccgeid);
+    return {url,ccgeid};
+}
+
+std::string MessageProcess::UpdateCallRecord(std::string_view cc_number, ormpp::dbng<ormpp::mysql> &mysqlclient)
+{
+    auto [url,ccgeid] = GetUrlAndCCgeid(cc_number,mysqlclient);
+    
+    std::string key_name = "robot_cm_default_secret";
+    std::string signatureKey = "robot.cm.default.secret.da123456780e6fy5";
+    auto pair = GetSignkey(url+"/server/signkey", key_name, signatureKey);
+    if (!pair.first.empty())
+    {
+        std::string post_param = "ccgeid=" + ccgeid + "&cc_number=" + cc_number.data();
+        std::string response = HttpRequester::PostUrl2(pair.first, pair.second, url + "/robot/call_record?" + post_param, post_param, false);
+        rapidjson::Document doc;
+        doc.Parse(response.c_str());
+
+        if (doc.IsObject() && doc.HasMember("data"))
+        {
+            rapidjson::StringBuffer str_buf;
+            rapidjson::Writer<rapidjson::StringBuffer> writer(str_buf);
+            doc["data"].Accept(writer);
+            return str_buf.GetString();
+        }
+    }
+    return "";
+}
+
+std::tuple<Response,std::string> MessageProcess::CheckCCNumber(std::string_view body)
+{
+    Json::Reader reader;
+    Json::Value root;
+
+    if (reader.parse(body.data(), root))
+    {
+        auto records = root["records"];
+        if (records.isArray() && records.size() > 0)
+        {
+            auto record = records[0];
+            if (!record["cc_number"].isNull() && record["cc_number"].asString() != "")
+                return {Response::SUCCESS, record["cc_number"].asString()};
+        }
+    }
+    return {Response::FAIL,""};
+}
+
+std::tuple<Response,std::string,std::string> MessageProcess::CheckEidCalllogId(std::string_view body)
+{
+    Json::Reader reader;
+    Json::Value root;
+
+    if (reader.parse(body.data(), root))
+    {
+        auto records = root["records"];
+        if (records.isArray() && records.size() > 0)
+        {
+            auto record = records[0];
+            if (!record["calllog_id"].isNull() && record["calllog_id"].asString() != "")
+                return {Response::SUCCESS, record["eid"].asString(),record["calllog_id"].asString()};
+        }
+    }
+    return {Response::FAIL,"",""};
+}
+
+std::string MessageProcess::GetCallBackUrl(std::string_view eid, ormpp::dbng<ormpp::mysql> &mysqlclient)
+{
+    auto url = mysqlclient.query<std::tuple<std::string>>("select value from aicall_config where `key` = 'api_callback_domain' and eid = ?",eid.data());
+    LOGGER->info("select value from aicall_config where `key` = 'api_callback_domain' and eid = {}", eid);
+    if (url.size())
+    {
+        std::string real_url = std::get<0>(url[0]) + "/callRecordDetail";
+        LOGGER->info("url is {}", real_url);
+        return real_url;
+    }
+    else
+        return "";
 }

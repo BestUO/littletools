@@ -1,4 +1,8 @@
 #pragma once
+#include "spdlog/spdlog.h"
+#include "tools/jsonwrap.hpp"
+#include "ormpp/dbng.hpp"
+#include "ormpp/mysql.hpp"
 
 #define SPDLOG_FILENAME "log/TrimuleLogger.log"
 #define SPDLOGGERNAME "TrimuleLogger"
@@ -32,3 +36,13 @@ template<typename... ArgsT>
 auto MakeMyTuple(ArgsT&&... args) {
     return std::make_tuple<Promoted_t<std::decay_t<ArgsT>>...>(std::forward<ArgsT>(args)...);
 }
+
+#define GETMYSQLCLIENT \
+ormpp::dbng<ormpp::mysql> mysqlclient;\
+auto config = JsonSimpleWrap::GetPaser("conf/trimule_config.json");\
+mysqlclient.connect(config.value()["mysql_setting"]["mysql_host"].GetString(), \
+                    config.value()["mysql_setting"]["mysql_user"].GetString(), \
+                    config.value()["mysql_setting"]["mysql_password"].GetString(), \
+                    config.value()["mysql_setting"]["mysql_db"].GetString(), \
+                    config.value()["mysql_setting"]["mysql_timeout"].GetInt(), \
+                    config.value()["mysql_setting"]["mysql_port"].GetInt());

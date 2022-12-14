@@ -1,3 +1,5 @@
+#include "synicmanager.hpp"
+#include "messageprocess/messageprocess.h"
 #include "cinatra/cinatra.hpp"
 #include "queue/ringqueue.hpp"
 #include "tools/threadpool.hpp"
@@ -7,194 +9,8 @@
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/rotating_file_sink.h"
 #include "spdlog/async.h"
-#include "settingparser/settingparser.h"
-#include "dbstruct/newstructure/UpdateCalllog/UpdateCalllog.h"
-#include "dbstruct/newstructure/CallBack/CallBack.h"
-#include "dbstruct/newstructure/CallBack/CmDataCache.h"
-#include <vector>
-#include <string>
-#include <thread>
-#include <future>
-
-#include <iostream>
-#include <iostream>
-#include <functional>
-#include <thread>
-#include <condition_variable>
-#include <future>
-#include <atomic>
-#include <vector>
-#include <queue>
-
-
-#define SPDLOG_FILENAME "log/TrimuleLogger.log"
-#define SPDLOGGERNAME "TrimuleLogger"
-#define LOGGER spdlog::get(SPDLOGGERNAME)
-
-#include "synicmanager.hpp"
-
-void initspdlog()
-{
-    spdlog::flush_every(std::chrono::seconds(5));
-    auto file_logger = spdlog::rotating_logger_mt<spdlog::async_factory>(SPDLOGGERNAME, SPDLOG_FILENAME, 1024 * 1024 * 200, 5);
-    LOGGER->set_level(spdlog::level::info); // Set global log level to info
-    LOGGER->set_pattern("[%Y-%m-%d %H:%M:%S.%e %^%L%$ %t] %v");
-}
-
-template <class T>
-class WorkerForHttp : public Worker<T>
-{
-public:
-    WorkerForHttp(std::shared_ptr<T> queue) : Worker<T>(queue){};
-
-protected:
-    virtual void WorkerRun(bool original)
-    {
-        ormpp::dbng<ormpp::mysql> mysqlclient;
-        sqlconnect conne = SettingParser::GetSettinghParser("conf/trimule_config.json");
-        mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str(), conne.db_timeout, conne.db_port);
-        while (!Worker<T>::_stop)
-        {
-            auto e = Worker<T>::_queue->GetObjBulk();
-            if (e)
-            {
-                while (!e->empty())
-                {
-                    DealElement(mysqlclient, std::move(e->front()));
-                    e->pop();
-                }
-            }
-            else
-            {
-                if (!original)
-                    break;
-                Worker<T>::_queue->WaitComingObj();
-            }
-        }
-    }
-
-    virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
-    DealElement(ormpp::dbng<ormpp::mysql> &mysqlclient, std::string &&s)
-    {
-        if (s.size() > 1)
-        {
-            std::string real_data = s.substr(1, s.size() - 1);
-
-            if (s[0] == '0') // cm ctive
-            {
-                CallInfo data = CallRecord::GetCallRecord(real_data, 2);
-
-                CallBackData callog;
-                callog.cc_number = data.cc_number;
-                CallBackManage::CacheCmData(callog, real_data, 4, mysqlclient);
-            }
-            else // oc  web
-            {
-                CallBackManage::MakeQueueCache(real_data,mysqlclient);
-            }
-        }
-    }
-};
-
-int CheckUnUpdateId(const std::vector<std::string> &vec)
-{
-    DataCache cache;
-    cache.CheckUnUpdateId(vec[0],vec[1],vec[2]);
-    return 0;
-}
-
-template <class T>
-void SetApiCallBackHandler(cinatra::http_server &server, T threadpool)
-{
-    server.set_http_handler<cinatra::GET, cinatra::POST>("/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
-    {
-        LOGGER->info("/ receive message is {}",std::string(req.body()));
-        std::string check_info = std::string(req.body());
-        std::string check_res = CallRecord::CheckInfo(check_info);
-   
-        std::string que_str ='0'+check_info;
-        if(check_res!="900"&&check_res!="901")
-        {threadpool->EnqueueStr(que_str);}
-		res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+check_res+"\"}"); 
-    });
-
-    server.set_http_handler<cinatra::GET, cinatra::POST>("/GetCallRecord/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
-    {
-        //checkweboc data
-        LOGGER->info("GetCallRecord/ receive message is {}",std::string(req.body()));
-        std::string check_info = std::string(req.body());
-        std::string check_res = CallRecord::CheckWebOcInfo(check_info);
-
-        std::string que_str ='1'+check_info;
-        threadpool->EnqueueStr(que_str);
-		res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+check_res+"\"}"); 
-    });
-
-    server.set_http_handler<cinatra::GET, cinatra::POST>("/CheckUnSync/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
-    {
-        //checkweboc data
-        LOGGER->info("CheckUnSync/ receive message is {}",std::string(req.body()));
-        std::string check_info = std::string(req.body());
-        std::string check_res = CallRecord::CheckUnSync(check_info);
-
-        if(check_res=="902")
-        {
-            std::vector<std::string> vec = CallRecord::ParseUnSync(check_info);
-            if(vec.size()==3)
-            {
-                std::thread aicall_calllog_subsidiary(CheckUnUpdateId,vec);
-                aicall_calllog_subsidiary.detach();
-            }
-        }
-		res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+check_res+"\"}"); 
-    });
-}
-
-int PollingQueue()
-{
-    DataCache cache;
-    cache.PollingQueue();
-    return 0;
-}
-int OcWebPollingQueue()
-{
-    DataCache cache;
-    cache.OcWebPollingQueue();
-    return 0;
-}
-int CallBackActionQueue()
-{
-    DataCache cache;
-    cache.CallBackActionQueue();
-    return 0;
-}
-
-void oldfun()
-{
-    initspdlog();
-    auto config = JsonSimpleWrap::GetPaser("conf/trimule_config.json");
-    int max_thread_num = 1;
-    cinatra::http_server server(max_thread_num);
-    server.listen((*config)["httpserver_setting"]["host"].GetString(), (*config)["httpserver_setting"]["port"].GetString());
-
-
-    using QueueType = std::conditional_t<false, LockQueue<std::string>, FreeLockRingQueue<std::string>>;
-    auto queuetask = std::shared_ptr<QueueType>(new QueueType);
-    std::shared_ptr<Worker<QueueType>> worker = std::make_shared<WorkerForHttp<QueueType>>(queuetask);
-    std::shared_ptr<ThreadPool<QueueType>> threadpool(new ThreadPool(queuetask, worker, 2, 2));
-
-    SetApiCallBackHandler(server, threadpool);
-
-    std::thread polling_queue(PollingQueue);
-    std::thread oc_web_polling_queue(OcWebPollingQueue);
-    std::thread call_back_action_queue(CallBackActionQueue);
-
-    polling_queue.detach();
-    oc_web_polling_queue.detach();
-    call_back_action_queue.detach();
-
-    server.run();
-}
+#include "httpclient/HttpRequester.h"
+#include "global.hpp"
 
 template <class T>
 class UpdateMySQLWorker : public Worker<T>
@@ -205,9 +21,7 @@ public:
 protected:
     virtual void WorkerRun(bool original)
     {
-        ormpp::dbng<ormpp::mysql> mysqlclient;
-        sqlconnect conne = SettingParser::GetSettinghParser("conf/trimule_config.json");
-        mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str(), conne.db_timeout, conne.db_port);
+        GETMYSQLCLIENT
         while (!Worker<T>::_stop)
         {
             auto e = Worker<T>::_queue->GetObjBulk();
@@ -231,11 +45,13 @@ protected:
     virtual typename std::enable_if<std::is_same<typename T::Type, std::string>::value>::type
     DealElement(ormpp::dbng<ormpp::mysql> &mysqlclient, std::string &&message)
     {
-        std::string calllog_id = std::move(MessageProcess::UpdateAllInfo(message,mysqlclient));
-        if(1)
+        auto [calllog_id,task_id,eid] = std::move(MessageProcess::UpdateAllInfo(message,mysqlclient));
+        auto url = MessageProcess::GetCallBackUrl(eid, mysqlclient);
+        if(1 && !url.empty())
         {
             std::string cbstring = MessageProcess::GetCallBackString(std::move(calllog_id), mysqlclient);
             LOGGER->info("callbac info is {}",cbstring);
+            HttpRequester::PostUrl(url,cbstring,true);
         }
     }
 };
@@ -246,7 +62,7 @@ void SetHttpHandler(cinatra::http_server &server, T threadpool)
     server.set_http_handler<cinatra::GET, cinatra::POST>("/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
     {
         LOGGER->info("/ receive message is {}",std::string(req.body()));
-        auto [check_res,ccnumber] = CallRecord::CheckCCNumber(req.body());
+        auto [check_res,ccnumber] = MessageProcess::CheckCCNumber(req.body());
 
         auto instance = SynicManager::GetInstance();
         if(auto opt=instance->GetFromSynicMap(ccnumber);opt != std::nullopt)
@@ -260,10 +76,9 @@ void SetHttpHandler(cinatra::http_server &server, T threadpool)
     });
 
     server.set_http_handler<cinatra::GET, cinatra::POST>("/trimule/ocready/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
-    {
-        //checkweboc data
+    {   
         LOGGER->info("/trimule/ocready/ receive message is {}",std::string(req.body()));
-        auto [check_res,ccnumber] = CallRecord::CheckCCNumber(req.body());
+        auto [check_res,ccnumber] = MessageProcess::CheckCCNumber(req.body());
 
         auto instance = SynicManager::GetInstance();
         if(auto opt=instance->GetFromSynicMap(ccnumber);opt != std::nullopt)
@@ -277,26 +92,52 @@ void SetHttpHandler(cinatra::http_server &server, T threadpool)
     });
 
 
-    server.set_http_handler<cinatra::GET, cinatra::POST>("/trimule/synicfromcm/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
+    server.set_http_handler<cinatra::GET, cinatra::POST>("/trimule/cmsynic/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
     {
         //checkweboc data
-        LOGGER->info("/trimule/syniccm/ receive message is {}",std::string(req.body()));
-        auto [check_res,ccnumber] = CallRecord::CheckCCNumber(req.body());
-        if(check_res==CallRecord::RESPONSECODE::SUCCESS)
+        LOGGER->info("/trimule/cmsynic/ receive message is {}",std::string(req.body()));
+        auto [check_res,ccnumber] = MessageProcess::CheckCCNumber(req.body());
+        if(check_res==Response::SUCCESS)
         {
-            ormpp::dbng<ormpp::mysql> mysqlclient;
-            sqlconnect conne = SettingParser::GetSettinghParser("conf/trimule_config.json");
-            mysqlclient.connect(conne.host.c_str(), conne.user.c_str(), conne.password.c_str(), conne.db.c_str(), conne.db_timeout, conne.db_port);
-
             SynicManager::GetInstance()->DeleteFromSynicMap(ccnumber);
-            // std::string message = MessageProcess::GetCallRecordFromCm(ccnumber, mysqlclient);
-            // threadpool->EnqueueStr(std::move(message));
+            
+            GETMYSQLCLIENT
+
+            std::string message = MessageProcess::UpdateCallRecord(ccnumber, mysqlclient);
+            MessageProcess::UpdateAllInfo(message,mysqlclient);
+        }
+
+		res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+std::to_string(check_res)+"\"}"); 
+    });
+
+    server.set_http_handler<cinatra::GET, cinatra::POST>("/trimule/forcecallback/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
+    {
+        //checkweboc data
+        LOGGER->info("/trimule/forcecallback/ receive message is {}",std::string(req.body()));
+        auto [check_res,eid,calllog_id] = MessageProcess::CheckEidCalllogId(req.body());
+        if(check_res==Response::SUCCESS)
+        {
+            GETMYSQLCLIENT
+            auto url = MessageProcess::GetCallBackUrl(eid, mysqlclient);
+            if(!url.empty())
+            {
+                std::string cbstring = MessageProcess::GetCallBackString(std::move(calllog_id), mysqlclient);
+                LOGGER->info("callbac info is {}",cbstring);
+                HttpRequester::PostUrl(url,cbstring,true);
+            }
         }
 
 		res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+std::to_string(check_res)+"\"}"); 
     });
 }
 
+void initspdlog()
+{
+    spdlog::flush_every(std::chrono::seconds(5));
+    auto file_logger = spdlog::rotating_logger_mt<spdlog::async_factory>(SPDLOGGERNAME, SPDLOG_FILENAME, 1024 * 1024 * 200, 5);
+    LOGGER->set_level(spdlog::level::info); // Set global log level to info
+    LOGGER->set_pattern("[%Y-%m-%d %H:%M:%S.%e %^%L%$ %t] %v");
+}
 
 void newfun()
 {

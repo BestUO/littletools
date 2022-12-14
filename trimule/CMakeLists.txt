@@ -1,3 +1,6 @@
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 add_definitions(-DASIO_STANDALONE)
 add_definitions(-DORMPP_ENABLE_MYSQL)
 
@@ -9,14 +12,10 @@ include_directories(${PROJECT_SOURCE_DIR})
 
 link_directories(${THIRD_PARTY_PATH}/lib)
 link_directories(${THIRD_PARTY_PATH}/lib/json)
-link_directories(${THIRD_PARTY_PATH}/lib/rdkafka)
-link_directories(${THIRD_PARTY_PATH}/lib/hiredis)
-link_directories(${THIRD_PARTY_PATH}/lib/redis++)
 
 ADD_SUBDIRECTORY(tinyxml2)
-ADD_SUBDIRECTORY(dbstruct)
-ADD_SUBDIRECTORY(redispool)
-ADD_SUBDIRECTORY(settingparser)
+ADD_SUBDIRECTORY(messageprocess)
+ADD_SUBDIRECTORY(httpclient)
 
 set(OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/Trimule)
 ADD_CUSTOM_TARGET(trimule_copyfile ALL
@@ -34,4 +33,4 @@ COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/README.md ${
 set(TOOL_COMPOSE trimule)
 set(TOOL_COMPOSE_SOURCE trimule.cpp synicmanager.hpp)
 add_executable(${TOOL_COMPOSE} ${TOOL_COMPOSE_SOURCE})
-target_link_libraries(${TOOL_COMPOSE} pthread mysqlclient jsoncpp settingparser GetCallRecord redisclient CallBack)
+target_link_libraries(${TOOL_COMPOSE} pthread mysqlclient jsoncpp messageprocess tinyxml httpclient)

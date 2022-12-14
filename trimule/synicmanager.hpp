@@ -1,5 +1,6 @@
 #pragma once
 #include <unordered_map>
+#include <mutex>
 #include <shared_mutex>
 #include <optional>
 class SynicManager

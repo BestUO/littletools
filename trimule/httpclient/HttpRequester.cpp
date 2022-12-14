@@ -1,5 +1,9 @@
 #include "HttpRequester.h"
+#include "json/json.h"
+#include "global.hpp"
 #include <algorithm>
+#include <openssl/sha.h>
+#include <openssl/md5.h>
 
 std::string HttpRequester::MD5(const std::string &src)
 {
@@ -21,15 +25,6 @@ std::string HttpRequester::MD5(const std::string &src)
     }
     return md5_string;
 }
-
-// size_t HttpRequester::ProcessData(void *data, size_t size, size_t nmemb, std::string &content)
-// {
-//     size_t sizes = size * nmemb;
-//     std::string temp;
-//     temp = std::string((char*)data, sizes);
-//     content += temp;
-//     return sizes;
-// }
 
 size_t HttpRequester::WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
@@ -158,54 +153,61 @@ std::string HttpRequester::PostUrl(const std::string &url, const std::string &po
     return response;
 }
 
-int HttpRequester::GetResponseData(const std::string &response,rapidjson::Value *&data, rapidjson::Document &doc)
+template <typename... Args>
+std::string HttpRequester::GetParas(std::string params, Args... args)
 {
-    doc.Parse(response.c_str());
-    
-    if(!doc.IsObject())
+    std::string str;
+    Json::Value root;
+    auto tojson = [&](const std::string &param)
     {
-        LOGGER->info("response format in not valid : ");
-        return -1;
+        auto pos = param.find("=");
+        std::string key = param.substr(0, pos);
+        std::string value = param.substr(pos + 1);
+        if (!key.empty() && !value.empty())
+            root[key] = value;
+    };
+
+    while (true)
+    {
+        auto pos = params.find("&");
+        tojson(params.substr(0, pos));
+        if (pos == std::string::npos)
+            break;
+        params = params.substr(pos + 1);
     }
 
-    if(doc.HasMember("data"))
-    {
-        auto &data_member = doc["data"];
-        if(!data_member.IsNull())
-        {
-            data = &data_member;
-        }
-    }
-    
-    if(doc.HasMember("status"))
-    {
-        auto &status = doc["status"];
-        if(status.IsInt())
-        {
-            return status.GetInt();
-        }
-    }
-    return -1;
+    std::initializer_list<int>{(tojson(args), 0)...};
+    Json::Value::Members mem = root.getMemberNames();
+    for (auto iter = mem.begin(); iter != mem.end(); iter++)
+        str += *iter + "=" + root[*iter].asString() + "&";
+    return str;
 }
 
-int HttpRequester::ParseReponseStatus(std::string &response)
+std::string HttpRequester::PostUrl2(std::string keyname, std::string signatureKey, const std::string &url, const std::string &post_param, bool usepost)
 {
-	rapidjson::Document doc;
-    doc.Parse(response.c_str());
+    const std::string gtime = std::to_string(time(NULL));
+    const std::string gnonce = GenStr(32);
+    const std::string source = "source=server.robot";
+    const std::string auth_type = "auth-type=signature";
+    const std::string timestamp = "timestamp=" + gtime;
+    const std::string nonce = "nonce=" + gnonce;
 
-    if(!doc.IsObject() || !doc.HasMember("retcode"))
-    {
-        // LOG(WARNING)<< "response format in not valid : ";
-        response = "<invalid response format>";
-        return -1;
-    }
-    auto &retcode = doc["retcode"];
-    if(retcode.IsInt())
-    {
-        return retcode.GetInt();
-    }else if(retcode.IsString())
-    {
-        return std::stoi(retcode.GetString());
-    }
-    return -1;
+    std::string paras = GetParas(post_param, source, auth_type, timestamp, "keyname=" + keyname, nonce);
+    signatureKey = "signatureKey=" + signatureKey;
+    paras += signatureKey;
+    std::string signature = Str2SHA256(paras);
+
+    struct curl_slist *header = nullptr;
+    header = curl_slist_append(header, "auth-type:signature");
+    header = curl_slist_append(header, "source:server.robot");
+    header = curl_slist_append(header, ("timestamp:" + gtime).c_str());
+    header = curl_slist_append(header, ("nonce:" + gnonce).c_str());
+    header = curl_slist_append(header, ("keyname:" + keyname).c_str());
+    header = curl_slist_append(header, ("signature:" + signature).c_str());
+    // std::string url = "http://192.168.1.216/aicall/script/getClustersByPageParams";
+
+    if (usepost)
+        return PostUrl(url, post_param, true, header);
+    else
+        return GetUrl(url, header);
 }
