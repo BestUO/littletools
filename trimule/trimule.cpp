@@ -139,7 +139,7 @@ void initspdlog()
     LOGGER->set_pattern("[%Y-%m-%d %H:%M:%S.%e %^%L%$ %t] %v");
 }
 
-void newfun()
+int main()
 {
     initspdlog();
     auto config = JsonSimpleWrap::GetPaser("conf/trimule_config.json");
@@ -156,12 +156,6 @@ void newfun()
     SetHttpHandler(server, threadpool);
 
     server.run();
-}
 
-int main()
-{
-    newfun();
-
-  
     return 0;
 }
