@@ -1,13 +1,10 @@
 #pragma once
 
-#include "spdlog/spdlog.h"
+#include "log.h"
 #include "ormpp/mysql.hpp"
 #include "ormpp/connection_pool.hpp"
 #include "ormpp/dbng.hpp"
 #include <filesystem>
-#define SPDLOG_FILENAME "log/DialogerManagerLogger.log"
-#define SPDLOGGERNAME "DialogerManagerLogger"
-#define LOGGER spdlog::get(SPDLOGGERNAME)
 
 struct TTSStatement
 {

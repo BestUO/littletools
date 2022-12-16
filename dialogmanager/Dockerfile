@@ -9,9 +9,9 @@ RUN  sed -i s@/archive.ubuntu.com/@/mirrors.aliyun.com/@g /etc/apt/sources.list 
      && echo 'Asia/Shanghai' >/etc/timezone  
 
 
-RUN echo '[program:Dialogmanager] \n\
+RUN echo '[program:dialogmanager] \n\
           command=sh run_dialogmanager.sh  \n\
           user=root   \n\
           autostart=true \n\
           autorestart=true  \n\
-          directory=/home/Dialogmanager '>> /etc/supervisor/supervisord.conf   
+          directory=/home/dialogmanager '>> /etc/supervisor/supervisord.conf   

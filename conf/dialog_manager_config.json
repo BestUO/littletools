@@ -28,13 +28,8 @@
         "host":"0.0.0.0",
         "port":"9988"
     },
-    "redis_setting":
-    {
-        "host":"127.0.0.1",
-        "port":"16379",
-        "password":"123"
-    },
     "queue_sync_time":1,
-    "fileprefix":"/var/pbx"
+    "fileprefix":"data/",
+    "answer_similar_service_uri":"http://127.0.0.1:6002/top_one_similar"
 }
 

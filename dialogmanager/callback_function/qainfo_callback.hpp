@@ -5,6 +5,7 @@
 #include "global.h"
 #include "score_manager/score_manager.h"
 
+
 class QAInfoCallBackFunction
 {
 public:
@@ -28,8 +29,11 @@ public:
         }
         std::string answer_record_file = qainfo->answer_audio_path;
         unsigned int answer_duration = answer_time - question_time;
-        std::string answer_match = "";
-        std::string answer_analyse = scoremanager->GetAnswerAnalyse();
+
+        auto similar_data = scoremanager->GetAnswerSimilarData(answer_txt, {{std::to_string(
+                node_code), qainfo->answer_stander}});
+
+        auto [answer_match, answer_analyse] = scoremanager->GetAnswerAnalyse(similar_data);
         unsigned int create_time = time(nullptr);
         unsigned int update_time = create_time;
 
@@ -38,9 +42,10 @@ public:
                      qainfo->course_id, qainfo->session_id, current_node->node_id);
 
         aia_course_practise_detail detail = {0, course_id, practise_id, node_code, question_id, question_statement_id,
-                                      question_time, answer_time, status, answer_txt, answer_record_file,
-                                      answer_duration, answer_match, answer_analyse, create_time, update_time};
+                                             question_time, answer_time, status, answer_txt, answer_record_file,
+                                             answer_duration, answer_match, answer_analyse, create_time, update_time};
         DBOperate::GetInstance()->GenerateCoursePractiseDetail(detail);
-        return {answer_txt,6};
+        return {answer_txt, 6};
     }
+
 };
