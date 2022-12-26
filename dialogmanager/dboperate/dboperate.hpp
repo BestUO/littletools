@@ -40,7 +40,7 @@ struct aia_course_practise_detail
     unsigned int id;
     unsigned int course_id;
     unsigned int practise_id;
-    unsigned int node_id;
+    std::string node_code;
     unsigned int question_id;
     unsigned int question_statement_id;
     unsigned int question_time;
@@ -54,7 +54,7 @@ struct aia_course_practise_detail
     unsigned int create_time;
     unsigned int update_time;
 };
-REFLECTION(aia_course_practise_detail, id, course_id, practise_id, node_id)
+REFLECTION(aia_course_practise_detail, id, course_id, practise_id, node_code)
 //REFLECTION(aia_course_practise, id, course_id, practise_id, node_id, question_id, question_statement_id, question_time, answer_time)
 
 
@@ -160,6 +160,18 @@ public:
             // std::string sql = "update aia_course_practise set duration=?, end_time=? where id = ?";
             // auto result = std::move(conn->execute(sql,duration,end_time,session_id));
             // return result;
+        };
+        return ExecuteCommand(std::function(fun));
+    }
+
+    auto GetNodeTypeAnswerPromptTxt(unsigned int course_id, std::string node_code)
+    {
+        using type = std::tuple<int, std::string, std::string>;
+        auto fun = [&course_id, &node_code](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)
+        {
+            std::string sql = "select node_type,node_txt,prompt_txt from aia_course_node where course_id = ? and node_code = ?";
+            auto result = std::move(conn->query<type>(sql,course_id,node_code)); 
+            return result;
         };
         return ExecuteCommand(std::function(fun));
     }

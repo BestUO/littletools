@@ -18,7 +18,8 @@ std::shared_ptr<Session> SessionManager::GetSession(unsigned int session_id, uns
     else
     {
         session = CreateSessionInsertToMap(session_id, course_id);
-        InsertToTimerManager(session);
+        if(session)
+            InsertToTimerManager(session);
     }
     return session;
 }
@@ -51,7 +52,7 @@ std::shared_ptr<Session> SessionManager::CreateSessionInsertToMap(unsigned int s
         auto session = std::make_shared<Session>(session_id,courseinfo);
         session->current_node = courseinfo->root;
         std::tie(session->ttssound,session->ttsspeed,session->start_time) = GetSoundAndSpeedAndStartTime(session_id);
-        std::tie(session->left_questions, session->node_text) = GetTotalQuestionDetail(session->current_node);
+        session->left_questions = GetTotalQuestionDetail(session->current_node);
         session->current_qa = nullptr;
 
         std::unique_lock<std::shared_mutex> lock(__rwlock);
@@ -60,7 +61,7 @@ std::shared_ptr<Session> SessionManager::CreateSessionInsertToMap(unsigned int s
     }
 }
 
-std::tuple<std::vector<std::weak_ptr<QuestionDetail>>, std::string> SessionManager::GetTotalQuestionDetail(std::weak_ptr<Node> node)
+std::vector<std::weak_ptr<QuestionDetail>> SessionManager::GetTotalQuestionDetail(std::weak_ptr<Node> node)
 {
     auto nodeptr = node.lock();
     std::vector<std::weak_ptr<QuestionDetail>> tmp = nodeptr->question.array;
@@ -71,7 +72,7 @@ std::tuple<std::vector<std::weak_ptr<QuestionDetail>>, std::string> SessionManag
         for(unsigned int i = 0;i < popnum;i++)
             tmp.pop_back();
     }
-    return {tmp,nodeptr->node_text};
+    return tmp;
 }
 
 bool SessionManager::CompleteQAInfo(std::shared_ptr<Session> session)
@@ -85,7 +86,7 @@ bool SessionManager::CompleteQAInfo(std::shared_ptr<Session> session)
         else
         {
             session->current_node = current_node.value();
-            std::tie(session->left_questions, session->node_text) = GetTotalQuestionDetail(session->current_node);
+            session->left_questions = GetTotalQuestionDetail(session->current_node);
             NodeHaveQuestionsLeft(session);
         }
     }
@@ -95,22 +96,15 @@ bool SessionManager::CompleteQAInfo(std::shared_ptr<Session> session)
 bool SessionManager::NodeHaveQuestionsLeft(std::shared_ptr<Session> session)
 {
     bool flag = false;
-    if(!session->node_text.empty() || !session->left_questions.empty())
+    if(!session->left_questions.empty())
     {
-        if(!session->node_text.empty())
-        {
-            session->current_qa->answer_stander = session->node_text;
-            session->node_text.clear();
-        }
-        else
-        {
-            auto question_detail = session->left_questions.back().lock();
-            session->left_questions.pop_back();
+        auto question_detail = session->left_questions.back().lock();
+        session->left_questions.pop_back();
 
-            session->current_qa->question_detail = question_detail;
-            session->current_qa->tts_statement = GetTTSStatement(question_detail,session->ttssound, session->ttsspeed);
-            session->current_qa->answer_stander = question_detail->answer;
-        }
+        session->current_qa->question_detail = question_detail;
+        session->current_qa->tts_statement = GetTTSStatement(question_detail,session->ttssound, session->ttsspeed);
+        session->current_qa->answer_stander = question_detail->answer;
+
         flag = true;
     }
     else

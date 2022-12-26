@@ -11,28 +11,41 @@ NetInterFace::NetInterFace(rapidjson::Document &config):__server(1)
     __server.listen(config["httpserver_setting"]["host"].GetString(), config["httpserver_setting"]["port"].GetString());
     __server.set_http_handler<cinatra::GET, cinatra::POST>("/dialogmanger/nextcontext", [this](cinatra::request& req, cinatra::response& res) 
     {
-        NextContext(req, res);
+        FunException(std::bind(&NetInterFace::NextContext,this,std::placeholders::_1, std::placeholders::_2), req, res);
 	});
 
     __server.set_http_handler<cinatra::GET, cinatra::POST>("/dialogmanger/deletecourse", [this](cinatra::request& req, cinatra::response& res) 
     {
-        DeleteCourse(req, res);
+        FunException(std::bind(&NetInterFace::DeleteCourse,this,std::placeholders::_1, std::placeholders::_2), req, res);
 	});
 
     __server.set_http_handler<cinatra::GET, cinatra::POST>("/dialogmanger/deletesession", [this](cinatra::request& req, cinatra::response& res) 
     {
-        DeleteSession(req, res);
+        FunException(std::bind(&NetInterFace::DeleteSession,this,std::placeholders::_1, std::placeholders::_2), req, res);
 	});
 
     __server.set_http_handler<cinatra::GET, cinatra::POST>("/dialogmanger/stop", [this](cinatra::request& req, cinatra::response& res) 
     {
-        StopDialogManager(req, res);
+        FunException(std::bind(&NetInterFace::StopDialogManager,this,std::placeholders::_1, std::placeholders::_2), req, res);
 	});
 }
 
 void NetInterFace::NetInterFaceStart()
 {
     __server.run();
+}
+
+void NetInterFace::FunException(std::function<void(cinatra::request& req, cinatra::response& res)> fun,cinatra::request& req, cinatra::response& res)
+{
+    try
+    {
+        fun(req,res);
+    }
+    catch(const std::exception& e)
+    {
+        LOGGER->error("FunException {}", e.what());
+        res.set_status_and_content(cinatra::status_type::ok, GenerateResponse::GetResponse(std::move(GenerateResponse::ErrorOccur())));
+    }
 }
 
 void NetInterFace::DeleteCourse(cinatra::request& req, cinatra::response& res)
@@ -143,7 +156,6 @@ NetInterFace::ParseNextContext(rapidjson::Document& body,cinatra::request& req, 
         unsigned int answer_time=body["answer_time"].GetInt();
         unsigned int is_expired=body["is_expired"].GetInt();
         std::string_view content=body["content"].GetString();
-
         return std::make_tuple(session_id,course_id,question_time,answer_time,is_expired,content);
     }
 }

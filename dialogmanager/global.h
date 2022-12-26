@@ -35,8 +35,7 @@ struct Question
 
 struct Node   
 {
-    unsigned int node_id;
-    std::string node_text;
+    std::string node_code;
     Question question;
     std::vector<unsigned int> label;
     std::vector<std::weak_ptr<Node>> childs;
@@ -45,7 +44,7 @@ struct Node
 
 struct CourseInfo
 {
-    std::map<unsigned int,std::shared_ptr<Node>> node_map;
+    std::map<std::string,std::shared_ptr<Node>> node_map;
     std::map<unsigned int,std::shared_ptr<QuestionDetail>> question_detail_map;
     std::weak_ptr<Node> root;
     unsigned int course_id;
@@ -81,7 +80,6 @@ struct Session
     std::weak_ptr<Node> current_node = std::weak_ptr<Node>();
     ///////////////////////////////////////////////////////////////////////////////////////////////////////
     std::vector<std::weak_ptr<QuestionDetail>> left_questions;                              //当前节点待提问的问题
-    std::string node_text;                                                                  //当前节点独白节点答案
     ///////////////////////////////////////////////////////////////////////////////////////////////////////
     std::shared_ptr<QAInfo> current_qa = nullptr;
     Session() = default;

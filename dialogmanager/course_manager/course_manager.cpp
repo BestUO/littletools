@@ -36,43 +36,50 @@ std::shared_ptr<CourseInfo> CourseManager::CreateCourse(unsigned int course_id)
 {
     /*
     {
-        "node_array":
-        [
+        "node_array": [
             {
-                "id":1,
-                "node_text":"独白节点",
-                "question":
-                {
-                    "question_detail_array":[1],
-                    "order":2
-                },
-                "label":[1],
-                "child_nodes":[2,3],
-                "jump_nodes":[]
+                "child_nodes": [
+                    "2",
+                    "3"
+                ],
+                "node_code": "1",
+                "jump_nodes": [],
+                "label": [
+                    394
+                ],
+                "question": {
+                    "order": 2,
+                    "question_detail_array": []
+                }
             },
             {
-                "id":2,
-                "node_text":"",
-                "question":
-                {
-                    "question_detail_array":[1,2],
-                    "order":1
-                },
-                "label":[1,2,3],
-                "child_nodes":[],
-                "jump_nodes":[]
+                "child_nodes": [],
+                "node_code": "2",
+                "jump_nodes": [],
+                "label": [
+                    393
+                ],
+                "question": {
+                    "order": 1,
+                    "question_detail_array": [
+                        3
+                    ]
+                }
             },
             {
-                "id":3,
-                "node_text":"",
-                "question":
-                {
-                    "question_detail_array":[1,2],
-                    "order":1
-                },
-                "label":[1,2],
-                "child_nodes":[],
-                "jump_nodes":[]
+                "child_nodes": [],
+                "node_code": "3",
+                "jump_nodes": ["4"],
+                "label": [
+                    392
+                ],
+                "question": {
+                    "order": 1,
+                    "question_detail_array": [
+                        4,
+                        5
+                    ]
+                }
             }
         ]
     }
@@ -88,22 +95,21 @@ std::shared_ptr<CourseInfo> CourseManager::CreateCourse(unsigned int course_id)
     {
         try
         {
-            std::map<unsigned int,std::shared_ptr<Node>> node_map;
+            std::map<std::string,std::shared_ptr<Node>> node_map;
             std::map<unsigned int,std::shared_ptr<QuestionDetail>> question_detail_map;
             const rapidjson::Value& node_array = parser["node_array"];
             for(auto &node:node_array.GetArray())
             {
                 std::shared_ptr<Node> nodeptr = nullptr;
-                if(node_map.find(node["id"].GetUint()) != node_map.end())
-                    nodeptr = node_map[node["id"].GetUint()];
+                if(node_map.find(node["node_code"].GetString()) != node_map.end())
+                    nodeptr = node_map[node["node_code"].GetString()];
                 else
                 {
                     nodeptr = std::make_shared<Node>();
-                    node_map[node["id"].GetUint()] = nodeptr;
+                    node_map[node["node_code"].GetString()] = nodeptr;
                 }
 
-                nodeptr->node_id = node["id"].GetUint();
-                nodeptr->node_text = node["node_text"].GetString();
+                nodeptr->node_code = node["node_code"].GetString();
                 nodeptr->question = std::move(NodeParseQuestion(node["question"],question_detail_map));
                 nodeptr->label = std::move(NodeParseLabel(node["label"]));
                 nodeptr->childs = std::move(NodeParseChildNode(node["child_nodes"], node_map, nodeptr));
@@ -120,14 +126,30 @@ std::shared_ptr<CourseInfo> CourseManager::CreateCourse(unsigned int course_id)
     }
 }
 
-std::shared_ptr<CourseInfo> CourseManager::CreateCourse(unsigned int course_id, std::map<unsigned int,std::shared_ptr<Node>> &node_map, 
+void CourseManager::CompleteNodeAnswerAndPromptTxt(unsigned int course_id, std::weak_ptr<Node> root,std::map<unsigned int,std::shared_ptr<QuestionDetail>> &question_detail_map)
+{
+    auto tmp = root.lock();
+
+    auto [node_type,node_txt,prompt_txt] = DBOperate::GetInstance()->GetNodeTypeAnswerPromptTxt(course_id, tmp->node_code)[0];
+    auto questiondetail = std::make_shared<QuestionDetail>();
+    questiondetail->question_id = 0;
+    questiondetail->prompt_txt = std::move(prompt_txt);
+    if(node_type==1)
+        questiondetail->answer = std::move(node_txt);
+    question_detail_map[0] = questiondetail;
+
+    tmp->question.array.emplace_back(questiondetail);
+}
+
+std::shared_ptr<CourseInfo> CourseManager::CreateCourse(unsigned int course_id, std::map<std::string,std::shared_ptr<Node>> &node_map, 
                     std::map<unsigned int,std::shared_ptr<QuestionDetail>> &question_detail_map)
 {
     auto courseptr = std::make_shared<CourseInfo>();
     courseptr->course_id = course_id;
+    courseptr->root = GetCourseRoot(node_map.begin()->second);
+    CompleteNodeAnswerAndPromptTxt(course_id, courseptr->root,question_detail_map);
     courseptr->node_map = std::move(node_map);
     courseptr->question_detail_map = std::move(question_detail_map);
-    courseptr->root = GetCourseRoot(courseptr->node_map.begin()->second);
     return courseptr;
 }
 
@@ -198,25 +220,25 @@ std::vector<unsigned int> CourseManager::NodeParseLabel(const rapidjson::Value &
     return tmp;
 }
 
-std::vector<std::weak_ptr<Node>> CourseManager::NodeParseChildNode(const rapidjson::Value &value,std::map<unsigned int,std::shared_ptr<Node>> &node_map, std::weak_ptr<Node> parent)
+std::vector<std::weak_ptr<Node>> CourseManager::NodeParseChildNode(const rapidjson::Value &value,std::map<std::string,std::shared_ptr<Node>> &node_map, std::weak_ptr<Node> parent)
 {
     /*"child_nodes":[2,3]*/
     std::vector<std::weak_ptr<Node>> tmp;
     for(auto &item:value.GetArray())
     {
         std::shared_ptr<Node> nodeptr = nullptr;
-        if(node_map.find(item.GetUint()) == node_map.end())
+        if(node_map.find(item.GetString()) == node_map.end())
         {
             nodeptr = std::make_shared<Node>();
             nodeptr->parents.emplace_back(parent);
-            node_map[item.GetUint()] = nodeptr;
+            node_map[item.GetString()] = nodeptr;
         }
-        tmp.emplace_back(node_map[item.GetUint()]);
+        tmp.emplace_back(node_map[item.GetString()]);
     }
     return tmp;
 }
 
-std::vector<std::weak_ptr<Node>> CourseManager::NodeParseJumpNode(const rapidjson::Value &value,std::map<unsigned int,std::shared_ptr<Node>> &node_map, std::weak_ptr<Node> parent)
+std::vector<std::weak_ptr<Node>> CourseManager::NodeParseJumpNode(const rapidjson::Value &value,std::map<std::string,std::shared_ptr<Node>> &node_map, std::weak_ptr<Node> parent)
 {
     return NodeParseChildNode(value, node_map, parent);
 }

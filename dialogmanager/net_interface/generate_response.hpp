@@ -26,6 +26,11 @@ public:
         return s.GetString();
     }
 
+    static auto ErrorOccur()
+    {
+        return std::make_tuple(std::pair<std::string,int>("status",STATUS::ERROR),std::pair<std::string,std::string>("info","异常停止"));
+    }
+
     static auto WrongJson()
     {
         return std::make_tuple(std::pair<std::string,int>("status",STATUS::ERROR),std::pair<std::string,std::string>("info","json解析错误"));
@@ -55,7 +60,7 @@ public:
     {
         auto tmp = current_qa->question_detail.lock();
         return std::make_tuple(std::pair<std::string,int>("status",STATUS::SUCCESS),
-            std::pair<std::string,int>("node_id",current_qa->current_node.lock()->node_id),
+            std::pair<std::string,std::string>("node_code",current_qa->current_node.lock()->node_code),
             std::pair<std::string,std::string>("last_asr_result",current_qa->last_asr_result),
             std::pair<std::string,int>("last_score",current_qa->last_score),
             std::pair<std::string,int>("statement_id",current_qa->tts_statement.tts_statement_id),
