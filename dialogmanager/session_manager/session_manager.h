@@ -27,8 +27,8 @@ public:
         {
             session->current_qa->course_id = session->course_info->course_id;
             session->current_qa->session_id = session->session_id;
-            session->current_qa->question_time = std::chrono::system_clock::from_time_t(question_time);
-            session->current_qa->answer_time = std::chrono::system_clock::from_time_t(answer_time);
+            session->current_qa->question_time = question_time;
+            session->current_qa->answer_time = answer_time;
             session->current_qa->is_expired = is_expired;
             auto tmppath = __fileprefix;
             tmppath.append(content);

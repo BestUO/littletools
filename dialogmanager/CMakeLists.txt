@@ -15,9 +15,6 @@ ADD_SUBDIRECTORY(session_manager)
 ADD_SUBDIRECTORY(score_manager)
 ADD_SUBDIRECTORY(speech_service)
 
-add_executable(${DM} ${DM_SOURCE})
-target_link_libraries(${DM} netinterface sessionmanager mysqlclient scoremanager speechservice pthread)
-
 set(OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/Dialogmanager)
 ADD_CUSTOM_TARGET(dialogmanger_copyfile ALL
 COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_PATH}/conf/
@@ -31,3 +28,6 @@ COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/dialogmanage
 COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/README.md ${OUTPUT_PATH}/README.md
 COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/dialogmanager/run_dialogmanager.sh ${OUTPUT_PATH}/run_dialogmanager.sh
 )
+
+add_executable(${DM} ${DM_SOURCE})
+target_link_libraries(${DM} netinterface sessionmanager mysqlclient scoremanager speechservice pthread)

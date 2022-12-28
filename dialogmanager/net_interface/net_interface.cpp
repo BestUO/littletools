@@ -143,7 +143,7 @@ bool NetInterFace::AllMemberExist(rapidjson::Document& body, cinatra::response& 
     return allmemberexist;
 }
 
-std::optional<std::tuple<unsigned int,unsigned int,unsigned int,unsigned int,unsigned int,std::string_view>>
+std::optional<std::tuple<unsigned int,unsigned int,uint64_t,uint64_t,unsigned int,std::string_view>>
 NetInterFace::ParseNextContext(rapidjson::Document& body,cinatra::request& req, cinatra::response& res)
 {
     if(!AllMemberExist(body,res,"session_id","course_id","content","question_time","answer_time","is_expired"))
@@ -152,8 +152,8 @@ NetInterFace::ParseNextContext(rapidjson::Document& body,cinatra::request& req, 
     {
         unsigned int session_id=body["session_id"].GetInt();
         unsigned int course_id=body["course_id"].GetInt();
-        unsigned int question_time=body["question_time"].GetInt();
-        unsigned int answer_time=body["answer_time"].GetInt();
+        uint64_t question_time=body["question_time"].GetUint64();
+        uint64_t answer_time=body["answer_time"].GetUint64();
         unsigned int is_expired=body["is_expired"].GetInt();
         std::string_view content=body["content"].GetString();
         return std::make_tuple(session_id,course_id,question_time,answer_time,is_expired,content);

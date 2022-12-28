@@ -54,8 +54,8 @@ struct QAInfo
 {
     unsigned int course_id;
     unsigned int session_id;
-    std::chrono::system_clock::time_point question_time;
-    std::chrono::system_clock::time_point answer_time;
+    uint64_t question_time;
+    uint64_t answer_time;
     unsigned int is_expired;
     std::string answer_txt;
     std::filesystem::path answer_audio_path;
