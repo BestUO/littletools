@@ -6,6 +6,13 @@
 #include "tools/timermanager.hpp"
 #include "tools/lrucache.hpp"
 #include "tools/threadpool.hpp"
+#include "tools/objectpool.hpp"
+
+TEST_CASE("ObjectPool test") 
+{
+    auto op = ObjectPool<int>::GetInstance();
+}
+
 void tp1test()
 {
     std::cout << "tp1test" << std::endl;
