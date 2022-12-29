@@ -84,7 +84,16 @@ std::shared_ptr<CourseInfo> CourseManager::CreateCourse(unsigned int course_id)
         ]
     }
     */
-    std::string content = std::move(DBOperate::GetInstance()->GetCourseInfo(course_id));
+    auto vcontent = std::move(DBOperate::GetInstance()->GetCourseInfo(course_id));
+    std::string content;
+    if(vcontent.empty())
+    {
+        LOGGER->info("cant find course {}",course_id);
+        return nullptr;
+    }
+    else
+        content = std::get<0>(vcontent[0]);
+
     rapidjson::Document parser;
     if (parser.Parse(content.data()).HasParseError())
     {
@@ -176,8 +185,8 @@ Question CourseManager::NodeParseQuestion(const rapidjson::Value & value,
     for(auto &item:value["question_detail_array"].GetArray())
     {
         std::shared_ptr<QuestionDetail> questiondetail = nullptr;
-        if(question_detail_map.find(item.GetUint()) == question_detail_map.end())
-            question_detail_map[item.GetUint()] = CreateQuestionDetail(item.GetUint());
+        if(auto question_detail = CreateQuestionDetail(item.GetUint());question_detail && question_detail_map.find(item.GetUint()) == question_detail_map.end())
+            question_detail_map[item.GetUint()] = question_detail;
 
         tmp.array.emplace_back(question_detail_map[item.GetUint()]);
     }
@@ -186,17 +195,23 @@ Question CourseManager::NodeParseQuestion(const rapidjson::Value & value,
 
 std::shared_ptr<QuestionDetail> CourseManager::CreateQuestionDetail(unsigned int questiondetail_id)
 {
-    auto tmp = std::make_shared<QuestionDetail>();
-    auto [id, standard, similars, answer, keywords,prompt_txt,prompt_steps,perfect_tolerance,max_tolerance] = DBOperate::GetInstance()->GetQuestionDetail(questiondetail_id);
-    tmp->question_id = id;
-    tmp->answer = std::move(answer);
-    tmp->keywords = std::move(keywords);
-    tmp->prompt_txt = std::move(prompt_txt);
-    tmp->prompt_steps = std::move(prompt_steps);
-    tmp->perfect_tolerance = perfect_tolerance;
-    tmp->max_tolerance = max_tolerance;
-    tmp->ttsstatement = std::move(GetTTSStatementInfo(standard,std::move(similars)));
-    return tmp;
+    auto question_detail = DBOperate::GetInstance()->GetQuestionDetail(questiondetail_id);
+    if(question_detail.empty())
+        return nullptr;
+    else
+    {
+        auto [id, standard, similars, answer, keywords,prompt_txt,prompt_steps,perfect_tolerance,max_tolerance] = question_detail[0];
+        auto tmp = std::make_shared<QuestionDetail>();
+        tmp->question_id = id;
+        tmp->answer = std::move(answer);
+        tmp->keywords = std::move(keywords);
+        tmp->prompt_txt = std::move(prompt_txt);
+        tmp->prompt_steps = std::move(prompt_steps);
+        tmp->perfect_tolerance = perfect_tolerance;
+        tmp->max_tolerance = max_tolerance;
+        tmp->ttsstatement = std::move(GetTTSStatementInfo(standard,std::move(similars)));
+        return tmp;
+    }
 }
 
 std::vector<TTSStatement> CourseManager::GetTTSStatementInfo(unsigned int standard,std::string similars)

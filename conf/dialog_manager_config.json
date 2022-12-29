@@ -30,6 +30,7 @@
     },
     "queue_sync_time":1,
     "fileprefix":"data/",
-    "answer_similar_service_uri":"http://127.0.0.1:6002/top_one_similar"
+    "answer_similar_service_uri":"http://127.0.0.1:6002/top_one_similar",
+    "cburl":"https://aidev.emic.com.cn:8086"
 }
 

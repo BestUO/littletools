@@ -5,8 +5,9 @@
 
 SessionManager::SessionManager()
 {
-    auto config = JsonSimpleWrap::GetPaser("conf/dialog_manager_config.json");
-    __fileprefix = config.value()["fileprefix"].GetString();
+    auto config = JsonSimpleWrap::GetPaser("conf/dialog_manager_config.json").value();
+    __fileprefix = config["fileprefix"].GetString();
+    __cburl = config["cburl"].GetString();
 }
 
 std::shared_ptr<Session> SessionManager::GetSession(unsigned int session_id, unsigned int course_id)
@@ -54,7 +55,8 @@ std::shared_ptr<Session> SessionManager::CreateSessionInsertToMap(unsigned int s
         std::tie(session->ttssound,session->ttsspeed,session->start_time) = GetSoundAndSpeedAndStartTime(session_id);
         session->left_questions = GetTotalQuestionDetail(session->current_node);
         session->current_qa = nullptr;
-
+        session->cburl = __cburl;
+        
         std::unique_lock<std::shared_mutex> lock(__rwlock);
         __session_map[session_id] = session;
         return session;

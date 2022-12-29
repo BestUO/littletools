@@ -3,6 +3,7 @@ set(DM_SOURCE dialogmanager.cpp global.cpp)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ../lib)
 # set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/build/lib)
 
+add_definitions(-DCINATRA_ENABLE_SSL)
 add_definitions(-D _GLIBCXX_USE_CXX11_ABI=0)#链接旧版库用于ali的语音库
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${THIRD_PARTY_PATH}/include/cinatra)
@@ -30,4 +31,4 @@ COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/dialogmanage
 )
 
 add_executable(${DM} ${DM_SOURCE})
-target_link_libraries(${DM} netinterface sessionmanager mysqlclient scoremanager speechservice pthread)
+target_link_libraries(${DM} netinterface sessionmanager mysqlclient scoremanager speechservice ssl crypto pthread)

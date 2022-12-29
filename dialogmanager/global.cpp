@@ -1,4 +1,5 @@
 #include "global.h"
+#include "cinatra/cinatra.hpp"
 #include "dboperate/dboperate.hpp"
 #include <iostream>
 
@@ -27,4 +28,6 @@ Session::~Session()
 {
     int end_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     DBOperate::GetInstance()->CoursePratiseUpdate(end_time-start_time, end_time, session_id);
+    auto client = cinatra::client_factory::instance().new_client();
+    client->post(cburl+"/statistics/practise/calculateScore", R"({"practise_id":)" + std::to_string(session_id) + R"(})");
 }

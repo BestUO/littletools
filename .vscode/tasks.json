@@ -48,5 +48,15 @@
                 "isDefault": true
             }
         },
+        {
+            "label": "release dialogmanager",
+            "args": [
+                "cmake -DCMAKE_BUILD_TYPE=Release ..; cmake --build . --target dialogmanager -j 1; make dialogmanger_copyfile"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
     ]
 }

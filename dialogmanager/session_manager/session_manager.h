@@ -51,6 +51,7 @@ private:
     std::map<unsigned int,std::shared_ptr<Session>> __session_map;
     std::shared_mutex __rwlock;
     std::filesystem::path __fileprefix;
+    std::string __cburl;
 
     SessionManager();
     ~SessionManager()=default;

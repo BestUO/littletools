@@ -67,22 +67,15 @@ public:
         return &instance;
     }
 
-    std::string GetCourseInfo(unsigned int course_id)
+    auto GetCourseInfo(unsigned int course_id)
     {
         auto fun = [&course_id](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)
         {
-            auto result = std::move(conn->query<std::tuple<std::string>>("select content from aia_course where id=?",course_id)); 
-            return result;
+            std::string sql = get_sql("select content from aia_course where id=?",course_id);
+            LOGGER->info(sql);
+            return conn->query<std::tuple<std::string>>(sql);
         };
-        auto content = std::move(ExecuteCommand(std::function(fun)));
-
-        if(content.empty())
-        {
-            LOGGER->info("course_id {} is empty",course_id);
-            return "";
-        }
-        else
-            return std::get<0>(content.front());
+        return ExecuteCommand(std::function(fun));
     }
 
     auto GetQuestionDetail(unsigned int questiondetail_id)
@@ -90,19 +83,11 @@ public:
         using type = std::tuple<int, int, std::string, std::string, std::string, std::string, std::string,int,int>;
         auto fun = [&questiondetail_id](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)
         {
-            auto result = std::move(conn->query<type>
-                            ("select id,standard,similars,answer,keywords,prompt_txt,prompt_steps,perfect_tolerance,max_tolerance from aia_question where id=?",questiondetail_id)); 
-            return result;
+            std::string sql =  get_sql("select id,standard,similars,answer,keywords,prompt_txt,prompt_steps,perfect_tolerance,max_tolerance from aia_question where id=?",questiondetail_id);
+            LOGGER->info(sql);
+            return conn->query<type>(sql);
         };
-        auto content = std::move(ExecuteCommand(std::function(fun)));
-
-        if(content.empty())
-        {
-            LOGGER->info("questiondetail_id {} is empty",questiondetail_id);
-            return type();
-        }
-        else
-            return content.front();
+        return ExecuteCommand(std::function(fun));
     }
 
     auto GetTTSSoundCache(std::string ttsstatement_ids)
@@ -110,10 +95,11 @@ public:
         using type = std::tuple<int, std::string, std::string,int,int>;
         auto fun = [&ttsstatement_ids](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)
         {
-            std::string sql = "select statement.id, statement.statement, soundcache.path, soundcache.sound_id, soundcache.tts_speed from aia_tts_statement as statement,aia_tts_sound_cache as soundcache where statement.id in ("+
-                ttsstatement_ids + ") and statement.id = soundcache.statement_id";
-            auto result = std::move(conn->query<type>(sql)); 
-            return result;
+            // std::string sql = "select statement.id, statement.statement, soundcache.path, soundcache.sound_id, soundcache.tts_speed from aia_tts_statement as statement,aia_tts_sound_cache as soundcache where statement.id in ("+
+            //     ttsstatement_ids + ") and statement.id = soundcache.statement_id";
+            std::string sql = get_sql("select statement.id, statement.statement, soundcache.path, soundcache.sound_id, soundcache.tts_speed from aia_tts_statement as statement,aia_tts_sound_cache as soundcache where statement.id in (?) and statement.id = soundcache.statement_id",ttsstatement_ids);
+            LOGGER->info(sql);
+            return conn->query<type>(sql);
         };
         return ExecuteCommand(std::function(fun));
     }
@@ -123,10 +109,11 @@ public:
         using type = std::tuple<int, std::string, std::string>;
         auto fun = [&ttsstatement_ids](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)
         {
-            std::string sql = "select statement.id, statement.statement, file.path from aia_tts_statement as statement,aia_files as file where statement.id in ("+
-                ttsstatement_ids + ") and statement.file_id = file.id";
-            auto result = std::move(conn->query<type>(sql)); 
-            return result;
+            // std::string sql = "select statement.id, statement.statement, file.path from aia_tts_statement as statement,aia_files as file where statement.id in ("+
+            //     ttsstatement_ids + ") and statement.file_id = file.id";
+            std::string sql = get_sql("select statement.id, statement.statement, file.path from aia_tts_statement as statement,aia_files as file where statement.id in (?) and statement.file_id = file.id",ttsstatement_ids);
+            LOGGER->info(sql);
+            return conn->query<type>(sql); 
         };
         return ExecuteCommand(std::function(fun));
     }
@@ -143,9 +130,9 @@ public:
         using type = std::tuple<std::string,int>;
         auto fun = [&session_id](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)
         {
-            std::string sql = "select sound,start_time from aia_course_practise where id = ?";
-            auto result = std::move(conn->query<type>(sql,session_id)); 
-            return result;
+            std::string sql = get_sql("select sound,start_time from aia_course_practise where id = ?",session_id);
+            LOGGER->info(sql);
+            return conn->query<type>(sql); 
         };
         return ExecuteCommand(std::function(fun));
     }
@@ -154,12 +141,9 @@ public:
     {
         auto fun = [&session_id,duration=duration,end_time=end_time](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)
         {
-            std::string sql = "update aia_course_practise set duration = " + std::to_string(duration) + ",end_time=" + std::to_string(end_time) + " where id = " + std::to_string(session_id);
-            auto result = std::move(conn->execute(sql));
-            return result;
-            // std::string sql = "update aia_course_practise set duration=?, end_time=? where id = ?";
-            // auto result = std::move(conn->execute(sql,duration,end_time,session_id));
-            // return result;
+            std::string sql = get_sql("update aia_course_practise set duration=?,end_time=? where id=?",duration,end_time,session_id);
+            LOGGER->info(sql);
+            return conn->execute(sql);
         };
         return ExecuteCommand(std::function(fun));
     }
@@ -169,9 +153,9 @@ public:
         using type = std::tuple<int, std::string, std::string>;
         auto fun = [&course_id, &node_code](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)
         {
-            std::string sql = "select node_type,node_txt,prompt_txt from aia_course_node where course_id = ? and node_code = ?";
-            auto result = std::move(conn->query<type>(sql,course_id,node_code)); 
-            return result;
+            std::string sql = get_sql("select node_type,node_txt,prompt_txt from aia_course_node where course_id = ? and node_code = ?",course_id,node_code);
+            LOGGER->info(sql);
+            return conn->query<type>(sql);
         };
         return ExecuteCommand(std::function(fun));
     }
@@ -184,21 +168,6 @@ private:
     }
     ~DBOperate()=default;
 
-    // template<class ...Args>
-    // std::vector<std::tuple<Args...>> ExecuteCommand(std::function<std::vector<std::tuple<Args...>>(std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)> f)
-    // {
-    //     auto &pool = ormpp::connection_pool<ormpp::dbng<ormpp::mysql>>::instance();
-    //     auto conn = pool.get();
-    //     while(!conn)
-    //     {
-    //         LOGGER->info("connection_pool is not enough");
-    //         conn = pool.get();
-    //     }
-    //     auto result = std::move(f(conn));
-    //     pool.return_back(conn);
-    //     return result;
-    // }
-
     template<class R>
     R ExecuteCommand(std::function<R(std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)> f)
     {
@@ -209,8 +178,10 @@ private:
             LOGGER->info("connection_pool is not enough");
             conn = pool.get();
         }
+        // LOGGER->info("left pool size {}",pool.pool_.size());
         auto result = std::move(f(conn));
         pool.return_back(conn);
+        // LOGGER->info("left pool size {}",pool.pool_.size());
         return result;
     }
 

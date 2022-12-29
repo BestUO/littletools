@@ -71,6 +71,6 @@
             ],
             "preLaunchTask": "build dialogmanager",
             "miDebuggerPath": "/usr/bin/gdb"
-        },
+        }
     ]
 }

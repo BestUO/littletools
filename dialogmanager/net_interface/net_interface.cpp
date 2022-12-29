@@ -121,7 +121,7 @@ void NetInterFace::NextContext(cinatra::request& req, cinatra::response& res)
 
 std::optional<rapidjson::Document> NetInterFace::ParseJson(cinatra::request& req, cinatra::response& res)
 {
-    LOGGER->info("receive message:{}", req.body());
+    LOGGER->info("{} receive message:{}", req.get_full_url(), req.body());
     auto body = JsonSimpleWrap::GetPaser(req.body());
     if(body == std::nullopt)
     {
