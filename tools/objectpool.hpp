@@ -66,7 +66,6 @@ private:
 
     std::shared_ptr<Block> GetBlock()
     {
-        std::lock_guard<std::mutex> lck (__mutex);
         if(__blocks.empty())
             __blocks.emplace_back(std::make_shared<Block>());
         else
@@ -76,6 +75,13 @@ private:
                 __blocks.emplace_back(std::make_shared<Block>());
         }
         return __blocks.back();
+    }
+
+    T* GetPtrFromBlock()
+    {
+        std::lock_guard<std::mutex> lck (__mutex);
+        auto block = GetBlock();
+        return &block->ptrs[--block->nfree];
     }
 
     class LocalPool 
@@ -91,8 +97,8 @@ private:
                 return new (__freechunk->ptrs[--__freechunk->nfree]) T(args...);
             else
             {
-                auto block = __pool->GetBlock();
-                return new (&block->ptrs[--block->nfree]) T(args...);
+                auto ptr = __pool->GetPtrFromBlock();
+                return new (ptr) T(args...);
             }
             return nullptr;
         }
