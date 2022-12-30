@@ -10,7 +10,52 @@
 
 TEST_CASE("ObjectPool test") 
 {
-    auto op = ObjectPool<int>::GetInstance();
+    struct ObjectPoolTest
+    {
+        int a=2;
+        std::string b="c";
+        bool c=true;
+        // ObjectPoolTest()=default;
+        ObjectPoolTest(int a,std::string b,bool c):a(a),b(b),c(c){};
+    };
+   
+    auto op = ObjectPool<ObjectPoolTest>::GetInstance();
+    {
+        ObjectPoolTest *ptr[5];
+        for(int i=0;i<5;i++)
+            ptr[i] = op->GetObject(1,"sss",false);
+        for(int i=0;i<5;i++)
+            op->PutObject(ptr[i]);
+        for(int i=0;i<5;i++)
+            ptr[i] = op->GetObject(1,"sss",false);;
+        for(int i=0;i<5;i++)
+            op->PutObject(ptr[i]);
+    }
+    {
+        auto obj = op->GetObject(1,"sss",false);
+        CHECK(obj->a == 1);CHECK(obj->b == "sss");CHECK(obj->c == false);
+        obj = op->GetObject(3,"tt",true);
+        CHECK(obj->a == 3);CHECK(obj->b == "tt");CHECK(obj->c == true);
+        op->PutObject(obj);
+    }
+    {
+        std::thread t1([&op]()
+        {
+            ObjectPoolTest *ptr[5];
+            for(int i=0;i<5;i++)
+                ptr[i] = op->GetObject(1,"sss",false);
+            for(int i=0;i<5;i++)
+                op->PutObject(ptr[i]);
+        });
+        t1.join();
+        std::thread t2([&op]()
+        {
+            ObjectPoolTest *ptr[10];
+            for(int i=0;i<10;i++)
+                ptr[i] = op->GetObject(1,"sss",false);
+        });
+        t2.join();
+    }
 }
 
 void tp1test()
