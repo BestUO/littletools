@@ -9,6 +9,7 @@
 #include "nlsToken.h"
 #include "speechSynthesizer.h"
 #include "tools/timermanager.hpp"
+#include "log.h"
 
 using namespace AlibabaNlsCommon;
 using AlibabaNls::NlsClient;
@@ -77,9 +78,17 @@ bool SpeecService::Start() {
     struct TokenTimer{};
     TokenTimer tt;
     auto tm = TimerManager<TokenTimer>::GetInstance();
-    tm->AddAlarm(std::chrono::system_clock::now() + std::chrono::seconds (10), tt, [this]{
+    tm->AddAlarm(std::chrono::system_clock::now(), tt, [this]{
         this->onTimer();
     }, std::chrono::seconds(10));
+
+    for(int i=0;i<10;i++)
+    {
+        if(!g_token.empty())
+            break;
+        else
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
     return false;
 }
 
@@ -90,7 +99,7 @@ void SpeecService::onTimer() {
     long expireTime = -1;
 
     if (g_expireTime - curTime <= 10) {
-        printf("the token will be expired, please generate new token by AccessKey-ID and AccessKey-Secret.\n");
+        LOGGER->info("the token will be expired, please generate new token by AccessKey-ID and AccessKey-Secret.");
         if (-1 == generateToken(g_akId, g_akSecret, &token, &expireTime)) {
             return;
         }

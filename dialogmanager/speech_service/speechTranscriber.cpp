@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <sys/time.h>
 #include "nlsClient.h"
 #include "nlsEvent.h"
 #include "speechTranscriberRequest.h"
@@ -53,7 +54,11 @@ void onTranscriptionStarted(NlsEvent* cbEvent, void* cbParam) {
             cbEvent->getStatusCode(), cbEvent->getTaskId()); 
 
     // 获取服务端返回的全部信息
-    //printf("onTranscriptionStarted: all response=%s\n", cbEvent->getAllResponse()); 
+    //printf("onTranscriptionStarted: all response=%s\n", cbEvent->getAllResponse());
+    // 通知发送线程start()成功, 可以继续发送数据
+    pthread_mutex_lock(&(tmpParam->mtxWord));
+    pthread_cond_signal(&(tmpParam->cvWord));
+    pthread_mutex_unlock(&(tmpParam->mtxWord));
 } 
 
 //@brief 服务端检测到了一句话的开始，SDK内部线程上报SentenceBegin事件。
@@ -90,7 +95,8 @@ void onSentenceEnd(NlsEvent* cbEvent, void* cbParam) {
             cbEvent->getResult()    // 当前句子的完整识别结果。   
     ); 
     // 获取服务端返回的全部信息
-    //printf("onTranscriptionStarted: all response=%s\n", cbEvent->getAllResponse()); 
+    //printf("onTranscriptionStarted: all response=%s\n", cbEvent->getAllResponse());
+    tmpParam->recognizedContent = cbEvent->getResult();
 } 
 
 //@brief 识别结果发生了变化，SDK在接收到云端返回的最新结果时，其内部线程上报ResultChanged事件。
@@ -159,11 +165,17 @@ void onSentenceSemantics(NlsEvent* cbEvent, void* cbParam) {
 void onChannelClosed(NlsEvent* cbEvent, void* cbParam) {
     auto* tmpParam = (ParamTranscribeCallBack*)cbParam;
     printf("onChannelClosed: all response=%s\n", cbEvent->getAllResponse());
+
+    //通知发送线程, 最终识别结果已经返回, 可以调用stop()
+    pthread_mutex_lock(&(tmpParam->mtxWord));
+    pthread_cond_signal(&(tmpParam->cvWord));
+    pthread_mutex_unlock(&(tmpParam->mtxWord));
 } 
 
 // 工作线程
 void* pthreadTranscriber(void* arg) {
     int sleepMs = 0;
+    int ret = 0;
     // 0: 从自定义线程参数中获取token，配置文件等参数。     
     auto* tst = (ParamTranscribe*)arg;
     if (tst == NULL) {
@@ -215,13 +227,36 @@ void* pthreadTranscriber(void* arg) {
     //request->setPayloadParam("{\"enable_ignore_sentence_timeout\": false}");
     //vad断句开启后处理，默认不设置，非必需则不建议设置。
     //request->setPayloadParam("{\"enable_vad_unify_post\": true}");     
-    request->setToken(tst->token.c_str());     
+    request->setToken(tst->token.c_str());
+
+    struct timespec outtime;
+    struct timeval now;
     //3: start()为异步操作。成功返回started事件，失败返回TaskFailed事件。
-    if (request->start() < 0) {         
+    ret = request->start();
+    if (ret < 0) {
         printf("start() failed. may be can not connect server. please check network or firewalld\n"); 
         NlsClient::getInstance()->releaseTranscriberRequest(request); // start()失败，释放request对象。
         return NULL;    
-    }     
+    } else {
+        // 等待started事件返回, 再发送
+        printf("wait started callback.\n");
+
+        // 语音服务器存在来不及处理当前请求, 10s内不返回任何回调的问题,
+        // 然后在10s后返回一个TaskFailed回调, 所以需要设置一个超时机制.
+        gettimeofday(&now, NULL);
+        outtime.tv_sec = now.tv_sec + 5;
+        outtime.tv_nsec = now.tv_usec * 1000;
+        pthread_mutex_lock(&(cbParam->mtxWord));
+        if (ETIMEDOUT == pthread_cond_timedwait(&(cbParam->cvWord), &(cbParam->mtxWord), &outtime)) {
+            printf("start timeout.\n");
+            pthread_mutex_unlock(&(cbParam->mtxWord));
+            request->cancel();
+            NlsClient::getInstance()->releaseTranscriberRequest(request);
+            return NULL;
+        }
+        pthread_mutex_unlock(&(cbParam->mtxWord));
+    }
+
     while (!fs.eof()) {         
         uint8_t data[FRAME_SIZE] = {0};         
         fs.read((char *)data, sizeof(uint8_t) * FRAME_SIZE);         
@@ -241,13 +276,35 @@ void* pthreadTranscriber(void* arg) {
         //语音数据来自文件，发送时需要控制速率，使单位时间内发送的数据大小接近单位时间原始语音数据存储的大小。         
         sleepMs = getSendAudioSleepTime(nlen, tst->sampleRate, 1);  // 根据发送数据大小、采样率、数据压缩比，获取sleep时间。
         //5: 语音数据发送延时控制
-        usleep(sleepMs * 1000);    
+        usleep(sleepMs * 10);
     }
     // 关闭音频文件     
     fs.close();     
     //6: 通知云端数据发送结束
     //stop()为异步操作，失败返回TaskFailed事件。     
-    request->stop();     
+    ret = request->stop();
+    if (ret == 0) {
+        printf("wait closed callback.\n");
+
+        // 语音服务器存在来不及处理当前请求, 10s内不返回任何回调的问题,
+        // 然后在10s后返回一个TaskFailed回调, 错误信息为:
+        // "Gateway:IDLE_TIMEOUT:Websocket session is idle for too long time, the last directive is 'StopRecognition'!"
+        // 所以需要设置一个超时机制.
+        gettimeofday(&now, NULL);
+        outtime.tv_sec = now.tv_sec + 5;
+        outtime.tv_nsec = now.tv_usec * 1000;
+        // 等待closed事件后再进行释放
+        pthread_mutex_lock(&(cbParam->mtxWord));
+        if (ETIMEDOUT == pthread_cond_timedwait(&(cbParam->cvWord), &(cbParam->mtxWord), &outtime)) {
+            printf("stop timeout\n");
+            pthread_mutex_unlock(&(cbParam->mtxWord));
+            NlsClient::getInstance()->releaseTranscriberRequest(request);
+            return NULL;
+        }
+        pthread_mutex_unlock(&(cbParam->mtxWord));
+    } else {
+        printf("stop ret is %d\n", ret);
+    }
     //7: 识别结束，释放request对象。     
     NlsClient::getInstance()->releaseTranscriberRequest(request);     
     return NULL;

@@ -17,11 +17,9 @@ std::shared_ptr<Session> SessionManager::GetSession(unsigned int session_id, uns
     if(opt != std::nullopt)
         session = opt.value();
     else
-    {
         session = CreateSessionInsertToMap(session_id, course_id);
-        if(session)
-            InsertToTimerManager(session);
-    }
+    if(session)
+        InsertToTimerManager(session);
     return session;
 }
 
@@ -55,6 +53,7 @@ std::shared_ptr<Session> SessionManager::CreateSessionInsertToMap(unsigned int s
         std::tie(session->ttssound,session->ttsspeed,session->start_time) = GetSoundAndSpeedAndStartTime(session_id);
         session->left_questions = GetTotalQuestionDetail(session->current_node);
         session->current_qa = nullptr;
+        session->dirty_words = GetDirtyWords(courseinfo->eid);
         session->cburl = __cburl;
         
         std::unique_lock<std::shared_mutex> lock(__rwlock);
@@ -173,4 +172,19 @@ void SessionManager::StopSessionManager()
 {
     TimerManager<unsigned int>::GetInstance()->StopTimerManager();
     DMThreadPool::GetInstance()->StopThreadPool();
+}
+
+std::vector<std::string> SessionManager::GetDirtyWords(unsigned int eid) {
+    auto ret = std::vector<std::string>();
+    auto parent_ids = DBOperate::GetInstance()->GetParentIdOfWordData(eid);
+    if (parent_ids.size() != 1) {
+        LOGGER->error("Error parent_id of eid:{}", eid);
+        return ret;
+    }
+    auto parent_id = std::get<0>(parent_ids[0]);
+    auto dirty_words = DBOperate::GetInstance()->GetEnterpriseDirtyWords(eid, parent_id);
+    for (auto&& [w] : dirty_words) {
+        ret.push_back(w);
+    }
+    return ret;
 }

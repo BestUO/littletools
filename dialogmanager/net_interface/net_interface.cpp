@@ -75,7 +75,6 @@ void NetInterFace::DeleteSession(cinatra::request& req, cinatra::response& res)
             auto [session_id] = params.value();
             SessionManager::GetInstance()->DeleteSession(session_id);
             res.set_status_and_content(cinatra::status_type::ok, GenerateResponse::GetResponse(std::move(GenerateResponse::ExecuteSuccess())));
-            LOGGER->info("DeleteSession session {}", session_id);
         }
     }
 }
@@ -111,7 +110,7 @@ void NetInterFace::NextContext(cinatra::request& req, cinatra::response& res)
             if(next)
                 s = std::move(GenerateResponse::GetResponse(std::move(GenerateResponse::NextQuestion(session->current_qa))));
             else
-                s = std::move(GenerateResponse::GetResponse(std::move(GenerateResponse::NoMoreQuestions())));
+                s = std::move(GenerateResponse::GetResponse(std::move(GenerateResponse::NoMoreQuestions(session->current_qa))));
 
             res.set_status_and_content(cinatra::status_type::ok, s.c_str());
             LOGGER->info("response session {} message {}", session->session_id, s);

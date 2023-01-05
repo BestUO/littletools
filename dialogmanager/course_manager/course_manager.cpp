@@ -84,16 +84,18 @@ std::shared_ptr<CourseInfo> CourseManager::CreateCourse(unsigned int course_id)
         ]
     }
     */
-    auto vcontent = std::move(DBOperate::GetInstance()->GetCourseInfo(course_id));
+    auto vdata = std::move(DBOperate::GetInstance()->GetCourseInfo(course_id));
     std::string content;
-    if(vcontent.empty())
+    unsigned int eid = 0;
+    if(vdata.empty())
     {
         LOGGER->info("cant find course {}",course_id);
         return nullptr;
     }
-    else
-        content = std::get<0>(vcontent[0]);
-
+    else {
+        content = std::get<0>(vdata[0]);
+        eid = std::get<1>(vdata[0]);
+    }
     rapidjson::Document parser;
     if (parser.Parse(content.data()).HasParseError())
     {
@@ -125,7 +127,7 @@ std::shared_ptr<CourseInfo> CourseManager::CreateCourse(unsigned int course_id)
                 auto jump_nodes = std::move(NodeParseJumpNode(node["jump_nodes"], node_map, nodeptr));
                 nodeptr->childs.insert(nodeptr->childs.end(), jump_nodes.begin(), jump_nodes.end());
             }
-            return CreateCourse(course_id, node_map, question_detail_map);
+            return CreateCourse(eid, course_id, node_map, question_detail_map);
         }
         catch(const std::exception& e)
         {
@@ -150,13 +152,13 @@ void CourseManager::CompleteNodeAnswerAndPromptTxt(unsigned int course_id, std::
     tmp->question.array.emplace_back(questiondetail);
 }
 
-std::shared_ptr<CourseInfo> CourseManager::CreateCourse(unsigned int course_id, std::map<std::string,std::shared_ptr<Node>> &node_map, 
-                    std::map<unsigned int,std::shared_ptr<QuestionDetail>> &question_detail_map)
-{
+std::shared_ptr<CourseInfo> CourseManager::CreateCourse(unsigned int eid, unsigned int course_id, std::map<std::string,std::shared_ptr<Node>> &node_map,
+                    std::map<unsigned int,std::shared_ptr<QuestionDetail>> &question_detail_map) {
     auto courseptr = std::make_shared<CourseInfo>();
+    courseptr->eid = eid;
     courseptr->course_id = course_id;
     courseptr->root = GetCourseRoot(node_map.begin()->second);
-    CompleteNodeAnswerAndPromptTxt(course_id, courseptr->root,question_detail_map);
+    CompleteNodeAnswerAndPromptTxt(course_id, courseptr->root, question_detail_map);
     courseptr->node_map = std::move(node_map);
     courseptr->question_detail_map = std::move(question_detail_map);
     return courseptr;

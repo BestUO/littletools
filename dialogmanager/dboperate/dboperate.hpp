@@ -69,11 +69,12 @@ public:
 
     auto GetCourseInfo(unsigned int course_id)
     {
+        using type = std::tuple<std::string, unsigned int>;
         auto fun = [&course_id](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)
         {
-            std::string sql = get_sql("select content from aia_course where id=?",course_id);
+            std::string sql = get_sql("select content, eid from aia_course where id=?",course_id);
             LOGGER->info(sql);
-            return conn->query<std::tuple<std::string>>(sql);
+            return conn->query<type>(sql);
         };
         return ExecuteCommand(std::function(fun));
     }
@@ -160,7 +161,48 @@ public:
         return ExecuteCommand(std::function(fun));
     }
 
+    auto GetEidOfCourse(unsigned int course_id) {
+        using type = std::tuple<unsigned int>;
+        auto fun = [&course_id](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)
+        {
+            std::string sql = get_sql("select eid from aia_course where id = ?",course_id);
+            LOGGER->info(sql);
+            return conn->query<type>(sql);
+        };
+        return ExecuteCommand(std::function(fun));
+    }
+    auto GetParentIdOfWordData(unsigned int eid) {
+        using type = std::tuple<unsigned int>;
+        auto fun = [&eid](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)
+        {
+            std::string sql = get_sql("select id from aia_word_data where eid = ? and parent_id = 0",eid);
+            LOGGER->info(sql);
+            return conn->query<type>(sql);
+        };
+        return ExecuteCommand(std::function(fun));
+    }
+    auto GetEnterpriseDirtyWords(unsigned int eid, unsigned int parent_id) {
+        using type = std::tuple<std::string>;
+        auto fun = [&eid, &parent_id](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)
+        {
+            std::string sql = get_sql("select content from aia_word_data where eid = ? and parent_id = ?",eid,parent_id);
+            LOGGER->info(sql);
+            return conn->query<type>(sql);
+        };
+        return ExecuteCommand(std::function(fun));
+    }
 private:
+    struct DBInfo
+    {
+        int pool_size;
+        std::string mysql_host;
+        std::string mysql_user;
+        std::string mysql_password;
+        std::string mysql_db;
+        int mysql_timeout;
+        int mysql_port;
+    };
+    DBInfo __dbinfo;
     DBOperate()
     {
         auto config = JsonSimpleWrap::GetPaser("conf/dialog_manager_config.json");
@@ -176,13 +218,25 @@ private:
         while(!conn)
         {
             LOGGER->info("connection_pool is not enough");
+            pool.return_back(conn);
             conn = pool.get();
         }
-        // LOGGER->info("left pool size {}",pool.pool_.size());
+
         auto result = std::move(f(conn));
         pool.return_back(conn);
-        // LOGGER->info("left pool size {}",pool.pool_.size());
+
         return result;
+    }
+
+    void CompleteDBInfo(rapidjson::Document &config)
+    {
+        __dbinfo.pool_size = config["mysql_setting"]["mysql_connect_pool_size"].GetInt();
+        __dbinfo.mysql_host = config["mysql_setting"]["mysql_host"].GetString();
+        __dbinfo.mysql_user = config["mysql_setting"]["mysql_user"].GetString();
+        __dbinfo.mysql_password = config["mysql_setting"]["mysql_password"].GetString();
+        __dbinfo.mysql_db = config["mysql_setting"]["mysql_db"].GetString();
+        __dbinfo.mysql_timeout = config["mysql_setting"]["mysql_timeout"].GetInt();
+        __dbinfo.mysql_port = config["mysql_setting"]["mysql_port"].GetInt();
     }
 
     bool InitConnectionPool(rapidjson::Document &config)
@@ -190,13 +244,9 @@ private:
         auto &pool = ormpp::connection_pool<ormpp::dbng<ormpp::mysql>>::instance();
         try
         {
-            pool.init(config["mysql_setting"]["mysql_connect_pool_size"].GetInt(),
-                        config["mysql_setting"]["mysql_host"].GetString(),
-                        config["mysql_setting"]["mysql_user"].GetString(),
-                        config["mysql_setting"]["mysql_password"].GetString(),
-                        config["mysql_setting"]["mysql_db"].GetString(),
-                        config["mysql_setting"]["mysql_timeout"].GetInt(),
-                        config["mysql_setting"]["mysql_port"].GetInt());
+            CompleteDBInfo(config);
+            pool.init(__dbinfo.pool_size, __dbinfo.mysql_host.c_str(), __dbinfo.mysql_user.c_str(),
+                        __dbinfo.mysql_password.c_str(), __dbinfo.mysql_db.c_str(), __dbinfo.mysql_timeout, __dbinfo.mysql_port);
         } 
         catch (const std::exception &e) 
         {

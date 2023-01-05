@@ -8,7 +8,7 @@
         "mysql_timeout":5,
         "mysql_connect_pool_size":5
     },
-    "ali_nls:": {
+    "ali_nls": {
         "appkey": "12",
         "access_key_id": "123",
         "access_key_secret": "123"

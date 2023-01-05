@@ -46,9 +46,12 @@ public:
         return std::make_tuple(std::pair<std::string,int>("status",STATUS::ERROR),std::pair<std::string,std::string>("info","session获取失败"));
     }
 
-    static auto NoMoreQuestions()
+    static auto NoMoreQuestions(std::shared_ptr<QAInfo> current_qa)
     {
-        return std::make_tuple(std::pair<std::string,int>("status",STATUS::FINISH),std::pair<std::string,std::string>("info","练习结束"));
+        return std::make_tuple(std::pair<std::string,int>("status",STATUS::FINISH),
+                std::pair<std::string,std::string>("last_asr_result",current_qa->last_asr_result),
+                std::pair<std::string,int>("last_score",current_qa->last_score),
+                std::pair<std::string,std::string>("info","练习结束"));
     }
 
     static auto ExecuteSuccess()

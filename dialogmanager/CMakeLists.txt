@@ -3,6 +3,7 @@ set(DM_SOURCE dialogmanager.cpp global.cpp)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ../lib)
 # set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/build/lib)
 
+ADD_DEFINITIONS(-g)
 add_definitions(-DCINATRA_ENABLE_SSL)
 add_definitions(-D _GLIBCXX_USE_CXX11_ABI=0)#链接旧版库用于ali的语音库
 include_directories(${PROJECT_SOURCE_DIR})
@@ -19,10 +20,10 @@ ADD_SUBDIRECTORY(speech_service)
 set(OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/Dialogmanager)
 ADD_CUSTOM_TARGET(dialogmanger_copyfile ALL
 COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_PATH}/conf/
+COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/build/dialogmanager/dialogmanager ${OUTPUT_PATH}
 COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/conf/dialog_manager_config.json ${OUTPUT_PATH}/conf/
 COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/build/dialogmanager/lib ${OUTPUT_PATH}/lib
 COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/3rdparty/lib/alinls/* ${OUTPUT_PATH}/lib
-COMMAND mv ${PROJECT_SOURCE_DIR}/build/dialogmanager/dialogmanager ${OUTPUT_PATH}
 COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/dialogmanager/Dockerfile ${OUTPUT_PATH}/Dockerfile
 COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/dialogmanager/docker_build.sh ${OUTPUT_PATH}/docker_build.sh
 COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/dialogmanager/docker_run.sh ${OUTPUT_PATH}/docker_run.sh

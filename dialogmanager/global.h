@@ -48,6 +48,7 @@ struct CourseInfo
     std::map<unsigned int,std::shared_ptr<QuestionDetail>> question_detail_map;
     std::weak_ptr<Node> root;
     unsigned int course_id;
+    unsigned int eid;
 };
 
 struct QAInfo
@@ -82,7 +83,9 @@ struct Session
     std::vector<std::weak_ptr<QuestionDetail>> left_questions;                              //当前节点待提问的问题
     ///////////////////////////////////////////////////////////////////////////////////////////////////////
     std::shared_ptr<QAInfo> current_qa = nullptr;
+    std::vector<std::string> dirty_words;
     std::string cburl="";
+
     Session() = default;
     Session(unsigned int session_id,std::shared_ptr<CourseInfo> course_info):session_id(session_id),course_info(course_info){};
     ~Session();

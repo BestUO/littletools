@@ -26,8 +26,12 @@ std::vector<std::string> split(const std::string& str, const std::string& delims
 
 Session::~Session()
 {
+    LOGGER->info("deconstruct session {}", session_id);
     int end_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     DBOperate::GetInstance()->CoursePratiseUpdate(end_time-start_time, end_time, session_id);
+    std::string url = cburl+"/statistics/practise/calculateScore";
+    std::string params = R"({"practise_id":)" + std::to_string(session_id) + R"(})";
     auto client = cinatra::client_factory::instance().new_client();
-    client->post(cburl+"/statistics/practise/calculateScore", R"({"practise_id":)" + std::to_string(session_id) + R"(})");
+    client->post(url, params);
+    LOGGER->info("{} post {}", url,params);
 }

@@ -18,13 +18,11 @@ public:
     }
     std::shared_ptr<Session> GetSession(unsigned int session_id, unsigned int course_id);
     template<class ...Args>
-    bool ProcessSession(std::shared_ptr<Session> session, std::tuple<Args...> params)
-    {
-        auto [session_id,course_id,question_time,answer_time,is_expired,content] = params;
+    bool ProcessSession(std::shared_ptr<Session> session, std::tuple<Args...> params) {
+        auto[session_id, course_id, question_time, answer_time, is_expired, content] = params;
         std::string asr_result;
         int score = 0;
-        if(session->current_qa)
-        {
+        if (session->current_qa) {
             session->current_qa->course_id = session->course_info->course_id;
             session->current_qa->session_id = session->session_id;
             session->current_qa->question_time = question_time;
@@ -32,16 +30,18 @@ public:
             session->current_qa->is_expired = is_expired;
             auto tmppath = __fileprefix;
             tmppath.append(content);
-            if(std::filesystem::exists(tmppath))
+            if (std::filesystem::exists(tmppath))
                 session->current_qa->answer_audio_path = tmppath;
             else
                 session->current_qa->answer_txt = content;
-            auto result = DMThreadPool::GetInstance()->GetThreadPool()->EnqueueFun(QAInfoCallBackFunction::StoreInDB,session->current_qa);
-            std::tie(asr_result,score) = result.get();
+            auto result = DMThreadPool::GetInstance()->GetThreadPool()->EnqueueFun(QAInfoCallBackFunction::StoreInDB,
+                                                                                   session->current_qa,
+                                                                                   session->dirty_words);
+            std::tie(asr_result, score) = result.get();
         }
         session->current_qa = std::make_shared<QAInfo>();
         session->current_qa->last_asr_result = std::move(asr_result);
-        session->current_qa->last_score = std::move(score);
+        session->current_qa->last_score = score;
         return CompleteQAInfo(session);
     }
     void DeleteSession(unsigned int session_id);
@@ -67,4 +67,6 @@ private:
     void DeleteSessionMap(unsigned int session_id);
     auto GetSoundAndSpeedAndStartTime(unsigned int session_id);
     std::vector<TTSStatement> FilterTTSStatement(std::vector<TTSStatement> ttsstatement,int ttssound, int ttsspeed);
+
+    std::vector<std::string> GetDirtyWords(unsigned int eid);
 };
