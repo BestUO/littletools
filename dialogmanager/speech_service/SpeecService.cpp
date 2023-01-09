@@ -3,6 +3,7 @@
 #include <thread>
 #include <sys/time.h>
 #include <tools/jsonwrap.hpp>
+#include <curl/curl.h>
 #include "SpeecService.h"
 #include "nlsClient.h"
 #include "nlsEvent.h"
@@ -10,6 +11,7 @@
 #include "speechSynthesizer.h"
 #include "tools/timermanager.hpp"
 #include "log.h"
+#include "speechRestfulAsr.h"
 
 using namespace AlibabaNlsCommon;
 using AlibabaNls::NlsClient;
@@ -63,11 +65,15 @@ SpeecService::SpeecService() {
         printf("set log failed\n");
         return;
     }
+    // 全局只初始化一次
+    curl_global_init(CURL_GLOBAL_ALL);
+
     Start();
 }
 
 SpeecService::~SpeecService() {
     NlsClient::releaseInstance();
+    curl_global_cleanup();
 }
 
 
@@ -125,6 +131,20 @@ SpeecService::SpeechTranscribeFile(uuid_t id, const std::string &file_name, cons
     pthreadTranscriber((void *) (&pa));
 
     return std::make_tuple(1, pa.cbData.recognizedContent);
+}
+
+std::tuple<int, std::string>
+SpeecService::RestfulAsr(uuid_t id, const std::string &file_name, const std::string &format, int sample_rate) {
+    pthread_rwlock_rdlock(&token_rwlock_);
+    std::string token = g_token;
+    pthread_rwlock_unlock(&token_rwlock_);
+    std::string appKey = appkey_;
+
+    ParamRestfulAsrCallBack cb;
+    cb.userId = id;
+
+    int ret = restfulAsrProcess(appKey, token, file_name, format, sample_rate, &cb);
+    return std::make_tuple(ret, cb.recognizedContent);
 }
 
 int SpeecService::OnFileTranscribed(uuid_t id, const std::string &content) {

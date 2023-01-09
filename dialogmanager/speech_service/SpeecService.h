@@ -18,6 +18,9 @@ public:
     std::tuple<int, std::string>
     SpeechTranscribeFile(uuid_t id, const std::string &file_name, const std::string &format, int sample_rate);
 
+    std::tuple<int, std::string>
+    RestfulAsr(uuid_t id, const std::string &file_name, const std::string &format, int sample_rate);
+
     int SpeechSynthesizeText(uuid_t id, const std::string &text);
 
 private:

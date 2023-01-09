@@ -25,9 +25,11 @@ public:
         if (qainfo->answer_txt.empty()) {
             auto ret = SpeecService::GetInstance()->SpeechTranscribeFile(practise_id, qainfo->answer_audio_path, "pcm",
                                                                          16000);
+//            auto ret = SpeecService::GetInstance()->RestfulAsr(practise_id, qainfo->answer_audio_path, "pcm",
+//                                                                         8000);
             answer_txt = std::get<1>(ret);
         }
-        std::string answer_record_file = qainfo->answer_audio_path;
+        std::string answer_record_file = qainfo->relative_path;
         unsigned int answer_duration = std::chrono::system_clock::now().time_since_epoch().count() - answer_time;
 
         auto similar_data = scoremanager->GetAnswerSimilarData(answer_txt, {{node_code, qainfo->answer_stander}});
@@ -38,20 +40,18 @@ public:
 
         auto response_data = scoremanager->GetResponseData(question_time, answer_time);
 
-        auto[answer_match, answer_analyse] = scoremanager->GetAnswerAnalyse(similar_data, keywords_data,
+        auto answer_analyse = scoremanager->GetAnswerAnalyse(similar_data, keywords_data,
                                                                             dirty_words_data, response_data);
-        unsigned int create_time = time(nullptr);
-        unsigned int update_time = create_time;
+        auto answer_match = scoremanager->GetAnswerMatch(similar_data);
 
         //打分、数据落盘
         LOGGER->info("QAInfo落盘 course_id:{} session_id:{} node_code:{}",
                      qainfo->course_id, qainfo->session_id, current_node->node_code);
 
-        aia_course_practise_detail detail = {0, course_id, practise_id, node_code, question_id, question_statement_id,
+        aia_course_practise_detail detail = {course_id, practise_id, node_code, question_id, question_statement_id,
                                              question_time, answer_time, status, answer_txt, answer_record_file,
-                                             answer_duration, answer_match, answer_analyse, create_time, update_time};
-        DBOperate::GetInstance()->GenerateCoursePractiseDetail(detail);
+                                             answer_duration, answer_match, answer_analyse};
+        DBOperate::GetInstance()->DBInsert("aia_course_practise_detail",detail.meta());
         return {answer_txt, std::get<0>(similar_data)};
     }
-
 };

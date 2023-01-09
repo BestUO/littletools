@@ -59,6 +59,7 @@ struct QAInfo
     uint64_t answer_time;
     unsigned int is_expired;
     std::string answer_txt;
+    std::filesystem::path relative_path;
     std::filesystem::path answer_audio_path;
     std::string answer_analyse;
 
@@ -85,6 +86,7 @@ struct Session
     std::shared_ptr<QAInfo> current_qa = nullptr;
     std::vector<std::string> dirty_words;
     std::string cburl="";
+    int status=1;//1正常结束流程;2异常流程终止比如超时
 
     Session() = default;
     Session(unsigned int session_id,std::shared_ptr<CourseInfo> course_info):session_id(session_id),course_info(course_info){};

@@ -276,7 +276,7 @@ void* pthreadTranscriber(void* arg) {
         //语音数据来自文件，发送时需要控制速率，使单位时间内发送的数据大小接近单位时间原始语音数据存储的大小。         
         sleepMs = getSendAudioSleepTime(nlen, tst->sampleRate, 1);  // 根据发送数据大小、采样率、数据压缩比，获取sleep时间。
         //5: 语音数据发送延时控制
-        usleep(sleepMs * 10);
+        usleep(sleepMs * 30);
     }
     // 关闭音频文件     
     fs.close();     

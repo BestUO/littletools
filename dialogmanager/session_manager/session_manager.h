@@ -31,7 +31,10 @@ public:
             auto tmppath = __fileprefix;
             tmppath.append(content);
             if (std::filesystem::exists(tmppath))
+            {
+                session->current_qa->relative_path = content;
                 session->current_qa->answer_audio_path = tmppath;
+            }
             else
                 session->current_qa->answer_txt = content;
             auto result = DMThreadPool::GetInstance()->GetThreadPool()->EnqueueFun(QAInfoCallBackFunction::StoreInDB,

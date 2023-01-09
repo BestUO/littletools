@@ -49,7 +49,7 @@ std::tuple<int, float, std::string> ScoreManager::GetAnswerSimilarData(const std
     return {0, 0.0f, ""};
 }
 
-std::tuple<std::string, std::string> ScoreManager::GetAnswerAnalyse(
+std::string ScoreManager::GetAnswerAnalyse(
         const std::tuple<int, float, std::string> &similar_data,
         const std::tuple<int, std::vector<std::string>>& keywords_data,
         const std::tuple<int, std::vector<std::string>>&dirty_words_data,
@@ -100,12 +100,24 @@ std::tuple<std::string, std::string> ScoreManager::GetAnswerAnalyse(
 
     writer.EndObject();
 
-    return std::make_tuple("", buffer.GetString());
+    return buffer.GetString();
 }
 
-std::string ScoreManager::GetASRResult(std::string_view audiopath)
+std::string ScoreManager::GetAnswerMatch(const std::tuple<int, float, std::string> &similar_data)
 {
-    return "ASRResult";
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    writer.StartObject();
+
+    writer.Key("similar");
+    writer.StartObject();
+    writer.Key("score");
+    writer.String(std::to_string(std::get<0>(similar_data)).c_str());
+    writer.EndObject();
+
+    writer.EndObject();
+
+    return buffer.GetString();
 }
 
 std::tuple<int, std::vector<std::string>>
