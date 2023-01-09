@@ -138,11 +138,11 @@ public:
         return ExecuteCommand(std::function(fun));
     }
 
-    auto CoursePratiseUpdate(int duration, int end_time, int session_id)
+    auto CoursePratiseUpdate(int duration, int end_time, int session_id, int status)
     {
-        auto fun = [&session_id,duration=duration,end_time=end_time](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)
+        auto fun = [&session_id,duration=duration,end_time=end_time,status=status](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)
         {
-            std::string sql = get_sql("update aia_course_practise set duration=?,end_time=?,status=3 where id=?",duration,end_time,session_id);
+            std::string sql = get_sql("update aia_course_practise set duration=?,end_time=?,status=? where id=?",duration,end_time,status,session_id);
             LOGGER->info(sql);
             return conn->execute(sql);
         };

@@ -1,5 +1,7 @@
 build/
 www
+log/*
+data/*
 *.log
 conf/
 .svn/

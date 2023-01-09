@@ -1,9 +1,6 @@
-#ifndef UO_TOOLS_LOG_H
-#define UO_TOOLS_LOG_H
+#pragma once
 #include "spdlog/spdlog.h"
 
-#define SPDLOG_FILENAME "log/DialogerManagerLogger.log"
+#define SPDLOG_FILENAME "log/DialogerManagerLogger.log." + std::to_string(getpid())
 #define SPDLOGGERNAME "DialogerManagerLogger"
 #define LOGGER spdlog::get(SPDLOGGERNAME)
-
-#endif //UO_TOOLS_LOG_H

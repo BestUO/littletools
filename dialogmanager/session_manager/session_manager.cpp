@@ -151,7 +151,7 @@ void SessionManager::InsertToTimerManager(std::shared_ptr<Session> session)
     timermanager->DeleteAlarm(session->session_id);
     timermanager->AddAlarm(std::chrono::system_clock::now() + std::chrono::minutes(5), session->session_id, [this,key=session->session_id]()
     {
-        DeleteSessionMap(key);
+        DeleteSessionMap(key,2);
     });
 }
 
@@ -159,12 +159,13 @@ void SessionManager::DeleteSession(unsigned int session_id)
 {
     auto timermanager = TimerManager<unsigned int>::GetInstance();
     timermanager->DeleteAlarm(session_id);
-    DeleteSessionMap(session_id);
+    DeleteSessionMap(session_id,1);
 }
 
-void SessionManager::DeleteSessionMap(unsigned int session_id)
+void SessionManager::DeleteSessionMap(unsigned int session_id, int status)
 {
     std::unique_lock<std::shared_mutex> lock(__rwlock);
+    __session_map[session_id]->status = status;
     __session_map.erase(session_id);
 }
 

@@ -67,7 +67,7 @@ private:
     std::optional<std::weak_ptr<Node>> GetNextNode(std::weak_ptr<Node> node);
     bool NodeHaveQuestionsLeft(std::shared_ptr<Session> session);
     void InsertToTimerManager(std::shared_ptr<Session> session);
-    void DeleteSessionMap(unsigned int session_id);
+    void DeleteSessionMap(unsigned int session_id, int status);
     auto GetSoundAndSpeedAndStartTime(unsigned int session_id);
     std::vector<TTSStatement> FilterTTSStatement(std::vector<TTSStatement> ttsstatement,int ttssound, int ttsspeed);
 
