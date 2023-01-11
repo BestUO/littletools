@@ -95,7 +95,7 @@ void NetInterFace::NextContext(cinatra::request& req, cinatra::response& res)
         auto params = ParseNextContext(body.value(), req, res);
         if(params != std::nullopt)
         {
-            auto [session_id,course_id,question_time,answer_time,is_expired,content] = params.value();
+            auto [session_id,course_id,question_time,answer_time,answer_duration,is_expired,content] = params.value();
             auto sminstance = SessionManager::GetInstance();
             auto session = sminstance->GetSession(session_id,course_id);
             if(!session)
@@ -142,20 +142,21 @@ bool NetInterFace::AllMemberExist(rapidjson::Document& body, cinatra::response& 
     return allmemberexist;
 }
 
-std::optional<std::tuple<unsigned int,unsigned int,uint64_t,uint64_t,unsigned int,std::string_view>>
+std::optional<std::tuple<unsigned int,unsigned int,unsigned int,unsigned int,unsigned int,unsigned int,std::string_view>>
 NetInterFace::ParseNextContext(rapidjson::Document& body,cinatra::request& req, cinatra::response& res)
 {
-    if(!AllMemberExist(body,res,"session_id","course_id","content","question_time","answer_time","is_expired"))
+    if(!AllMemberExist(body,res,"session_id","course_id","content","question_time","answer_time","answer_duration","is_expired"))
         return std::nullopt;
     else
     {
         unsigned int session_id=body["session_id"].GetInt();
         unsigned int course_id=body["course_id"].GetInt();
-        uint64_t question_time=body["question_time"].GetUint64();
-        uint64_t answer_time=body["answer_time"].GetUint64();
+        unsigned int question_time=body["question_time"].GetUint64();
+        unsigned int answer_time=body["answer_time"].GetUint64();
+        unsigned int answer_duration=body["answer_duration"].GetUint64();
         unsigned int is_expired=body["is_expired"].GetInt();
         std::string_view content=body["content"].GetString();
-        return std::make_tuple(session_id,course_id,question_time,answer_time,is_expired,content);
+        return std::make_tuple(session_id,course_id,question_time,answer_time,answer_duration,is_expired,content);
     }
 }
 

@@ -18,19 +18,19 @@ public:
         unsigned int question_id = question_detail ? question_detail->question_id : 0;
         auto keywords = question_detail ? question_detail->keywords : "";
         unsigned int question_statement_id = qainfo->tts_statement.tts_statement_id;
-        uint64_t question_time = qainfo->question_time;
-        uint64_t answer_time = qainfo->answer_time;
+        unsigned int question_time = qainfo->question_time;
+        unsigned int answer_time = qainfo->answer_time;
+        unsigned int answer_duration = qainfo->answer_duration;
         unsigned int status = qainfo->is_expired;
         std::string answer_txt = qainfo->answer_txt;
         if (qainfo->answer_txt.empty()) {
-            auto ret = SpeecService::GetInstance()->SpeechTranscribeFile(practise_id, qainfo->answer_audio_path, "pcm",
-                                                                         16000);
-//            auto ret = SpeecService::GetInstance()->RestfulAsr(practise_id, qainfo->answer_audio_path, "pcm",
-//                                                                         8000);
+            // auto ret = SpeecService::GetInstance()->SpeechTranscribeFile(practise_id, qainfo->answer_audio_path, "wav",
+            //                                                              8000);
+            auto ret = SpeecService::GetInstance()->RestfulAsr(practise_id, qainfo->answer_audio_path, "wav",
+                                                                        8000);
             answer_txt = std::get<1>(ret);
         }
         std::string answer_record_file = qainfo->relative_path;
-        unsigned int answer_duration = std::chrono::system_clock::now().time_since_epoch().count() - answer_time;
 
         auto similar_data = scoremanager->GetAnswerSimilarData(answer_txt, {{node_code, qainfo->answer_stander}});
 

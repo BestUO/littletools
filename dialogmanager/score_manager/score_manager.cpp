@@ -51,7 +51,7 @@ std::tuple<int, float, std::string> ScoreManager::GetAnswerSimilarData(const std
 
 std::string ScoreManager::GetAnswerAnalyse(
         const std::tuple<int, float, std::string> &similar_data,
-        const std::tuple<int, std::vector<std::string>>& keywords_data,
+        const std::tuple<int, std::vector<std::string>, std::vector<std::string>>& keywords_data,
         const std::tuple<int, std::vector<std::string>>&dirty_words_data,
         const std::tuple<int, int> &response_data) {
     rapidjson::StringBuffer buffer;
@@ -63,7 +63,7 @@ std::string ScoreManager::GetAnswerAnalyse(
     writer.Key("score");
     writer.String(std::to_string(std::get<0>(similar_data)).c_str());
     writer.Key("detail");
-    writer.String(std::to_string(std::get<1>(similar_data)).c_str());
+    writer.String(FloatToFixedPointString<2>(std::get<1>(similar_data)).c_str());
     writer.EndObject();
 
     writer.Key("keywords");
@@ -71,6 +71,9 @@ std::string ScoreManager::GetAnswerAnalyse(
     writer.Key("score");
     writer.String(std::to_string(std::get<0>(keywords_data)).c_str());
     writer.Key("detail");
+
+    writer.StartObject();
+    writer.Key("right");
     writer.StartArray();
     for (auto &&w : std::get<1>(keywords_data)) {
         writer.String(w.c_str());
@@ -78,7 +81,18 @@ std::string ScoreManager::GetAnswerAnalyse(
     writer.EndArray();
     writer.EndObject();
 
-    writer.Key("dirty_words");
+    writer.StartObject();
+    writer.Key("wrong");
+    writer.StartArray();
+    for (auto &&w : std::get<2>(keywords_data)) {
+        writer.String(w.c_str());
+    }
+    writer.EndArray();
+    writer.EndObject();
+
+    writer.EndObject();
+
+    writer.Key("dirtyWords");
     writer.StartObject();
     writer.Key("score");
     writer.String(std::to_string(std::get<0>(dirty_words_data)).c_str());
@@ -120,9 +134,9 @@ std::string ScoreManager::GetAnswerMatch(const std::tuple<int, float, std::strin
     return buffer.GetString();
 }
 
-std::tuple<int, std::vector<std::string>>
+std::tuple<int, std::vector<std::string>, std::vector<std::string>>
 ScoreManager::GetKeywordsData(const std::string &answer_txt, const std::string &keywords) {
-    auto ret = std::make_tuple(0, std::vector<std::string>());
+    auto ret = std::make_tuple(0, std::vector<std::string>(), std::vector<std::string>());
     if (auto parser = JsonSimpleWrap::GetPaser(keywords)) {
         if (parser.value().Size() == 0) {
             std::get<0>(ret) = 10;
@@ -131,6 +145,8 @@ ScoreManager::GetKeywordsData(const std::string &answer_txt, const std::string &
                 auto &&w = parser.value()[i].GetString();
                 if (answer_txt.find(w) != std::string::npos) {
                     std::get<1>(ret).push_back(w);
+                } else {
+                    std::get<2>(ret).push_back(w);
                 }
             }
             std::get<0>(ret) = std::get<1>(ret).size() * 10 / parser.value().Size();
@@ -178,7 +194,7 @@ std::tuple<int, std::vector<std::string>> ScoreManager::GetDirtyWordsData(const 
     return ret;
 }
 
-std::tuple<int, int> ScoreManager::GetResponseData(uint64_t question_time, uint64_t answer_time) {
+std::tuple<int, int> ScoreManager::GetResponseData(unsigned int question_time, unsigned int answer_time) {
     auto response = (answer_time - question_time) * 0.001f;
     int score = 10;
     if (response > 3 && response <= 4) {
@@ -194,4 +210,11 @@ std::tuple<int, int> ScoreManager::GetResponseData(uint64_t question_time, uint6
     }
     auto ret = std::make_tuple(score, response);
     return ret;
+}
+
+template<int N>
+std::string ScoreManager::FloatToFixedPointString(float value) {
+    std::stringstream ss;
+    ss << std::fixed << std::setprecision(N) << value;
+    return ss.str();
 }

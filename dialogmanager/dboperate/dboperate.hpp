@@ -52,8 +52,8 @@ struct aia_course_practise_detail
     std::string node_code;
     unsigned int question_id;
     unsigned int question_statement_id;
-    uint64_t question_time;
-    uint64_t answer_time;
+    unsigned int question_time;
+    unsigned int answer_time;
     unsigned int status;
     std::string answer_txt;
     std::string answer_record_file;

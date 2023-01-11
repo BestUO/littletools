@@ -55,8 +55,9 @@ struct QAInfo
 {
     unsigned int course_id;
     unsigned int session_id;
-    uint64_t question_time;
-    uint64_t answer_time;
+    unsigned int question_time;
+    unsigned int answer_time;
+    unsigned int answer_duration;
     unsigned int is_expired;
     std::string answer_txt;
     std::filesystem::path relative_path;

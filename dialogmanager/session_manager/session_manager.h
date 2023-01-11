@@ -19,7 +19,7 @@ public:
     std::shared_ptr<Session> GetSession(unsigned int session_id, unsigned int course_id);
     template<class ...Args>
     bool ProcessSession(std::shared_ptr<Session> session, std::tuple<Args...> params) {
-        auto[session_id, course_id, question_time, answer_time, is_expired, content] = params;
+        auto[session_id, course_id, question_time, answer_time, answer_duration, is_expired, content] = params;
         std::string asr_result;
         int score = 0;
         if (session->current_qa) {
@@ -28,6 +28,7 @@ public:
             session->current_qa->question_time = question_time;
             session->current_qa->answer_time = answer_time;
             session->current_qa->is_expired = is_expired;
+            session->current_qa->answer_duration = answer_duration;
             auto tmppath = __fileprefix;
             tmppath.append(content);
             if (std::filesystem::exists(tmppath))
