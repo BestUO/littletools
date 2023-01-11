@@ -149,12 +149,12 @@ NetInterFace::ParseNextContext(rapidjson::Document& body,cinatra::request& req, 
         return std::nullopt;
     else
     {
-        unsigned int session_id=body["session_id"].GetInt();
-        unsigned int course_id=body["course_id"].GetInt();
-        unsigned int question_time=body["question_time"].GetUint64();
-        unsigned int answer_time=body["answer_time"].GetUint64();
-        unsigned int answer_duration=body["answer_duration"].GetUint64();
-        unsigned int is_expired=body["is_expired"].GetInt();
+        unsigned int session_id=body["session_id"].GetUint();
+        unsigned int course_id=body["course_id"].GetUint();
+        unsigned int question_time=body["question_time"].GetUint();
+        unsigned int answer_time=body["answer_time"].GetUint();
+        unsigned int answer_duration=body["answer_duration"].GetUint();
+        unsigned int is_expired=body["is_expired"].GetUint();
         std::string_view content=body["content"].GetString();
         return std::make_tuple(session_id,course_id,question_time,answer_time,answer_duration,is_expired,content);
     }
