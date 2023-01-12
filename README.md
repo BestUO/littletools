@@ -18,10 +18,16 @@ littletools usage in tooltest
 * asio example
 * Simple LRU_Cache
 
-# Trimule
-Httpserver for receive call info and store in db
+# ToolExample
+mkdir build && cd build  
+cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target tooltest -j 1
+cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target doctooltest -j 1
 
-## HowtoRunTrimule
+# Two Projects
+need mysql support
+
+## Trimule
+Httpserver for receive call info and store in db
 ### require 
 c++17
 ### Make
@@ -33,7 +39,7 @@ cd Trimule
 sh docker_build.sh  
 sh docker_run.sh  
 
-# Dialogmanager
+## Dialogmanager
 Httpserver for manage dialog session and store info in db
 ### require 
 c++17
