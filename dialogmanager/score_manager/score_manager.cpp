@@ -1,4 +1,5 @@
 #include "cinatra/cinatra.hpp"
+#include <rapidjson/allocators.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 #include <dialogmanager/dboperate/dboperate.hpp>
@@ -70,24 +71,24 @@ std::string ScoreManager::GetAnswerAnalyse(
     writer.StartObject();
     writer.Key("score");
     writer.String(std::to_string(std::get<0>(keywords_data)).c_str());
-    writer.Key("detail");
 
+    writer.Key("detail");
     writer.StartObject();
+
     writer.Key("right");
     writer.StartArray();
     for (auto &&w : std::get<1>(keywords_data)) {
         writer.String(w.c_str());
     }
     writer.EndArray();
-    writer.EndObject();
 
-    writer.StartObject();
     writer.Key("wrong");
     writer.StartArray();
     for (auto &&w : std::get<2>(keywords_data)) {
         writer.String(w.c_str());
     }
     writer.EndArray();
+
     writer.EndObject();
 
     writer.EndObject();
@@ -117,20 +118,31 @@ std::string ScoreManager::GetAnswerAnalyse(
     return buffer.GetString();
 }
 
-std::string ScoreManager::GetAnswerMatch(const std::tuple<int, float, std::string> &similar_data)
-{
+std::string ScoreManager::GetAnswerMatch(const std::tuple<int, float, std::string> &similar_data, const std::string &answer_stander, const std::string &prompt_txt,
+                                         const rapidjson::Document &prompt_steps) {
+    rapidjson::Document d;
+    d.SetObject();
+    rapidjson::Value similar_value(rapidjson::kObjectType);
+    similar_value.SetObject();
+    similar_value.AddMember("score", rapidjson::Value().SetString(
+            rapidjson::StringRef(std::to_string(std::get<0>(similar_data)).c_str())), d.GetAllocator());
+    similar_value.AddMember("standard", rapidjson::Value().SetString(rapidjson::StringRef(answer_stander.c_str())),
+                            d.GetAllocator());
+    similar_value.AddMember("prompt_txt", rapidjson::Value().SetString(rapidjson::StringRef(prompt_txt.c_str())),
+                            d.GetAllocator());
+
+    rapidjson::Value prompt_steps_value(rapidjson::kArrayType);
+    prompt_steps_value.SetArray();
+    if (prompt_steps.IsArray()) {
+        prompt_steps_value.CopyFrom(prompt_steps, d.GetAllocator());
+    }
+    similar_value.AddMember("prompt_steps", prompt_steps_value, d.GetAllocator());
+
+    d.AddMember("similar", similar_value, d.GetAllocator());
+
     rapidjson::StringBuffer buffer;
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-    writer.StartObject();
-
-    writer.Key("similar");
-    writer.StartObject();
-    writer.Key("score");
-    writer.String(std::to_string(std::get<0>(similar_data)).c_str());
-    writer.EndObject();
-
-    writer.EndObject();
-
+    d.Accept(writer);
     return buffer.GetString();
 }
 

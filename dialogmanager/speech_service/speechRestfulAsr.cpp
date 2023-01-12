@@ -2,6 +2,7 @@
 #include <curl/curl.h>
 #include <iostream>
 #include <fstream>
+#include <rapidjson/pointer.h>
 #include "speechRestfulAsr.h"
 #include "log.h"
 
@@ -130,5 +131,13 @@ int restfulAsrProcess(const std::string &appKey, const std::string &token, const
     LOGGER->info("restfulAsrProcess userId: {}, request: {}", arg->userId, request);
 
     int ret = sendAsrRequest(request.c_str(), token.c_str(), file_name.c_str(), &arg->recognizedContent);
+    rapidjson::Document doc;
+    doc.Parse(arg->recognizedContent.c_str());
+    if (!doc.HasParseError() && doc.IsObject()) {
+        arg->recognizedContent = doc["result"].GetString();
+    } else {
+        LOGGER->error("asr result parse error:{}", arg->recognizedContent);
+    }
+
     return ret;
 }

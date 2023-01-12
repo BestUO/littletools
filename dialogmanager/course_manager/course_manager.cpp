@@ -140,16 +140,16 @@ std::shared_ptr<CourseInfo> CourseManager::CreateCourse(unsigned int course_id)
 void CourseManager::CompleteNodeAnswerAndPromptTxt(unsigned int course_id, std::weak_ptr<Node> root,std::map<unsigned int,std::shared_ptr<QuestionDetail>> &question_detail_map)
 {
     auto tmp = root.lock();
-
     auto [node_type,node_txt,prompt_txt] = DBOperate::GetInstance()->GetNodeTypeAnswerPromptTxt(course_id, tmp->node_code)[0];
-    auto questiondetail = std::make_shared<QuestionDetail>();
-    questiondetail->question_id = 0;
-    questiondetail->prompt_txt = std::move(prompt_txt);
     if(node_type==1)
+    {
+        auto questiondetail = std::make_shared<QuestionDetail>();
+        questiondetail->question_id = 0;
+        questiondetail->prompt_txt = std::move(prompt_txt);
         questiondetail->answer = std::move(node_txt);
-    question_detail_map[0] = questiondetail;
-
-    tmp->question.array.emplace_back(questiondetail);
+        question_detail_map[0] = questiondetail;
+        tmp->question.array.emplace_back(questiondetail);
+    }
 }
 
 std::shared_ptr<CourseInfo> CourseManager::CreateCourse(unsigned int eid, unsigned int course_id, std::map<std::string,std::shared_ptr<Node>> &node_map,

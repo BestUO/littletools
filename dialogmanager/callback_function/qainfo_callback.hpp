@@ -15,8 +15,12 @@ public:
         unsigned int course_id = qainfo->course_id;
         unsigned int practise_id = qainfo->session_id;
         std::string node_code = current_node->node_code;
+
         unsigned int question_id = question_detail ? question_detail->question_id : 0;
         auto keywords = question_detail ? question_detail->keywords : "";
+        auto prompt_txt = question_detail ? question_detail->prompt_txt : "";
+        auto prompt_steps = question_detail ? GetDocument(question_detail->prompt_steps) : rapidjson::Document();
+
         unsigned int question_statement_id = qainfo->tts_statement.tts_statement_id;
         unsigned int question_time = qainfo->question_time;
         unsigned int answer_time = qainfo->answer_time;
@@ -42,7 +46,7 @@ public:
 
         auto answer_analyse = scoremanager->GetAnswerAnalyse(similar_data, keywords_data,
                                                                             dirty_words_data, response_data);
-        auto answer_match = scoremanager->GetAnswerMatch(similar_data);
+        auto answer_match = scoremanager->GetAnswerMatch(similar_data, qainfo->answer_stander, prompt_txt, prompt_steps);
 
         //打分、数据落盘
         LOGGER->info("QAInfo落盘 course_id:{} session_id:{} node_code:{}",
@@ -53,5 +57,11 @@ public:
                                              answer_duration, answer_match, answer_analyse};
         DBOperate::GetInstance()->DBInsert("aia_course_practise_detail",detail.meta());
         return {answer_txt, std::get<0>(similar_data)};
+    }
+
+    static rapidjson::Document GetDocument(const std::string &json) {
+        rapidjson::Document doc;
+        doc.Parse(json.c_str());
+        return doc;
     }
 };
