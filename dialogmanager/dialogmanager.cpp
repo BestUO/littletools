@@ -5,6 +5,7 @@
 #include "global.h"
 #include "net_interface/net_interface.h"
 #include "tools/threadpool.hpp"
+
 void Initspdlog()
 {
     spdlog::flush_every(std::chrono::seconds(5));
@@ -12,6 +13,7 @@ void Initspdlog()
     file_logger->set_level(spdlog::level::info); // Set global log level to info
     file_logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e %^%L%$ %t] %v");
 }
+
 int main(int argc,char **argv)
 {
     Initspdlog();

@@ -28,11 +28,12 @@ private:
     Question NodeParseQuestion(const rapidjson::Value & value, 
                 std::map<unsigned int,std::shared_ptr<QuestionDetail>> &question_detail_map);
     std::vector<unsigned int> NodeParseLabel(const rapidjson::Value & value);
-    std::vector<std::weak_ptr<Node>> NodeParseChildNode(const rapidjson::Value &value, std::map<unsigned int,std::shared_ptr<Node>> &node_map, std::weak_ptr<Node> parent);
-    std::vector<std::weak_ptr<Node>> NodeParseJumpNode(const rapidjson::Value &value, std::map<unsigned int,std::shared_ptr<Node>> &node_map, std::weak_ptr<Node> parent);
+    std::vector<std::weak_ptr<Node>> NodeParseChildNode(const rapidjson::Value &value, std::map<std::string,std::shared_ptr<Node>> &node_map, std::weak_ptr<Node> parent);
+    std::vector<std::weak_ptr<Node>> NodeParseJumpNode(const rapidjson::Value &value, std::map<std::string,std::shared_ptr<Node>> &node_map, std::weak_ptr<Node> parent);
     std::shared_ptr<QuestionDetail> CreateQuestionDetail(unsigned int questiondetail_id);
     std::vector<TTSStatement> GetTTSStatementInfo(unsigned int standard,std::string similars);
     std::weak_ptr<Node> GetCourseRoot(std::shared_ptr<Node> node);
-    std::shared_ptr<CourseInfo> CreateCourse(unsigned int course_id, std::map<unsigned int,std::shared_ptr<Node>> &node_map, 
+    std::shared_ptr<CourseInfo> CreateCourse(unsigned int eid, unsigned int course_id, std::map<std::string,std::shared_ptr<Node>> &node_map,
                 std::map<unsigned int,std::shared_ptr<QuestionDetail>> &question_detail_map);
+    void CompleteNodeAnswerAndPromptTxt(unsigned int course_id, std::weak_ptr<Node> root,std::map<unsigned int,std::shared_ptr<QuestionDetail>> &question_detail_map);
 };

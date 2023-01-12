@@ -1,4 +1,4 @@
-project(net_interface)
+project(netinterface)
 
 # set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ../lib)
 include_directories(${THIRD_PARTY_PATH}/include)

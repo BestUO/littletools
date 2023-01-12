@@ -8,6 +8,11 @@
         "mysql_timeout":5,
         "mysql_connect_pool_size":5
     },
+    "ali_nls": {
+        "appkey": "123",
+        "access_key_id": "123",
+        "access_key_secret": "123"
+    },
     "thread_pool":
     {
         "min_size":2,
@@ -22,6 +27,10 @@
     {
         "host":"0.0.0.0",
         "port":"9988"
-    }
+    },
+    "queue_sync_time":1,
+    "fileprefix":"data/",
+    "answer_similar_service_uri":"http:/127.0.0.1:6002/top_one_similar",
+    "cburl":"https://127.0.0.1:8086"
 }
 

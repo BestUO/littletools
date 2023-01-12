@@ -1,2 +1,2 @@
 #!/bin/bash
-docker build -t newtrimule .
+docker build -t trimule .
