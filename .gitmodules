@@ -7,3 +7,6 @@
 [submodule "asiostudy/asio"]
 	path = asiostudy/asio
 	url = https://github.com/chriskohlhoff/asio
+[submodule "yalantingstudy/yalantinglibs"]
+	path = yalantingstudy/yalantinglibs
+	url = https://github.com/alibaba/yalantinglibs.git
