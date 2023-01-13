@@ -58,5 +58,15 @@
                 "isDefault": true
             }
         },
+        {
+            "label": "build lantingstudy",
+            "args": [
+                "cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target lantingstudy -j 1"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
     ]
 }

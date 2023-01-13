@@ -114,5 +114,26 @@
             "preLaunchTask": "build dialogmanager",
             "miDebuggerPath": "/usr/bin/gdb"
         },
+        {
+            "name": "lantingstudy",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/yalantingstudy/lantingstudy",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "build lantingstudy",
+            "miDebuggerPath": "/usr/bin/gdb"
+        },
     ]
 }
