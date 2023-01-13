@@ -13,38 +13,41 @@ ScoreManager::ScoreManager()
     __url = config["answer_similar_service_uri"].GetString();
 }
 
-std::tuple<int, float, std::string> ScoreManager::GetAnswerSimilarData(const std::string &answer_txt, const std::vector<std::pair<std::string, std::string>> &candidate_answers) {
-    auto client = cinatra::client_factory::instance().new_client();
-
-    rapidjson::StringBuffer buffer;
-    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-    writer.StartObject();
-    writer.Key("user_answer");
-    writer.String(answer_txt.c_str());
-    writer.Key("candidate_answers");
-    writer.StartArray();
-    for (auto &&p: candidate_answers) {
+std::tuple<int, float, std::string> ScoreManager::GetAnswerSimilarData(const std::string &answer_txt, const std::vector<std::pair<std::string, std::string>> &candidate_answers) 
+{
+    if(!answer_txt.empty())
+    {
+        auto client = cinatra::client_factory::instance().new_client();
+        rapidjson::StringBuffer buffer;
+        rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
         writer.StartObject();
-        writer.Key("id");
-        writer.String(p.first.c_str());
-        writer.Key("text");
-        writer.String(p.second.c_str());
+        writer.Key("user_answer");
+        writer.String(answer_txt.c_str());
+        writer.Key("candidate_answers");
+        writer.StartArray();
+        for (auto &&p: candidate_answers) {
+            writer.StartObject();
+            writer.Key("id");
+            writer.String(p.first.c_str());
+            writer.Key("text");
+            writer.String(p.second.c_str());
+            writer.EndObject();
+        }
+        writer.EndArray();
         writer.EndObject();
-    }
-    writer.EndArray();
-    writer.EndObject();
 
-    auto jsonstr = buffer.GetString();
-    LOGGER->info("post:{}, content:{}", __url, jsonstr);
-    auto rsp = client->post(__url, jsonstr);
-    LOGGER->info("rsp.resp_body:{}", rsp.resp_body);
-    if (!rsp.resp_body.empty()) {
-        if (auto body = JsonSimpleWrap::GetPaser(rsp.resp_body)) {
-            auto score = body.value()["score"].GetFloat();
-            auto normallized_score = int(score / 10);
-            auto similar_id = body.value()["similar_id"].IsInt() ? std::to_string(body.value()["similar_id"].GetInt())
-                                                                 : body.value()["similar_id"].GetString();
-            return std::make_tuple(normallized_score, score, similar_id);
+        auto jsonstr = buffer.GetString();
+        LOGGER->info("post:{}, content:{}", __url, jsonstr);
+        auto rsp = client->post(__url, jsonstr);
+        LOGGER->info("rsp.resp_body:{}", rsp.resp_body);
+        if (!rsp.resp_body.empty()) {
+            if (auto body = JsonSimpleWrap::GetPaser(rsp.resp_body)) {
+                auto score = body.value()["score"].GetFloat();
+                auto normallized_score = int(score / 10);
+                auto similar_id = body.value()["similar_id"].IsInt() ? std::to_string(body.value()["similar_id"].GetInt())
+                                                                    : body.value()["similar_id"].GetString();
+                return std::make_tuple(normallized_score, score, similar_id);
+            }
         }
     }
     return {0, 0.0f, ""};
