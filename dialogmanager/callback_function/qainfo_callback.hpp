@@ -28,12 +28,12 @@ public:
         unsigned int status = qainfo->is_expired;
         std::string answer_txt = qainfo->answer_txt;
         if (qainfo->answer_txt.empty()) {
-            // auto ret = SpeecService::GetInstance()->SpeechTranscribeFile(practise_id, qainfo->answer_audio_path, "wav",
-            //                                                              8000);
-            auto ret = SpeecService::GetInstance()->RestfulAsr(practise_id, qainfo->answer_audio_path, "wav",
-                                                                        8000);
+            auto ret = SpeecService::GetInstance()->SpeechTranscribeFile(practise_id, qainfo->answer_audio_path, "wav",
+                                                                         8000);
+            // auto ret = SpeecService::GetInstance()->RestfulAsr(practise_id, qainfo->answer_audio_path, "wav",
+            //                                                             8000);
             answer_txt = std::get<1>(ret);
-        }
+        } 
         std::string answer_record_file = qainfo->relative_path;
 
         auto similar_data = scoremanager->GetAnswerSimilarData(answer_txt, {{node_code, qainfo->answer_stander}});
