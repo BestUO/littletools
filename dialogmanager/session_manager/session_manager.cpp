@@ -165,14 +165,23 @@ void SessionManager::DeleteSession(unsigned int session_id)
 void SessionManager::DeleteSessionMap(unsigned int session_id, int status)
 {
     std::unique_lock<std::shared_mutex> lock(__rwlock);
-    __session_map[session_id]->status = status;
-    __session_map.erase(session_id);
+    if(__session_map.find(session_id) != __session_map.end())
+    {
+        __session_map[session_id]->status = status;
+        __session_map.erase(session_id);
+    }
 }
 
 void SessionManager::StopSessionManager()
 {
     TimerManager<unsigned int>::GetInstance()->StopTimerManager();
     DMThreadPool::GetInstance()->StopThreadPool();
+    std::unique_lock<std::shared_mutex> lock(__rwlock);
+    for(auto item=__session_map.begin();item != __session_map.end();)
+    {
+        item->second->status = 2;
+        item = __session_map.erase(item);
+    }
 }
 
 std::vector<std::string> SessionManager::GetDirtyWords(unsigned int eid) {

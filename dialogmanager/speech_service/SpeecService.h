@@ -22,8 +22,9 @@ public:
     RestfulAsr(uuid_t id, const std::string &file_name, const std::string &format, int sample_rate);
 
     int SpeechSynthesizeText(uuid_t id, const std::string &text);
-
+    void StopSpeecService();
 private:
+    struct TokenTimer{};
     SpeecService();
 
     virtual ~SpeecService();

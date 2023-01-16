@@ -6,7 +6,7 @@
 #include "global.h"
 #include <random>
 
-NetInterFace::NetInterFace(rapidjson::Document &config):__server(1)
+NetInterFace::NetInterFace(rapidjson::Document &config):__server(2)
 {
     __server.listen(config["httpserver_setting"]["host"].GetString(), config["httpserver_setting"]["port"].GetString());
     __server.set_http_handler<cinatra::GET, cinatra::POST>("/dialogmanger/nextcontext", [this](cinatra::request& req, cinatra::response& res) 
@@ -82,6 +82,7 @@ void NetInterFace::DeleteSession(cinatra::request& req, cinatra::response& res)
 void NetInterFace::StopDialogManager(cinatra::request& req, cinatra::response& res)
 {
     SessionManager::GetInstance()->StopSessionManager();
+    SpeecService::GetInstance()->StopSpeecService();
     __server.stop();
     res.set_status_and_content(cinatra::status_type::ok, GenerateResponse::GetResponse(std::move(GenerateResponse::ExecuteSuccess())));
     LOGGER->info("StopDialogManager");

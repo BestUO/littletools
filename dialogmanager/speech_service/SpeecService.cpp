@@ -80,11 +80,8 @@ SpeecService::~SpeecService() {
 bool SpeecService::Start() {
     //启动工作线程
     NlsClient::getInstance()->startWorkThread(4);     // 识别单个音频数据
-
-    struct TokenTimer{};
-    TokenTimer tt;
-    auto tm = TimerManager<TokenTimer>::GetInstance();
-    tm->AddAlarm(std::chrono::system_clock::now(), tt, [this]{
+    auto timemanager = TimerManager<TokenTimer>::GetInstance();
+    timemanager->AddAlarm(std::chrono::system_clock::now(), TokenTimer(), [this]{
         this->onTimer();
     }, std::chrono::seconds(10));
 
@@ -172,4 +169,10 @@ int SpeecService::SpeechSynthesizeText(uuid_t id, const std::string &text) {
 
 int SpeecService::OnTextSynthesized(uuid_t id, const std::string &content) {
     return 0;
+}
+
+void SpeecService::StopSpeecService()
+{
+    auto timemanager = TimerManager<TokenTimer>::GetInstance();
+    timemanager->StopTimerManager();
 }
