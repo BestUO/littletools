@@ -48,7 +48,7 @@ public:
         session->current_qa->last_score = score;
         return CompleteQAInfo(session);
     }
-    void DeleteSession(unsigned int session_id);
+    void DeleteSession(unsigned int session_id, int status);
     void StopSessionManager();
 
 private:

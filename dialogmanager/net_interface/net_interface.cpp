@@ -72,8 +72,8 @@ void NetInterFace::DeleteSession(cinatra::request& req, cinatra::response& res)
         auto params = ParseDeleteSession(body.value(), req, res);
         if(params != std::nullopt)
         {   
-            auto [session_id] = params.value();
-            SessionManager::GetInstance()->DeleteSession(session_id);
+            auto [session_id, is_expired] = params.value();
+            SessionManager::GetInstance()->DeleteSession(session_id,is_expired==1?2:1);
             res.set_status_and_content(cinatra::status_type::ok, GenerateResponse::GetResponse(std::move(GenerateResponse::ExecuteSuccess())));
         }
     }
@@ -167,14 +167,14 @@ NetInterFace::ParseDeleteCourse(rapidjson::Document& body,cinatra::request& req,
     if(!AllMemberExist(body,res,"course_id"))
         return std::nullopt;
     else
-        return std::make_tuple(body["course_id"].GetInt());
+        return std::make_tuple(body["course_id"].GetUint());
 }
 
-std::optional<std::tuple<unsigned int>>
+std::optional<std::tuple<unsigned int,unsigned int>>
 NetInterFace::ParseDeleteSession(rapidjson::Document& body,cinatra::request& req, cinatra::response& res)
 {
-    if(!AllMemberExist(body,res,"session_id"))
+    if(!AllMemberExist(body,res,"session_id","is_expired"))
         return std::nullopt;
     else
-        return std::make_tuple(body["session_id"].GetInt());
+        return std::make_tuple(body["session_id"].GetUint(),body["is_expired"].GetUint());
 }

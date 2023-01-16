@@ -155,11 +155,11 @@ void SessionManager::InsertToTimerManager(std::shared_ptr<Session> session)
     });
 }
 
-void SessionManager::DeleteSession(unsigned int session_id)
+void SessionManager::DeleteSession(unsigned int session_id, int status)
 {
     auto timermanager = TimerManager<unsigned int>::GetInstance();
     timermanager->DeleteAlarm(session_id);
-    DeleteSessionMap(session_id,1);
+    DeleteSessionMap(session_id, status);
 }
 
 void SessionManager::DeleteSessionMap(unsigned int session_id, int status)
