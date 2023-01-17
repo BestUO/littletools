@@ -167,6 +167,8 @@ ScoreManager::GetKeywordsData(const std::string &answer_txt, const std::string &
             }
             std::get<0>(ret) = std::get<1>(ret).size() * 10 / parser.value().Size();
         }
+    } else {
+        std::get<0>(ret) = 10;
     }
     return ret;
 }
