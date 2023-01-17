@@ -92,7 +92,8 @@ std::shared_ptr<CourseInfo> CourseManager::CreateCourse(unsigned int course_id)
         LOGGER->info("cant find course {}",course_id);
         return nullptr;
     }
-    else {
+    else 
+    {
         content = std::get<0>(vdata[0]);
         eid = std::get<1>(vdata[0]);
     }
@@ -154,7 +155,8 @@ void CourseManager::CompleteNodeAnswerAndPromptTxt(unsigned int course_id, std::
 }
 
 std::shared_ptr<CourseInfo> CourseManager::CreateCourse(unsigned int eid, unsigned int course_id, std::map<std::string,std::shared_ptr<Node>> &node_map,
-                    std::map<unsigned int,std::shared_ptr<QuestionDetail>> &question_detail_map) {
+                    std::map<unsigned int,std::shared_ptr<QuestionDetail>> &question_detail_map) 
+{
     auto courseptr = std::make_shared<CourseInfo>();
     courseptr->eid = eid;
     courseptr->course_id = course_id;
