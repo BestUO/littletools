@@ -96,7 +96,7 @@ void NetInterFace::NextContext(cinatra::request& req, cinatra::response& res)
         auto params = ParseNextContext(body.value(), req, res);
         if(params != std::nullopt)
         {
-            auto [session_id,course_id,question_time,answer_time,answer_duration,is_expired,content] = params.value();
+            auto [session_id,course_id,question_time,answer_time,answer_duration,is_expired,content,answer_file_url] = params.value();
             auto sminstance = SessionManager::GetInstance();
             auto session = sminstance->GetSession(session_id,course_id);
             if(!session)
@@ -143,10 +143,10 @@ bool NetInterFace::AllMemberExist(rapidjson::Document& body, cinatra::response& 
     return allmemberexist;
 }
 
-std::optional<std::tuple<unsigned int,unsigned int,unsigned int,unsigned int,unsigned int,unsigned int,std::string_view>>
+std::optional<std::tuple<unsigned int,unsigned int,unsigned int,unsigned int,unsigned int,unsigned int,std::string_view,std::string_view>>
 NetInterFace::ParseNextContext(rapidjson::Document& body,cinatra::request& req, cinatra::response& res)
 {
-    if(!AllMemberExist(body,res,"session_id","course_id","content","question_time","answer_time","answer_duration","is_expired"))
+    if(!AllMemberExist(body,res,"session_id","course_id","content","question_time","answer_time","answer_duration","is_expired","answer_file_url"))
         return std::nullopt;
     else
     {
@@ -157,7 +157,8 @@ NetInterFace::ParseNextContext(rapidjson::Document& body,cinatra::request& req, 
         unsigned int answer_duration=body["answer_duration"].GetUint();
         unsigned int is_expired=body["is_expired"].GetUint();
         std::string_view content=body["content"].GetString();
-        return std::make_tuple(session_id,course_id,question_time,answer_time,answer_duration,is_expired,content);
+        std::string_view answer_file_url=body["answer_file_url"].GetString();
+        return std::make_tuple(session_id,course_id,question_time,answer_time,answer_duration,is_expired,content,answer_file_url);
     }
 }
 

@@ -19,7 +19,7 @@ public:
     std::shared_ptr<Session> GetSession(unsigned int session_id, unsigned int course_id);
     template<class ...Args>
     bool ProcessSession(std::shared_ptr<Session> session, std::tuple<Args...> params) {
-        auto[session_id, course_id, question_time, answer_time, answer_duration, is_expired, content] = params;
+        auto[session_id, course_id, question_time, answer_time, answer_duration, is_expired, content, answer_file_url] = params;
         std::string asr_result;
         int score = 0;
         if (session->current_qa) {
@@ -29,15 +29,12 @@ public:
             session->current_qa->answer_time = answer_time;
             session->current_qa->is_expired = is_expired;
             session->current_qa->answer_duration = answer_duration;
+            session->current_qa->answer_txt = content;
+            session->current_qa->relative_path = answer_file_url;
             auto tmppath = __fileprefix;
-            tmppath.append(content);
-            if (std::filesystem::exists(tmppath))
-            {
-                session->current_qa->relative_path = content;
-                session->current_qa->answer_audio_path = tmppath;
-            }
-            else
-                session->current_qa->answer_txt = content;
+            tmppath.append(answer_file_url);
+            session->current_qa->answer_audio_path = tmppath;
+
             auto result = DMThreadPool::GetInstance()->GetThreadPool()->EnqueueFun(QAInfoCallBackFunction::StoreInDB,
                                                                                    session->current_qa,
                                                                                    session->dirty_words);

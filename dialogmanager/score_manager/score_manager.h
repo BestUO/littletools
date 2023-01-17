@@ -37,6 +37,8 @@ private:
     ~ScoreManager() = default;
     std::string __url;
 
+    static int normalized_score(float);
+
     template<int N>
     std::string FloatToFixedPointString(float);
 };

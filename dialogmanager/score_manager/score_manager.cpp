@@ -18,6 +18,7 @@ std::tuple<int, float, std::string> ScoreManager::GetAnswerSimilarData(const std
     if(!answer_txt.empty())
     {
         auto client = cinatra::client_factory::instance().new_client();
+
         rapidjson::StringBuffer buffer;
         rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
         writer.StartObject();
@@ -43,10 +44,10 @@ std::tuple<int, float, std::string> ScoreManager::GetAnswerSimilarData(const std
         if (!rsp.resp_body.empty()) {
             if (auto body = JsonSimpleWrap::GetPaser(rsp.resp_body)) {
                 auto score = body.value()["score"].GetFloat();
-                auto normallized_score = int(score / 10);
+                auto normalized = normalized_score(score);
                 auto similar_id = body.value()["similar_id"].IsInt() ? std::to_string(body.value()["similar_id"].GetInt())
                                                                     : body.value()["similar_id"].GetString();
-                return std::make_tuple(normallized_score, score, similar_id);
+                return std::make_tuple(normalized, score, similar_id);
             }
         }
     }
@@ -129,9 +130,11 @@ std::string ScoreManager::GetAnswerMatch(const std::tuple<int, float, std::strin
     similar_value.SetObject();
     similar_value.AddMember("score", rapidjson::Value().SetString(
             rapidjson::StringRef(std::to_string(std::get<0>(similar_data)).c_str())), d.GetAllocator());
-    similar_value.AddMember("standard", rapidjson::Value().SetString(rapidjson::StringRef(answer_stander.c_str())),
+    d.AddMember("similar", similar_value, d.GetAllocator());
+
+    d.AddMember("standard", rapidjson::Value().SetString(rapidjson::StringRef(answer_stander.c_str())),
                             d.GetAllocator());
-    similar_value.AddMember("prompt_txt", rapidjson::Value().SetString(rapidjson::StringRef(prompt_txt.c_str())),
+    d.AddMember("prompt_txt", rapidjson::Value().SetString(rapidjson::StringRef(prompt_txt.c_str())),
                             d.GetAllocator());
 
     rapidjson::Value prompt_steps_value(rapidjson::kArrayType);
@@ -139,9 +142,7 @@ std::string ScoreManager::GetAnswerMatch(const std::tuple<int, float, std::strin
     if (prompt_steps.IsArray()) {
         prompt_steps_value.CopyFrom(prompt_steps, d.GetAllocator());
     }
-    similar_value.AddMember("prompt_steps", prompt_steps_value, d.GetAllocator());
-
-    d.AddMember("similar", similar_value, d.GetAllocator());
+    d.AddMember("prompt_steps", prompt_steps_value, d.GetAllocator());
 
     rapidjson::StringBuffer buffer;
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
@@ -225,6 +226,13 @@ std::tuple<int, int> ScoreManager::GetResponseData(unsigned int question_time, u
     }
     auto ret = std::make_tuple(score, response);
     return ret;
+}
+
+int ScoreManager::normalized_score(float score) {
+    if (score <= 80) {
+        return 0;
+    }
+    return int((score - 80 + 1) / 2);
 }
 
 template<int N>
