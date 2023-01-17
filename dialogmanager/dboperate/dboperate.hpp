@@ -151,10 +151,10 @@ public:
 
     auto GetNodeTypeAnswerPromptTxt(unsigned int course_id, std::string node_code)
     {
-        using type = std::tuple<int, std::string, std::string>;
+        using type = std::tuple<int, std::string, std::string, std::string>;
         auto fun = [&course_id, &node_code](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)
         {
-            std::string sql = get_sql("select node_type,node_txt,prompt_txt from aia_course_node where course_id = ? and node_code = ?",course_id,node_code);
+            std::string sql = get_sql("select node_type,node_txt,prompt_txt,keywords from aia_course_node where course_id = ? and node_code = ?",course_id,node_code);
             LOGGER->info(sql);
             return conn->query<type>(sql);
         };
