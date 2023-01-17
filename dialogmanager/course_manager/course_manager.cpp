@@ -85,55 +85,53 @@ std::shared_ptr<CourseInfo> CourseManager::CreateCourse(unsigned int course_id)
     }
     */
     auto vdata = std::move(DBOperate::GetInstance()->GetCourseInfo(course_id));
-    std::string content;
-    unsigned int eid = 0;
     if(vdata.empty())
     {
         LOGGER->info("cant find course {}",course_id);
         return nullptr;
     }
-    else 
-    {
-        content = std::get<0>(vdata[0]);
-        eid = std::get<1>(vdata[0]);
-    }
-    rapidjson::Document parser;
-    if (parser.Parse(content.data()).HasParseError())
-    {
-        LOGGER->info("parse course {} content err",course_id);
-        return nullptr;
-    }
     else
     {
-        try
-        {
-            std::map<std::string,std::shared_ptr<Node>> node_map;
-            std::map<unsigned int,std::shared_ptr<QuestionDetail>> question_detail_map;
-            const rapidjson::Value& node_array = parser["node_array"];
-            for(auto &node:node_array.GetArray())
-            {
-                std::shared_ptr<Node> nodeptr = nullptr;
-                if(node_map.find(node["node_code"].GetString()) != node_map.end())
-                    nodeptr = node_map[node["node_code"].GetString()];
-                else
-                {
-                    nodeptr = std::make_shared<Node>();
-                    node_map[node["node_code"].GetString()] = nodeptr;
-                }
+        auto [content, eid] = vdata[0];
 
-                nodeptr->node_code = node["node_code"].GetString();
-                nodeptr->question = std::move(NodeParseQuestion(node["question"],question_detail_map));
-                nodeptr->label = std::move(NodeParseLabel(node["label"]));
-                nodeptr->childs = std::move(NodeParseChildNode(node["child_nodes"], node_map, nodeptr));
-                auto jump_nodes = std::move(NodeParseJumpNode(node["jump_nodes"], node_map, nodeptr));
-                nodeptr->childs.insert(nodeptr->childs.end(), jump_nodes.begin(), jump_nodes.end());
-            }
-            return CreateCourse(eid, course_id, node_map, question_detail_map);
-        }
-        catch(const std::exception& e)
+        rapidjson::Document parser;
+        if (parser.Parse(content.data()).HasParseError())
         {
             LOGGER->info("parse course {} content err",course_id);
             return nullptr;
+        }
+        else
+        {
+            try
+            {
+                std::map<std::string,std::shared_ptr<Node>> node_map;
+                std::map<unsigned int,std::shared_ptr<QuestionDetail>> question_detail_map;
+                const rapidjson::Value& node_array = parser["node_array"];
+                for(auto &node:node_array.GetArray())
+                {
+                    std::shared_ptr<Node> nodeptr = nullptr;
+                    if(node_map.find(node["node_code"].GetString()) != node_map.end())
+                        nodeptr = node_map[node["node_code"].GetString()];
+                    else
+                    {
+                        nodeptr = std::make_shared<Node>();
+                        node_map[node["node_code"].GetString()] = nodeptr;
+                    }
+
+                    nodeptr->node_code = node["node_code"].GetString();
+                    nodeptr->question = std::move(NodeParseQuestion(node["question"],question_detail_map));
+                    nodeptr->label = std::move(NodeParseLabel(node["label"]));
+                    nodeptr->childs = std::move(NodeParseChildNode(node["child_nodes"], node_map, nodeptr));
+                    auto jump_nodes = std::move(NodeParseJumpNode(node["jump_nodes"], node_map, nodeptr));
+                    nodeptr->childs.insert(nodeptr->childs.end(), jump_nodes.begin(), jump_nodes.end());
+                }
+                return CreateCourse(eid, course_id, node_map, question_detail_map);
+            }
+            catch(const std::exception& e)
+            {
+                LOGGER->info("parse course {} content err",course_id);
+                return nullptr;
+            }
         }
     }
 }
