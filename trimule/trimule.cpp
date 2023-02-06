@@ -51,7 +51,7 @@ protected:
         {
             std::string cbstring = MessageProcess::GetCallBackString(std::move(calllog_id), mysqlclient);
             LOGGER->info("callbac info is {}",cbstring);
-            HttpRequester::PostUrl(url,cbstring,true);
+            HttpRequester::PostUrl(url,cbstring,1,true);
         }
     }
 };
@@ -63,15 +63,17 @@ void SetHttpHandler(cinatra::http_server &server, T threadpool)
     {
         LOGGER->info("/ receive message is {}",std::string(req.body()));
         auto [check_res,ccnumber] = MessageProcess::CheckCCNumber(req.body());
-
-        auto instance = SynicManager::GetInstance();
-        if(auto opt=instance->GetFromSynicMap(ccnumber);opt != std::nullopt)
+        if(check_res == Response::SUCCESS)
         {
-            threadpool->EnqueueStr(std::move(std::move(req.body().data())));
-            instance->DeleteFromSynicMap(ccnumber);
+            auto instance = SynicManager::GetInstance();
+            if(auto opt=instance->GetFromSynicMap(ccnumber);opt != std::nullopt)
+            {
+                threadpool->EnqueueStr(std::move(std::move(req.body().data())));
+                instance->DeleteFromSynicMap(ccnumber);
+            }
+            else
+                instance->InsertToSynicMap(ccnumber,req.body());
         }
-        else
-            instance->InsertToSynicMap(ccnumber,req.body());
         res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+std::to_string(check_res)+"\"}"); 
     });
 
@@ -81,13 +83,17 @@ void SetHttpHandler(cinatra::http_server &server, T threadpool)
         auto [check_res,ccnumber] = MessageProcess::CheckCCNumber(req.body());
 
         auto instance = SynicManager::GetInstance();
-        if(auto opt=instance->GetFromSynicMap(ccnumber);opt != std::nullopt)
+        if(check_res == Response::SUCCESS)
         {
-            threadpool->EnqueueStr(std::move(opt.value().data()));
-            instance->DeleteFromSynicMap(ccnumber);
+            if(auto opt=instance->GetFromSynicMap(ccnumber);opt != std::nullopt)
+            {
+                threadpool->EnqueueStr(std::move(opt.value().data()));
+                instance->DeleteFromSynicMap(ccnumber);
+            }
+            else
+                instance->InsertToSynicMap(ccnumber,req.body());
         }
-        else
-            instance->InsertToSynicMap(ccnumber,req.body());
+
 		res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+std::to_string(check_res)+"\"}"); 
     });
 
@@ -123,7 +129,7 @@ void SetHttpHandler(cinatra::http_server &server, T threadpool)
             {
                 std::string cbstring = MessageProcess::GetCallBackString(std::move(calllog_id), mysqlclient);
                 LOGGER->info("callbac info is {}",cbstring);
-                HttpRequester::PostUrl(url,cbstring,true);
+                HttpRequester::PostUrl(url,cbstring,1,true);
             }
         }
 
@@ -131,10 +137,20 @@ void SetHttpHandler(cinatra::http_server &server, T threadpool)
     });
 }
 
+std::string GetFileSuffix()
+{
+    // std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    // std::string s(30, '\0');
+    // std::strftime(&s[0], s.size(), ".%Y%m%d%H%M", std::localtime(&now));
+    // return s;
+    return "." + std::to_string(getpid());
+}
+
 void initspdlog()
 {
-    spdlog::flush_every(std::chrono::seconds(5));
-    auto file_logger = spdlog::rotating_logger_mt<spdlog::async_factory>(SPDLOGGERNAME, SPDLOG_FILENAME, 1024 * 1024 * 200, 5);
+    spdlog::flush_on(spdlog::level::info);
+    // spdlog::flush_every(std::chrono::seconds(5));
+    auto file_logger = spdlog::rotating_logger_mt<spdlog::async_factory>(SPDLOGGERNAME, SPDLOG_FILENAME+GetFileSuffix(), 1024 * 1024 * 200, 5);
     LOGGER->set_level(spdlog::level::info); // Set global log level to info
     LOGGER->set_pattern("[%Y-%m-%d %H:%M:%S.%e %^%L%$ %t] %v");
 }

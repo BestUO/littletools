@@ -4,6 +4,7 @@
 #include <sys/time.h>
 #include <tools/jsonwrap.hpp>
 #include <curl/curl.h>
+#include <sstream>
 #include "SpeecService.h"
 #include "nlsClient.h"
 #include "nlsEvent.h"
@@ -127,7 +128,11 @@ SpeecService::SpeechTranscribeFile(uuid_t id, const std::string &file_name, cons
 
     pthreadTranscriber((void *) (&pa));
 
-    return std::make_tuple(1, pa.cbData.recognizedContent);
+    std::stringstream ss;
+    for (auto &&str : pa.cbData.recognizedContent){
+        ss << str;
+    }
+    return std::make_tuple(1, ss.str());
 }
 
 std::tuple<int, std::string>

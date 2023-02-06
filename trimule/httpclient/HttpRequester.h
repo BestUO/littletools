@@ -13,6 +13,7 @@ public:
     virtual ~HttpRequester() {}
     static std::string PostUrl(const std::string &url,
                                 const std::string &post_param,
+                                int timeout,
                                 bool json_type=false,
                                 curl_slist *header = nullptr,
                                 std::string authorization = "",

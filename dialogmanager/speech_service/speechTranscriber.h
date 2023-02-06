@@ -2,6 +2,7 @@
 #define VOICEDIALOGUE_SPEECHTRANSCRIBER_H
 
 #include <string>
+#include <vector>
 
 typedef unsigned int uuid_t;
 
@@ -21,7 +22,7 @@ public:
     pthread_cond_t cvWord;
 
     uuid_t userId;
-    std::string recognizedContent;
+    std::vector<std::string> recognizedContent;
 };
 // 自定义线程参数。
 struct ParamTranscribe {

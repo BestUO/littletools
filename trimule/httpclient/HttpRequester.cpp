@@ -111,7 +111,7 @@ std::string HttpRequester::GetUrl(const std::string &url, curl_slist *header)
     return response;
 }
 
-std::string HttpRequester::PostUrl(const std::string &url, const std::string &post_param, bool json_type, curl_slist *header, std::string authorization, std::string secret_key)
+std::string HttpRequester::PostUrl(const std::string &url, const std::string &post_param, int timeout, bool json_type, curl_slist *header, std::string authorization, std::string secret_key)
 {
     CURL *curl;
     CURLcode res;
@@ -138,8 +138,8 @@ std::string HttpRequester::PostUrl(const std::string &url, const std::string &po
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
 
         //timeout
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30);
-        curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 30);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, timeout);
+        curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, timeout);
 
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
@@ -207,7 +207,7 @@ std::string HttpRequester::PostUrl2(std::string keyname, std::string signatureKe
     // std::string url = "http://192.168.1.216/aicall/script/getClustersByPageParams";
 
     if (usepost)
-        return PostUrl(url, post_param, true, header);
+        return PostUrl(url, post_param, 3, true, header);
     else
         return GetUrl(url, header);
 }

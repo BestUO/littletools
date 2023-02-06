@@ -96,7 +96,7 @@ void onSentenceEnd(NlsEvent* cbEvent, void* cbParam) {
     ); 
     // 获取服务端返回的全部信息
     //printf("onTranscriptionStarted: all response=%s\n", cbEvent->getAllResponse());
-    tmpParam->recognizedContent = cbEvent->getResult();
+    tmpParam->recognizedContent.emplace_back(cbEvent->getResult());
 } 
 
 //@brief 识别结果发生了变化，SDK在接收到云端返回的最新结果时，其内部线程上报ResultChanged事件。
