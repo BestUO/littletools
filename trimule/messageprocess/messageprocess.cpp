@@ -479,6 +479,26 @@ std::tuple<Response,std::string> MessageProcess::CheckCCNumber(std::string_view 
     return {Response::FAIL,""};
 }
 
+std::tuple<Response,std::string,std::string> MessageProcess::CheckFromOC(std::string_view body)
+{
+    Json::Reader reader;
+    Json::Value root;
+
+    if (reader.parse(body.data(), root))
+    {
+        auto records = root["records"];
+        if (records.isArray() && records.size() > 0)
+        {
+            auto record = records[0];
+            if (!record["cc_number"].isNull() && record["cc_number"].asString() != "" &&
+                !record["url"].isNull())
+                return {Response::SUCCESS, record["cc_number"].asString(),
+                        record["url"].asString()};
+        }
+    }
+    return {Response::FAIL,"",""};
+}
+
 std::tuple<Response,std::string,std::string> MessageProcess::CheckEidCalllogId(std::string_view body)
 {
     Json::Reader reader;

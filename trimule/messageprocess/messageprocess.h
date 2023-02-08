@@ -9,6 +9,7 @@
 class MessageProcess
 {
 public:
+    static std::tuple<Response,std::string,std::string> CheckFromOC(std::string_view body);
     static std::tuple<Response,std::string> CheckCCNumber(std::string_view body);
     static std::tuple<Response,std::string,std::string> CheckEidCalllogId(std::string_view body);
     static std::tuple<std::string,std::string,std::string> UpdateAllInfo(std::string_view message, ormpp::dbng<ormpp::mysql> &mysqlclient);

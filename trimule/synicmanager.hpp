@@ -3,6 +3,7 @@
 #include <mutex>
 #include <shared_mutex>
 #include <optional>
+template<class T>
 class SynicManager
 {
 public:
@@ -11,7 +12,7 @@ public:
         static SynicManager instance;
         return &instance;
     }
-    std::optional<std::string_view> GetFromSynicMap(std::string_view key)
+    std::optional<T> GetFromSynicMap(std::string_view key)
     {
         std::shared_lock<std::shared_mutex> lock(__rwlock);
         if(auto tmp = __synic_map.find(key.data());tmp != __synic_map.end())
@@ -19,10 +20,10 @@ public:
         else
             return std::nullopt;
     }
-    void InsertToSynicMap(std::string_view key, std::string_view value)
+    void InsertToSynicMap(std::string_view key, T value)
     {
         std::unique_lock<std::shared_mutex> lock(__rwlock);
-        __synic_map[key.data()]=value.data();
+        __synic_map[key.data()]=value;
     }
     void DeleteFromSynicMap(std::string_view key)
     {
@@ -30,7 +31,7 @@ public:
         __synic_map.erase(key.data());
     }
 private:
-    std::unordered_map<std::string,std::string> __synic_map;
+    std::unordered_map<std::string,T> __synic_map;
     std::shared_mutex __rwlock;
 
     SynicManager()=default;
