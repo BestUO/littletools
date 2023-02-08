@@ -50,7 +50,6 @@ protected:
         if(1 && !url.empty())
         {
             std::string cbstring = MessageProcess::GetCallBackString(std::move(calllog_id), mysqlclient);
-            LOGGER->info("callbac info is {}",cbstring);
             HttpRequester::PostUrl(url,cbstring,1,true);
         }
     }

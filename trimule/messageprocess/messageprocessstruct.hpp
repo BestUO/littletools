@@ -60,11 +60,11 @@ struct CallInfo
     std::string cc_number="";
     int call_result=0;
     int hangup_type=0;
-    int flow_number=-1;
-    std::string send_query_msg_timestamp="";
-    std::string send_invite_timestamp="";
+    int flow_number=0;
+    // std::string send_query_msg_timestamp="";
+    // std::string send_invite_timestamp="";
     std::string ring_time="";
-    std::string transfer_manual_cost="";
+    int transfer_manual_cost=0;
 };
 
 enum ManualType{

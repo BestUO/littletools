@@ -16,50 +16,18 @@ CallInfo MessageProcess::GetCallRecord(std::string_view real_data, int framework
 
     if (reader.parse(real_data.data(), root))
     {
-        Json::Value data = root;
-
-        auto remove = [](std::string str) -> int
-        {
-            std::string::size_type pos = str.find("秒");
-            int judge = 0;
-            for (unsigned int nos = 0; nos != pos; nos++)
-            {
-                if ((str[nos]) > '0' && str[nos] <= '9')
-                    return 2;
-            }
-            return 1;
-        };
-        auto remove_Chinese = [](std::string str) -> int
-        {
-            int num;
-            std::string::size_type pos = str.find("秒");
-            if (pos == std::string::npos)
-                return std::stoi(str);
-            for (int i = 0; i < str.size(); i++)
-            {
-                if (str[i] < 0)
-                {
-                    str.erase(i, i + 2);
-                    break;
-                }
-            }
-            return std::stoi(str);
-        };
-        // if (!data.isObject() || data["enterprise_type"].isNull() || data["record_url"].isNull() ||
-        //     data["records"].isNull())
-        //     return result;
-        auto enterprise_type = (data)["enterprise_type"];
-        auto record_url = (data)["record_url"];
-        auto records = (data)["records"];
+        auto enterprise_type = (root)["enterprise_type"];
+        auto record_url = (root)["record_url"];
+        auto records = (root)["records"];
 
         if (record_url.isString() && !record_url.isNull())
             result.record_url = record_url.asString();
-
         if (enterprise_type.isInt())
             result.enterprise_type = enterprise_type.asInt();
+
         int duration = 0;
         int now_flow = 0;
-        if (records.isArray() && records.size() > 0)
+        if (records.isArray())
         {
             for (unsigned int i = 0; i < records.size(); ++i)
             {
@@ -67,106 +35,48 @@ CallInfo MessageProcess::GetCallRecord(std::string_view real_data, int framework
                 if (!record.isObject())
                     return result;
 
-                auto &call_type = record["call_type"];
-                int type = call_type.isString() && !call_type.isNull() ? std::stoi(call_type.asString()) : 1;
-                auto &duration_time = !record["valid_duration"].isNull() == true ? record["valid_duration"] : record["duration_time"];
-                auto &end_time = record["end_time"];
-                auto &call_state = record["call_state"];
-                auto &start_time = record["start_time"];
+                auto duration_time = stoi(record["duration_time"].asString());
+                auto end_time = record["end_time"].asString();
+                auto call_state = record["call_state"].asString();
+                auto start_time = record["start_time"].asString();
 
-                if (record["cc_number"].isString())
-                    result.cc_number = record["cc_number"].asString();
-
-                if (record["customer_fail_reason"].asString() != "0")
-                    result.customer_fail_reason = std::stoi(record["customer_fail_reason"].asString());
-
+                result.cc_number = record["cc_number"].asString();
+                result.customer_fail_reason = stoi(record["customer_fail_reason"].asString());
                 result.stop_reason = record["stop_reason"].asInt();
-
-                result.flow_number = record["flow_number"].isNull() ? -1 : record["flow_number"].asInt();
-
-                result.hangup_type = GetHangupType(result.stop_reason, result.customer_fail_reason);
+                now_flow = record["flow_number"].asInt();
                 
-                if (result.flow_number != 0 && result.flow_number >= now_flow) // transfer_manual
+                if (now_flow != 0) // transfer_manual
                 {
-                    now_flow = result.flow_number;
+                    auto conversation_time = record["conversation_time"].asString();
+                    auto initiate_time = record["initiate_time"].asString();
 
-                    auto &dialing = record["dialing"];
-                    auto &transfer_confirm_time = record["conversation_time"];
-                    auto &send_query_msg_timestamp = record["query_msg_time"];
-                    auto &send_invite_timestamp = record["invite_time"];
-                    auto &transfer_manual_cost = record["seat_ring_duration"];
-                    auto &conversation_time = record["conversation_time"];
-                    auto &initiate_time = record["initiate_time"];
+                    result.manual_type = GetManualType(result.stop_reason);
+                    result.transfer_manual_cost += std::stoi(record["seat_ring_duration"].asString());//转人工振铃时长
+                    result.transfer_duration += duration_time; 
+                    result.hangup_type = GetHangupType(result.stop_reason);
 
-                    int conversation_type = conversation_time.asString() == "" ? 1 : (conversation_time.asString() == "0"?1:0);
-
-                    result.manual_type = GetManualType(result.stop_reason, result.customer_fail_reason, conversation_type);
-
-                    int motinor_duration = 0;
-                    if (conversation_time.asString() != "" && conversation_time.asString() != "0" && transfer_confirm_time.asString() != "" && transfer_confirm_time.asString() != "0")
+                    if(now_flow > result.flow_number)
                     {
-                        motinor_duration = std::stoi(conversation_time.asString()) - std::stoi(transfer_confirm_time.asString());
+                        result.flow_number = now_flow;
+                        result.transfer_number = record["dialing"].asString();
+                        result.transfer_end_time = end_time;
+                        result.transfer_call_state = std::stoi(call_state);
                     }
-
-                    if (transfer_manual_cost.isString())
-                    {
-                        int duration = 0;
-                        if(transfer_manual_cost.asString() != "" && transfer_manual_cost.asString() != "0")
-                            duration = std::stoi(transfer_manual_cost.asString());//oc transfer_manual_cost = ring_duration + monitor_duration
-                        
-                        result.transfer_manual_cost = std::to_string(duration + motinor_duration);
-                    }
-
-                    if (dialing.isString())
-                        result.transfer_number = dialing.asString();
-                    if (duration_time.isString())
-                        result.transfer_duration = remove_Chinese(duration_time.asString());
-
-                    if (end_time.isString())
-                        result.transfer_end_time = end_time.asString();
-                    if (start_time.isString())
-                        result.transfer_start_time = initiate_time.asString();
-
-                    if (transfer_confirm_time.isString())
-                        result.transfer_confirm_time = transfer_confirm_time.asString();
-                    if (call_state.isString())
-                        result.transfer_call_state = std::stoi(call_state.asString(), 0);
-
-                    if (send_query_msg_timestamp.isString())
-                        result.send_query_msg_timestamp = std::string(send_query_msg_timestamp.asString());
-                    if (send_invite_timestamp.isString())
-                        result.send_invite_timestamp = std::string(send_invite_timestamp.asString());
-
-                    // int monitor_duration = 0;
-                    // if(std::stoi)
                 }
-                else if(result.flow_number == 0 )// ai_
+                else if(now_flow == 0 )// ai_
                 {
                     result.call_result = GetCallResult(result.stop_reason, result.customer_fail_reason);
                     
-
-                    auto &confirm_time = record["conversation_time"];
-                    auto &call_type = record["call_type"];
-                    auto &ring_time = record["customer_ring_duration"];
-
-                    if (ring_time.isString())
-                        result.ring_time = ring_time.asString();
-                    if (confirm_time.isString())
-                        result.confirm_time = std::string(confirm_time.asString());
-                    if (end_time.isString())
-                        result.end_time = end_time.asString();
-
-                    if (duration_time.isString())
-                        result.duration_time = remove_Chinese(duration_time.asString());
-
-                    if (call_state.isString())
-                        result.call_state = std::stoi(call_state.asString(), 0);
-                    if (start_time.isString())
-                        result.start_time = start_time.asString();
-                    if (call_type.isString())
-                        result.call_type = std::stoi(call_type.asString());
-
+                    result.call_type = std::stoi( record["call_type"].asString());
+                    result.ring_time = record["customer_ring_duration"].asString();
+                    result.confirm_time = record["conversation_time"].asString();
+                    result.end_time = end_time;
+                    result.duration_time = duration_time;
+                    result.call_state = std::stoi(call_state);
+                    result.start_time = start_time;
                     result.switch_number = !record["switch_number"].isNull() ? record["switch_number"].asString() : "";
+                    if(result.hangup_type==0)
+                        result.hangup_type = GetHangupType(result.stop_reason);
                 }
                 if (framework_class == 2)
                 {
@@ -193,20 +103,18 @@ CallInfo MessageProcess::GetCallRecord(std::string_view real_data, int framework
                     }
                 }
             }
+            if(result.flow_number>0)
+            {
+                result.transfer_start_time = std::to_string(std::stoi(result.transfer_end_time)-result.transfer_duration-result.transfer_manual_cost);
+                result.transfer_confirm_time = std::to_string(std::stoi(result.transfer_end_time)-result.transfer_duration);
+            }
         }
     }
     return result;
 }
 
-int MessageProcess::GetManualType(int &stop_reason, int &customer_fail_reason, int &conversation_type)
+int MessageProcess::GetManualType(int &stop_reason)
 {
-    if (conversation_type == 1)
-        return ManualType::ManualNotAnswered;
-
-    if (customer_fail_reason == 9)
-
-        return ManualType::ManualRefuse;
-
     switch (stop_reason)
     {
         case 9:
@@ -221,8 +129,9 @@ int MessageProcess::GetManualType(int &stop_reason, int &customer_fail_reason, i
         case 35:
         case 7:
             return ManualType::ManualNotAnswered;
-        case 25:
         case 26:
+            return ManualType::ManualRefuse;
+        case 25:
         case 31:
         case 29:
         case 30:
@@ -232,12 +141,16 @@ int MessageProcess::GetManualType(int &stop_reason, int &customer_fail_reason, i
     }
 }
 
-int MessageProcess::GetHangupType(int &stop_reason, int &customer_fail_reason)
+int MessageProcess::GetHangupType(int &stop_reason)
 {
-    if (stop_reason == 25)
-        return HangUpType::UserHangUp;
-    else
-        return HangUpType::AiHangUp;
+    switch (stop_reason)
+    {
+        case 7:
+        case 25:
+            return HangUpType::UserHangUp;
+        default:
+            return HangUpType::AiHangUp;
+    }
 }
 int MessageProcess::GetCallResult(int &stop_reason, int &customer_fail_reason)
 {
@@ -287,7 +200,7 @@ auto MessageProcess::GetIdsWithCCNumber(ormpp::dbng<ormpp::mysql> &mysqlclient,c
 
 std::tuple<std::string,std::string,std::string> MessageProcess::UpdateAllInfo(std::string_view message, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
-	LOGGER->info("UpdateAllInfo message {}", message);
+	// LOGGER->info("UpdateAllInfo message {}", message);
 	CallInfo callog = GetCallRecord(message, 2);
 
     auto [calllog_id,clue_id,task_id,eid,call_count,caller_phone] = GetIdsWithCCNumber(mysqlclient,callog.cc_number);

@@ -17,8 +17,8 @@ public:
     static std::string GetCallBackUrl(std::string_view eid, ormpp::dbng<ormpp::mysql> &mysqlclient);
 private:
     static CallInfo GetCallRecord(std::string_view real_data, int framework_class);
-    static int GetManualType(int &stop_reason, int &customer_fail_reason,int &conversation_type);
-    static int GetHangupType(int &stop_reason,int &customer_fail_reason);
+    static int GetManualType(int &stop_reason);
+    static int GetHangupType(int &stop_reason);
     static int GetCallResult(int &stop_reason,int &customer_fail_reason);
     static auto GetIdsWithCCNumber(ormpp::dbng<ormpp::mysql> &mysqlclient,const std::string &cc_number);
 

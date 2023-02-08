@@ -98,7 +98,7 @@ void UpdateMessage::CheckAndUpdateAicallCalllogContinuousSync(CallInfo &calllog,
 										"manual_disconnect", "duration", "call_time", "answer_time", "hangup_time",
 										"manual_status", "transfer_number"};
 	std::string manual_status = calllog.manual_type == 0 ? " 0 " : std::to_string(calllog.manual_type);
-	std::vector<std::string> values = {calllog.record_url, call_result, intention_type, calllog.transfer_manual_cost, std::to_string(calllog.call_state), 
+	std::vector<std::string> values = {calllog.record_url, call_result, intention_type, std::to_string(calllog.transfer_manual_cost), std::to_string(calllog.call_state), 
 										calllog.switch_number, calllog.ring_time, std::to_string(calllog.hangup_type), calllog.transfer_start_time, calllog.transfer_confirm_time, 
 										calllog.transfer_end_time, std::to_string(calllog.duration_time), calllog.start_time, calllog.confirm_time, calllog.end_time, manual_status, calllog.transfer_number};
 	std::vector<std::string> condition(1);
@@ -166,7 +166,7 @@ void UpdateMessage::UpdateAiCalllogExtension(CallInfo &calllog, std::string &cal
 	std::string hangup_cause_ = calllog.hangup_type == 0 ? "" : std::to_string(calllog.hangup_type);
 	std::string switch_number = calllog.switch_number;
 	std::string call_state = std::to_string(calllog.call_state);
-	std::vector<std::string> values = {calllog.transfer_manual_cost, calllog.ring_time, call_state, switch_number, hangup_cause_, calllog.transfer_start_time, calllog.transfer_confirm_time, calllog.transfer_end_time};
+	std::vector<std::string> values = {std::to_string(calllog.transfer_manual_cost), calllog.ring_time, call_state, switch_number, hangup_cause_, calllog.transfer_start_time, calllog.transfer_confirm_time, calllog.transfer_end_time};
 	std::vector<std::string> condition(1);
 	condition[0] = calllog_id;
 	std::vector<std::string> condition_name(1);
