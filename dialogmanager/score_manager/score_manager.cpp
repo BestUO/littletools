@@ -213,7 +213,7 @@ std::tuple<int, std::vector<std::string>> ScoreManager::GetDirtyWordsData(const 
 }
 
 std::tuple<int, int> ScoreManager::GetResponseData(unsigned int question_time, unsigned int answer_time) {
-    auto response = (answer_time - question_time) * 0.001f;
+    auto response = (answer_time - question_time);
     int score = 10;
     if (response > 3 && response <= 4) {
         score -= 2;
