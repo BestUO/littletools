@@ -55,6 +55,8 @@ protected:
             std::string cbstring = MessageProcess::GetCallBackString(std::move(calllog_id), mysqlclient);
             HttpRequester::PostUrl(infoBase.url,cbstring,1,true);
         }
+        std::string sql = "update aicall_calllog_subsidiary set update_status=2 where calllog_id="+calllog_id;
+        mysqlclient.execute(sql);
     }
 };
 
@@ -132,11 +134,11 @@ void SetHttpHandler(cinatra::http_server &server, T threadpool)
     {
         //checkweboc data
         LOGGER->info("/trimule/forcecallback/ receive message is {}",std::string(req.body()));
-        auto [check_res,eid,calllog_id] = MessageProcess::CheckEidCalllogId(req.body());
+        auto [check_res,eid,calllog_id, url] = MessageProcess::CheckForceCallBack(req.body());
         if(check_res==Response::SUCCESS)
         {
             GETMYSQLCLIENT
-            auto url = MessageProcess::GetCallBackUrl(eid, mysqlclient);
+            // auto url = MessageProcess::GetCallBackUrl(eid, mysqlclient);
             if(!url.empty())
             {
                 std::string cbstring = MessageProcess::GetCallBackString(std::move(calllog_id), mysqlclient);
@@ -167,9 +169,45 @@ void initspdlog()
     LOGGER->set_pattern("[%Y-%m-%d %H:%M:%S.%e %^%L%$ %t] %v");
 }
 
+void recoverfun()
+{
+    GETMYSQLCLIENT
+    auto time = (unsigned int)std::time(nullptr);
+    while(true)
+    {
+        auto subsidiaryitem = mysqlclient.query<std::tuple<std::string,unsigned int,std::string,std::string>>(R"(select calllog_id,update_status, cc_number,url from aicall_calllog_subsidiary where (update_status=0 or url!="" and update_status=1) and unix_timestamp(create_time) < ? limit 100;)",time);
+        LOGGER->info(R"(select cc_number,url from aicall_calllog_subsidiary where (update_status=0 or url!="" and update_status=1) and unix_timestamp(create_time) < {} limit 100;)", time);
+        if(subsidiaryitem.empty())
+            break;
+        else
+        {
+            for(auto &&item:subsidiaryitem)
+            {
+                auto [calllog_id,update_status,cc_number,url] = item;
+                if(update_status==0 && !cc_number.empty())//oc ocready
+                {
+                    std::string message = MessageProcess::UpdateCallRecord(cc_number, mysqlclient);
+                    MessageProcess::UpdateAllInfo(message,mysqlclient);
+                }
+                if(!url.empty())
+                {
+                    std::string cbstring = MessageProcess::GetCallBackString(std::move(calllog_id), mysqlclient);
+                    HttpRequester::PostUrl(url,cbstring,1,true);
+                }
+                std::string sql = "update aicall_calllog_subsidiary set update_status=2 where calllog_id="+calllog_id;
+                mysqlclient.execute(sql);
+            }
+        }
+    }
+
+    LOGGER->info("recover finish");
+}
+
 int main()
 {
     initspdlog();
+    std::thread recover(recoverfun);
+    recover.detach();
     auto config = JsonSimpleWrap::GetPaser("conf/trimule_config.json");
     int max_thread_num = 1;
     cinatra::http_server server(max_thread_num);

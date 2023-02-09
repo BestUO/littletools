@@ -11,7 +11,7 @@ class MessageProcess
 public:
     static std::tuple<Response,std::string,std::string> CheckFromOC(std::string_view body);
     static std::tuple<Response,std::string> CheckCCNumber(std::string_view body);
-    static std::tuple<Response,std::string,std::string> CheckEidCalllogId(std::string_view body);
+    static std::tuple<Response,std::string,std::string,std::string> CheckForceCallBack(std::string_view body);
     static std::tuple<std::string,std::string,std::string> UpdateAllInfo(std::string_view message, ormpp::dbng<ormpp::mysql> &mysqlclient);
     static std::string GetCallBackString(std::string_view calllog_id, ormpp::dbng<ormpp::mysql> &mysqlclient);
     static std::string UpdateCallRecord(std::string_view cc_number, ormpp::dbng<ormpp::mysql> &mysqlclient);
