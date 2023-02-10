@@ -38,7 +38,6 @@ CallInfo MessageProcess::GetCallRecord(std::string_view real_data, int framework
                 auto duration_time = stoi(record["duration_time"].asString());
                 auto end_time = record["end_time"].asString();
                 auto call_state = record["call_state"].asString();
-                auto start_time = record["start_time"].asString();
 
                 result.cc_number = record["cc_number"].asString();
                 result.customer_fail_reason = stoi(record["customer_fail_reason"].asString());
@@ -67,13 +66,13 @@ CallInfo MessageProcess::GetCallRecord(std::string_view real_data, int framework
                 {
                     result.call_result = GetCallResult(result.stop_reason, result.customer_fail_reason);
                     
-                    result.call_type = std::stoi( record["call_type"].asString());
-                    result.ring_time = record["customer_ring_duration"].asString();
+                    result.call_type = std::stoi(record["call_type"].asString());
+                    result.ring_time = std::stoi(record["customer_ring_duration"].asString());
                     result.confirm_time = record["conversation_time"].asString();
                     result.end_time = end_time;
                     result.duration_time = duration_time;
                     result.call_state = std::stoi(call_state);
-                    result.start_time = start_time;
+                    result.start_time = std::to_string(std::stoi(end_time)-result.duration_time-result.ring_time);
                     result.switch_number = !record["switch_number"].isNull() ? record["switch_number"].asString() : "";
                     if(result.hangup_type==0)
                         result.hangup_type = GetHangupType(result.stop_reason);

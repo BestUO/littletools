@@ -63,7 +63,7 @@ struct CallInfo
     int flow_number=0;
     // std::string send_query_msg_timestamp="";
     // std::string send_invite_timestamp="";
-    std::string ring_time="";
+    int ring_time=0;
     int transfer_manual_cost=0;
 };
 
