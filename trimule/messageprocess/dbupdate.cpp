@@ -174,19 +174,3 @@ void UpdateMessage::UpdateAiCalllogExtension(CallInfo &calllog, std::string &cal
 	std::string sql_command = MysqlGenerateUpdateSQL(" aicall_calllog_extension ", values, columns, condition, condition_name, condition_symbols);
 	ExecuteCommand(sql_command, "UpdateAiCalllogExtension", mysqlclient);
 }
-
-void UpdateMessage::UpdateAicallCalllogSubsidiary(const std::string &calllog_id, ormpp::dbng<ormpp::mysql> &mysqlclient)
-{
-
-	std::vector<std::string> columns = {"update_status"};
-	std::vector<std::string> values = {"1"};
-	std::vector<std::string> condition(1);
-	condition[0] = calllog_id;
-	std::vector<std::string> condition_name(1);
-	condition_name[0] = " calllog_id ";
-	std::vector<std::string> condition_symbols(1);
-	condition_symbols[0] = " = ";
-
-	std::string sql_command = MysqlGenerateUpdateSQL(" aicall_calllog_subsidiary ", values, columns, condition, condition_name, condition_symbols);
-	ExecuteCommand(sql_command, "aicall_calllog_subsidiary", mysqlclient);
-}

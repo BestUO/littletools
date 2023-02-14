@@ -25,10 +25,10 @@ public:
         std::unique_lock<std::shared_mutex> lock(__rwlock);
         __synic_map[key.data()]=value;
     }
-    void DeleteFromSynicMap(std::string_view key)
+    bool DeleteFromSynicMap(std::string_view key)
     {
         std::unique_lock<std::shared_mutex> lock(__rwlock);
-        __synic_map.erase(key.data());
+        return __synic_map.erase(key.data());
     }
 private:
     std::unordered_map<std::string,T> __synic_map;

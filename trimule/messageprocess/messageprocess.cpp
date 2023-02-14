@@ -206,7 +206,6 @@ std::tuple<std::string,std::string,std::string> MessageProcess::UpdateAllInfo(st
     UpdateMessage::UpdateCalllog(callog, calllog_id, mysqlclient);
     UpdateMessage::UpdateOutCallClue(callog, clue_id, mysqlclient);
     UpdateMessage::UpdateAiCalllogExtension(callog, calllog_id, mysqlclient);
-    UpdateMessage::UpdateAicallCalllogSubsidiary(calllog_id, mysqlclient);
     LOGGER->info("calllog_id is {},clue_id is {},task_id is {},eid is {}", calllog_id, clue_id, task_id, eid);
     return {calllog_id,task_id,eid};
 }

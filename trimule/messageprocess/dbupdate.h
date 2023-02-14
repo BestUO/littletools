@@ -11,7 +11,6 @@ public:
     static void UpdateCalllog(CallInfo &callog,const std::string &id,ormpp::dbng<ormpp::mysql> &mysqlclient);
     static void UpdateOutCallClue(CallInfo &callog,std::string &clue_id,ormpp::dbng<ormpp::mysql> &mysqlclient);
     static void UpdateAiCalllogExtension(CallInfo &callog,std::string &calllog_id,ormpp::dbng<ormpp::mysql> &mysqlclient);
-    static void UpdateAicallCalllogSubsidiary(const std::string &calllog_id,ormpp::dbng<ormpp::mysql> &mysqlclient);
 
 private:
     static std::string MysqlGenerateUpdateSQL(std::string db_name, std::vector<std::string> values, std::vector<std::string> columns, 

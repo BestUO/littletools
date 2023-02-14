@@ -14,8 +14,13 @@
 
 struct InfoBase
 {
-    std::string message;
-    std::string url;
+    enum Status{NOTREADY,OCREADY,CMREADY};
+
+    std::string message="";
+    std::string url="";
+    Status status=NOTREADY;
+
+    InfoBase(std::string message,std::string url,Status status):message(std::move(message)),url(std::move(url)),status(status){};
 };
 
 template <class T>
@@ -49,11 +54,11 @@ protected:
     }
     void DealElement(ormpp::dbng<ormpp::mysql> &mysqlclient, typename T::Type infoBase)
     {
-        auto [calllog_id,task_id,eid] = std::move(MessageProcess::UpdateAllInfo(infoBase.message,mysqlclient));
-        if(!infoBase.url.empty())
+        auto [calllog_id,task_id,eid] = std::move(MessageProcess::UpdateAllInfo(infoBase->message,mysqlclient));
+        if(!infoBase->url.empty())
         {
             std::string cbstring = MessageProcess::GetCallBackString(std::move(calllog_id), mysqlclient);
-            HttpRequester::PostUrl(infoBase.url,cbstring,1,true);
+            HttpRequester::PostUrl(infoBase->url,cbstring,1,true);
         }
         std::string sql = "update aicall_calllog_subsidiary set update_status=2 where calllog_id="+calllog_id;
         mysqlclient.execute(sql);
@@ -69,17 +74,16 @@ void SetHttpHandler(cinatra::http_server &server, T threadpool)
         auto [check_res,ccnumber] = MessageProcess::CheckCCNumber(req.body());
         if(check_res == Response::SUCCESS)
         {
-            auto instance = SynicManager<InfoBase>::GetInstance();
-            if(auto opt=instance->GetFromSynicMap(ccnumber);opt != std::nullopt)
+            auto instance = SynicManager<std::shared_ptr<InfoBase>>::GetInstance();
+            if(auto opt=instance->GetFromSynicMap(ccnumber);opt != std::nullopt && opt.value()->status==InfoBase::Status::OCREADY)
             {
-                opt->message=std::move(req.body().data());
-                threadpool->EnqueueStr(opt.value());
-                instance->DeleteFromSynicMap(ccnumber);
+                opt.value()->message=std::move(req.body().data());
+                if(instance->DeleteFromSynicMap(ccnumber))
+                    threadpool->EnqueueStr(opt.value());
             }
             else
             {
-                InfoBase tmp;
-                tmp.message = std::move(req.body().data());
+                auto tmp = std::make_shared<InfoBase>(std::move(req.body().data()),"",InfoBase::Status::CMREADY);
                 instance->InsertToSynicMap(ccnumber,tmp);
             }
         }
@@ -91,19 +95,18 @@ void SetHttpHandler(cinatra::http_server &server, T threadpool)
         LOGGER->info("/trimule/ocready/ receive message is {}",std::string(req.body()));
         auto [check_res,ccnumber,url] = MessageProcess::CheckFromOC(req.body());
 
-        auto instance = SynicManager<InfoBase>::GetInstance();
+        auto instance = SynicManager<std::shared_ptr<InfoBase>>::GetInstance();
         if(check_res == Response::SUCCESS)
         {
-            if(auto opt=instance->GetFromSynicMap(ccnumber);opt != std::nullopt)
+            if(auto opt=instance->GetFromSynicMap(ccnumber);opt != std::nullopt && opt.value()->status==InfoBase::Status::CMREADY)
             {
-                opt->url=std::move(url);
-                threadpool->EnqueueStr(std::move(opt.value()));
-                instance->DeleteFromSynicMap(ccnumber);
+                opt.value()->url=std::move(url);
+                if(instance->DeleteFromSynicMap(ccnumber))
+                    threadpool->EnqueueStr(std::move(opt.value()));
             }
             else
             {
-                InfoBase tmp;
-                tmp.url = std::move(url);
+                auto tmp = std::make_shared<InfoBase>("",std::move(url),InfoBase::Status::OCREADY);
                 instance->InsertToSynicMap(ccnumber,tmp);
             }
         }
@@ -119,7 +122,7 @@ void SetHttpHandler(cinatra::http_server &server, T threadpool)
         auto [check_res,ccnumber] = MessageProcess::CheckCCNumber(req.body());
         if(check_res==Response::SUCCESS)
         {
-            SynicManager<InfoBase>::GetInstance()->DeleteFromSynicMap(ccnumber);
+            SynicManager<std::shared_ptr<InfoBase>>::GetInstance()->DeleteFromSynicMap(ccnumber);
             
             GETMYSQLCLIENT
 
@@ -214,7 +217,7 @@ int main()
     server.listen((*config)["httpserver_setting"]["host"].GetString(), (*config)["httpserver_setting"]["port"].GetString());
 
 
-    using QueueType = std::conditional_t<false, LockQueue<InfoBase>, FreeLockRingQueue<InfoBase>>;
+    using QueueType = std::conditional_t<false, LockQueue<std::shared_ptr<InfoBase>>, FreeLockRingQueue<std::shared_ptr<InfoBase>>>;
     auto queuetask = std::shared_ptr<QueueType>(new QueueType);
     std::shared_ptr<Worker<QueueType>> worker = std::make_shared<UpdateMySQLWorker<QueueType>>(queuetask);
     std::shared_ptr<ThreadPool<QueueType>> threadpool(new ThreadPool(queuetask, worker, 2, 2));
