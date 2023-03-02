@@ -9,13 +9,14 @@
 class MessageProcess
 {
 public:
-    static std::tuple<Response,std::string,std::string> CheckFromOC(std::string_view body);
+    static std::tuple<Response,std::string,std::string,std::string> CheckFromOC(std::string_view body);
     static std::tuple<Response,std::string> CheckCCNumber(std::string_view body);
-    static std::tuple<Response,std::string,std::string,std::string> CheckForceCallBack(std::string_view body);
     static std::tuple<std::string,std::string,std::string> UpdateAllInfo(std::string_view message, ormpp::dbng<ormpp::mysql> &mysqlclient);
     static std::string GetCallBackString(std::string_view calllog_id, ormpp::dbng<ormpp::mysql> &mysqlclient);
     static std::string UpdateCallRecord(std::string_view cc_number, ormpp::dbng<ormpp::mysql> &mysqlclient);
     static std::string GetCallBackUrl(std::string_view eid, ormpp::dbng<ormpp::mysql> &mysqlclient);
+    static std::tuple<std::string,std::string> GetInfoFromSubsidiary(std::string_view cc_number);
+    static void UpdateCalllogSubsidiary(ormpp::dbng<ormpp::mysql> &mysqlclient,int status, const std::string &calllog_id);
 private:
     static CallInfo GetCallRecord(std::string_view real_data, int framework_class);
     static int GetManualType(int &stop_reason);

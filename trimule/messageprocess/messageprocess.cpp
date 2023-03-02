@@ -434,8 +434,9 @@ std::pair<std::string, std::string> MessageProcess::GetSignkey(std::string_view 
 
 std::tuple<std::string,std::string> MessageProcess::GetUrlAndCCgeid(std::string_view cc_number, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
-    auto results = mysqlclient.query<std::tuple<std::string, std::string, std::string>>("select server_ip,https_port,enterprise_id from ai.enterprise_info where id = \
-            (select enterprise_uid from calllog where cc_number= ?);",cc_number.data());
+    std::string sql = get_sql("select server_ip,https_port,enterprise_id from ai.enterprise_info where id = (select enterprise_uid from calllog where cc_number= ?);",cc_number.data());
+    auto results = mysqlclient.query<std::tuple<std::string, std::string, std::string>>(sql);
+    LOGGER->info(sql);
     if(!results.empty())
     {
         auto [server_ip,https_port,ccgeid] = results[0];
@@ -451,7 +452,7 @@ std::tuple<std::string,std::string> MessageProcess::GetUrlAndCCgeid(std::string_
 std::string MessageProcess::UpdateCallRecord(std::string_view cc_number, ormpp::dbng<ormpp::mysql> &mysqlclient)
 {
     auto [url,ccgeid] = GetUrlAndCCgeid(cc_number,mysqlclient);
-    if(ccgeid.empty())
+    if(!ccgeid.empty())
     {
         std::string key_name = "robot_cm_default_secret";
         std::string signatureKey = "robot.cm.default.secret.da123456780e6fy5";
@@ -493,27 +494,7 @@ std::tuple<Response,std::string> MessageProcess::CheckCCNumber(std::string_view 
     return {Response::FAIL,""};
 }
 
-std::tuple<Response,std::string,std::string> MessageProcess::CheckFromOC(std::string_view body)
-{
-    Json::Reader reader;
-    Json::Value root;
-
-    if (reader.parse(body.data(), root))
-    {
-        auto records = root["records"];
-        if (records.isArray() && records.size() > 0)
-        {
-            auto record = records[0];
-            if (!record["cc_number"].isNull() && record["cc_number"].asString() != "" &&
-                !record["url"].isNull())
-                return {Response::SUCCESS, record["cc_number"].asString(),
-                        record["url"].asString()};
-        }
-    }
-    return {Response::FAIL,"",""};
-}
-
-std::tuple<Response,std::string,std::string,std::string> MessageProcess::CheckForceCallBack(std::string_view body)
+std::tuple<Response,std::string,std::string,std::string> MessageProcess::CheckFromOC(std::string_view body)
 {
     Json::Reader reader;
     Json::Value root;
@@ -525,9 +506,8 @@ std::tuple<Response,std::string,std::string,std::string> MessageProcess::CheckFo
         {
             auto record = records[0];
             if (!record["calllog_id"].isNull() && record["calllog_id"].asString() != "" &&
-                !record["eid"].isNull() && record["eid"].asString() != "" &&
-                !record["url"].isNull())
-                return {Response::SUCCESS, record["eid"].asString(),record["calllog_id"].asString(),record["url"].asString()};
+                !record["cc_number"].isNull() && !record["url"].isNull())
+                return {Response::SUCCESS,record["calllog_id"].asString(),record["cc_number"].asString(),record["url"].asString()};
         }
     }
     return {Response::FAIL,"","",""};
@@ -545,4 +525,23 @@ std::string MessageProcess::GetCallBackUrl(std::string_view eid, ormpp::dbng<orm
     }
     else
         return "";
+}
+
+std::tuple<std::string,std::string> MessageProcess::GetInfoFromSubsidiary(std::string_view cc_number)
+{
+    GETMYSQLCLIENT
+    std::string sql = get_sql("select a.calllog_id,a.url from aicall_calllog_subsidiary as a,calllog as b where a.calllog_id=b.id and b.cc_number=?;",cc_number.data());
+    LOGGER->info(sql);
+    auto result = mysqlclient.query<std::tuple<std::string,std::string>>(sql);
+    if (result.size())
+        return result[0];
+    else
+        return {"",""};
+}
+
+void MessageProcess::UpdateCalllogSubsidiary(ormpp::dbng<ormpp::mysql> &mysqlclient,int status, const std::string &calllog_id)
+{
+    std::string sql = get_sql("update aicall_calllog_subsidiary set update_status=? where calllog_id=?",status,calllog_id);
+    LOGGER->info(sql);
+    mysqlclient.execute(sql);
 }

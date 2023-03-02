@@ -20,6 +20,7 @@ public:
         auto keywords = question_detail ? question_detail->keywords : "";
         auto prompt_txt = question_detail ? question_detail->prompt_txt : "";
         auto prompt_steps = question_detail ? GetDocument(question_detail->prompt_steps) : rapidjson::Document();
+        auto perfect_tolerance = question_detail ? question_detail->perfect_tolerance : 0;
 
         unsigned int question_statement_id = qainfo->tts_statement.tts_statement_id;
         unsigned int question_time = qainfo->question_time;
@@ -36,13 +37,14 @@ public:
         } 
         std::string answer_record_file = qainfo->relative_path;
 
-        auto similar_data = scoremanager->GetAnswerSimilarData(answer_txt, {{node_code, qainfo->answer_stander}});
+        auto similar_data = scoremanager->GetAnswerSimilarDataLocal(answer_txt, {{node_code, qainfo->answer_stander}});
+        //auto similar_data = scoremanager->GetAnswerSimilarData(answer_txt, {{node_code, qainfo->answer_stander}});
 
         auto keywords_data = scoremanager->GetKeywordsData(answer_txt, keywords);
 
         auto dirty_words_data = scoremanager->GetDirtyWordsData(answer_txt, dirty_words);
 
-        auto response_data = scoremanager->GetResponseData(question_time, answer_time);
+        auto response_data = scoremanager->GetResponseData(perfect_tolerance, question_time, answer_time);
 
         auto answer_analyse = scoremanager->GetAnswerAnalyse(similar_data, keywords_data,
                                                                             dirty_words_data, response_data);

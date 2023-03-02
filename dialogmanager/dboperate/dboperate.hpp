@@ -103,9 +103,9 @@ public:
         using type = std::tuple<int, std::string, std::string,int,int>;
         auto fun = [&ttsstatement_ids](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)
         {
-            // std::string sql = "select statement.id, statement.statement, soundcache.path, soundcache.sound_id, soundcache.tts_speed from aia_tts_statement as statement,aia_tts_sound_cache as soundcache where statement.id in ("+
-            //     ttsstatement_ids + ") and statement.id = soundcache.statement_id";
-            std::string sql = get_sql("select statement.id, statement.statement, soundcache.path, soundcache.sound_id, soundcache.tts_speed from aia_tts_statement as statement,aia_tts_sound_cache as soundcache where statement.id in (?) and statement.id = soundcache.statement_id",ttsstatement_ids);
+            std::string sql = "select statement.id, statement.statement, soundcache.path, soundcache.sound_id, soundcache.tts_speed from aia_tts_statement as statement,aia_tts_sound_cache as soundcache where statement.id in ("+
+                ttsstatement_ids + ") and statement.id = soundcache.statement_id";
+            // std::string sql = get_sql("select statement.id, statement.statement, soundcache.path, soundcache.sound_id, soundcache.tts_speed from aia_tts_statement as statement,aia_tts_sound_cache as soundcache where statement.id in (?) and statement.id = soundcache.statement_id",ttsstatement_ids);
             LOGGER->info(sql);
             return conn->query<type>(sql);
         };
@@ -117,9 +117,9 @@ public:
         using type = std::tuple<int, std::string, std::string>;
         auto fun = [&ttsstatement_ids](std::shared_ptr<ormpp::dbng<ormpp::mysql>> conn)
         {
-            // std::string sql = "select statement.id, statement.statement, file.path from aia_tts_statement as statement,aia_files as file where statement.id in ("+
-            //     ttsstatement_ids + ") and statement.file_id = file.id";
-            std::string sql = get_sql("select statement.id, statement.statement, file.path from aia_tts_statement as statement,aia_files as file where statement.id in (?) and statement.file_id = file.id",ttsstatement_ids);
+            std::string sql = "select statement.id, statement.statement, file.path from aia_tts_statement as statement,aia_files as file where statement.id in ("+
+                ttsstatement_ids + ") and statement.file_id = file.id";
+            // std::string sql = get_sql("select statement.id, statement.statement, file.path from aia_tts_statement as statement,aia_files as file where statement.id in (?) and statement.file_id = file.id",ttsstatement_ids);
             LOGGER->info(sql);
             return conn->query<type>(sql); 
         };

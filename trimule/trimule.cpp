@@ -11,6 +11,9 @@
 #include "spdlog/async.h"
 #include "httpclient/HttpRequester.h"
 #include "global.hpp"
+#include "timermanager.hpp"
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
 
 struct InfoBase
 {
@@ -60,15 +63,42 @@ protected:
             std::string cbstring = MessageProcess::GetCallBackString(std::move(calllog_id), mysqlclient);
             HttpRequester::PostUrl(infoBase->url,cbstring,1,true);
         }
-        std::string sql = "update aicall_calllog_subsidiary set update_status=2 where calllog_id="+calllog_id;
-        mysqlclient.execute(sql);
+        MessageProcess::UpdateCalllogSubsidiary(mysqlclient,2,calllog_id);
     }
 };
 
-template <class T>
-void SetHttpHandler(cinatra::http_server &server, T threadpool)
+std::string MakeOCReadyParams(const std::string &cc_number, const std::string &url,const std::string &calllog_id)
 {
-    server.set_http_handler<cinatra::GET, cinatra::POST>("/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    writer.StartObject();
+
+    writer.Key("records");
+    writer.StartArray();
+
+    writer.StartObject();
+    writer.Key("cc_number");
+    writer.String(cc_number.c_str());
+    writer.Key("url");
+    writer.String(url.c_str());
+    if(!calllog_id.empty())
+    {
+        writer.Key("calllog_id");
+        writer.String(calllog_id.c_str());
+    }
+    writer.EndObject();
+
+    writer.EndArray();
+    writer.EndObject();
+
+    return buffer.GetString();
+}
+
+template <class T>
+void SetHttpHandler(cinatra::http_server &server, T threadpool, std::string port)
+{
+    ///////升级后统一使用/trimule/cmready接口，本段代码方可删除
+    server.set_http_handler<cinatra::GET, cinatra::POST>("/", [threadpool = threadpool,port=port](cinatra::request &req, cinatra::response &res)
     {
         LOGGER->info("/ receive message is {}",std::string(req.body()));
         auto [check_res,ccnumber] = MessageProcess::CheckCCNumber(req.body());
@@ -78,6 +108,7 @@ void SetHttpHandler(cinatra::http_server &server, T threadpool)
             if(auto opt=instance->GetFromSynicMap(ccnumber);opt != std::nullopt && opt.value()->status==InfoBase::Status::OCREADY)
             {
                 opt.value()->message=std::move(req.body().data());
+                TimerManager<std::string>::GetInstance()->DeleteAlarm(ccnumber);
                 if(instance->DeleteFromSynicMap(ccnumber))
                     threadpool->EnqueueStr(opt.value());
             }
@@ -85,29 +116,78 @@ void SetHttpHandler(cinatra::http_server &server, T threadpool)
             {
                 auto tmp = std::make_shared<InfoBase>(std::move(req.body().data()),"",InfoBase::Status::CMREADY);
                 instance->InsertToSynicMap(ccnumber,tmp);
+                TimerManager<std::string>::GetInstance()->AddAlarm(std::chrono::system_clock::now() + std::chrono::minutes(3), ccnumber, 
+                [ccnumber=ccnumber,port=port]()
+                {
+                    std::string SynicUrl = "http://127.0.0.1:"+port+"/trimule/ocready";
+                    auto [calllog_id,url] = MessageProcess::GetInfoFromSubsidiary(ccnumber);
+                    std::string params = MakeOCReadyParams(ccnumber,url,calllog_id);
+                    HttpRequester::PostUrl(SynicUrl,params,1,true);
+                });
+            }
+        }
+        res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+std::to_string(check_res)+"\"}"); 
+    });
+    ///////
+    server.set_http_handler<cinatra::GET, cinatra::POST>("/trimule/cmready", [threadpool = threadpool,port=port](cinatra::request &req, cinatra::response &res)
+    {
+        LOGGER->info("/trimule/cmready receive message is {}",std::string(req.body()));
+        auto [check_res,ccnumber] = MessageProcess::CheckCCNumber(req.body());
+        if(check_res == Response::SUCCESS)
+        {
+            auto instance = SynicManager<std::shared_ptr<InfoBase>>::GetInstance();
+            if(auto opt=instance->GetFromSynicMap(ccnumber);opt != std::nullopt && opt.value()->status==InfoBase::Status::OCREADY)
+            {
+                opt.value()->message=std::move(req.body().data());
+                TimerManager<std::string>::GetInstance()->DeleteAlarm(ccnumber);
+                if(instance->DeleteFromSynicMap(ccnumber))
+                    threadpool->EnqueueStr(opt.value());
+            }
+            else
+            {
+                auto tmp = std::make_shared<InfoBase>(std::move(req.body().data()),"",InfoBase::Status::CMREADY);
+                instance->InsertToSynicMap(ccnumber,tmp);
+                TimerManager<std::string>::GetInstance()->AddAlarm(std::chrono::system_clock::now() + std::chrono::minutes(3), ccnumber, 
+                [ccnumber=ccnumber,port=port]()
+                {
+                    std::string SynicUrl = "http://127.0.0.1:"+port+"/trimule/ocready";
+                    auto [calllog_id,url] = MessageProcess::GetInfoFromSubsidiary(ccnumber);
+                    std::string params = MakeOCReadyParams(ccnumber,url,calllog_id);
+                    HttpRequester::PostUrl(SynicUrl,params,1,true);
+                });
             }
         }
         res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+std::to_string(check_res)+"\"}"); 
     });
 
-    server.set_http_handler<cinatra::GET, cinatra::POST>("/trimule/ocready/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
+    server.set_http_handler<cinatra::GET, cinatra::POST>("/trimule/ocready", [threadpool = threadpool,port=port](cinatra::request &req, cinatra::response &res)
     {   
-        LOGGER->info("/trimule/ocready/ receive message is {}",std::string(req.body()));
-        auto [check_res,ccnumber,url] = MessageProcess::CheckFromOC(req.body());
+        LOGGER->info("/trimule/ocready receive message is {}",std::string(req.body()));
+        auto [check_res,calllog_id,ccnumber,url] = MessageProcess::CheckFromOC(req.body());
+        if(ccnumber.empty())
+            check_res = Response::FAIL;
 
-        auto instance = SynicManager<std::shared_ptr<InfoBase>>::GetInstance();
         if(check_res == Response::SUCCESS)
         {
+            auto instance = SynicManager<std::shared_ptr<InfoBase>>::GetInstance();
             if(auto opt=instance->GetFromSynicMap(ccnumber);opt != std::nullopt && opt.value()->status==InfoBase::Status::CMREADY)
             {
                 opt.value()->url=std::move(url);
+                TimerManager<std::string>::GetInstance()->DeleteAlarm(ccnumber); 
                 if(instance->DeleteFromSynicMap(ccnumber))
                     threadpool->EnqueueStr(std::move(opt.value()));
             }
             else
             {
-                auto tmp = std::make_shared<InfoBase>("",std::move(url),InfoBase::Status::OCREADY);
+                auto tmp = std::make_shared<InfoBase>("",url,InfoBase::Status::OCREADY);
                 instance->InsertToSynicMap(ccnumber,tmp);
+                TimerManager<std::string>::GetInstance()->AddAlarm(std::chrono::system_clock::now() + std::chrono::minutes(3), ccnumber, 
+                [ccnumber=ccnumber,port=port,url=url,calllog_id=calllog_id]()
+                {
+                    std::string SynicUrl = "http://127.0.0.1:"+port+"/trimule/forcecallback";
+                    std::string params = MakeOCReadyParams(ccnumber,url,calllog_id);
+                    HttpRequester::PostUrl(SynicUrl,params,1,true);
+                });
             }
         }
 
@@ -115,39 +195,40 @@ void SetHttpHandler(cinatra::http_server &server, T threadpool)
     });
 
 
-    server.set_http_handler<cinatra::GET, cinatra::POST>("/trimule/cmsynic/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
+    server.set_http_handler<cinatra::GET, cinatra::POST>("/trimule/cmsynic", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
     {
         //checkweboc data
-        LOGGER->info("/trimule/cmsynic/ receive message is {}",std::string(req.body()));
+        LOGGER->info("/trimule/cmsynic receive message is {}",std::string(req.body()));
         auto [check_res,ccnumber] = MessageProcess::CheckCCNumber(req.body());
         if(check_res==Response::SUCCESS)
         {
+            TimerManager<std::string>::GetInstance()->DeleteAlarm(ccnumber);
             SynicManager<std::shared_ptr<InfoBase>>::GetInstance()->DeleteFromSynicMap(ccnumber);
-            
             GETMYSQLCLIENT
 
             std::string message = MessageProcess::UpdateCallRecord(ccnumber, mysqlclient);
-            MessageProcess::UpdateAllInfo(message,mysqlclient);
+            auto [calllog_id,task_id,eid] = MessageProcess::UpdateAllInfo(message,mysqlclient);
+            MessageProcess::UpdateCalllogSubsidiary(mysqlclient,1,calllog_id);
         }
 
 		res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+std::to_string(check_res)+"\"}"); 
     });
 
-    server.set_http_handler<cinatra::GET, cinatra::POST>("/trimule/forcecallback/", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
+    server.set_http_handler<cinatra::GET, cinatra::POST>("/trimule/forcecallback", [threadpool = threadpool](cinatra::request &req, cinatra::response &res)
     {
         //checkweboc data
-        LOGGER->info("/trimule/forcecallback/ receive message is {}",std::string(req.body()));
-        auto [check_res,eid,calllog_id, url] = MessageProcess::CheckForceCallBack(req.body());
+        LOGGER->info("/trimule/forcecallback receive message is {}",std::string(req.body()));
+        auto [check_res,calllog_id,ccnumber,url] = MessageProcess::CheckFromOC(req.body());
         if(check_res==Response::SUCCESS)
         {
             GETMYSQLCLIENT
-            // auto url = MessageProcess::GetCallBackUrl(eid, mysqlclient);
             if(!url.empty())
             {
                 std::string cbstring = MessageProcess::GetCallBackString(std::move(calllog_id), mysqlclient);
                 LOGGER->info("callbac info is {}",cbstring);
                 HttpRequester::PostUrl(url,cbstring,1,true);
             }
+            MessageProcess::UpdateCalllogSubsidiary(mysqlclient,2,calllog_id);
         }
 
 		res.set_status_and_content(cinatra::status_type::ok, "{\"code\":200,\"info\":\""+std::to_string(check_res)+"\"}"); 
@@ -190,15 +271,15 @@ void recoverfun()
                 if(update_status==0 && !cc_number.empty())//oc ocready
                 {
                     std::string message = MessageProcess::UpdateCallRecord(cc_number, mysqlclient);
-                    MessageProcess::UpdateAllInfo(message,mysqlclient);
+                    if(!message.empty())
+                        MessageProcess::UpdateAllInfo(message,mysqlclient);
                 }
                 if(!url.empty())
                 {
                     std::string cbstring = MessageProcess::GetCallBackString(std::move(calllog_id), mysqlclient);
                     HttpRequester::PostUrl(url,cbstring,1,true);
                 }
-                std::string sql = "update aicall_calllog_subsidiary set update_status=2 where calllog_id="+calllog_id;
-                mysqlclient.execute(sql);
+                MessageProcess::UpdateCalllogSubsidiary(mysqlclient,2,calllog_id);
             }
         }
     }
@@ -222,7 +303,7 @@ int main()
     std::shared_ptr<Worker<QueueType>> worker = std::make_shared<UpdateMySQLWorker<QueueType>>(queuetask);
     std::shared_ptr<ThreadPool<QueueType>> threadpool(new ThreadPool(queuetask, worker, 2, 2));
 
-    SetHttpHandler(server, threadpool);
+    SetHttpHandler(server, threadpool, (*config)["httpserver_setting"]["port"].GetString());
 
     server.run();
 
