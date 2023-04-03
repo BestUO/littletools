@@ -58,12 +58,15 @@ protected:
     void DealElement(ormpp::dbng<ormpp::mysql> &mysqlclient, typename T::Type infoBase)
     {
         auto [calllog_id,task_id,eid] = std::move(MessageProcess::UpdateAllInfo(infoBase->message,mysqlclient));
-        if(!infoBase->url.empty())
+        if(!calllog_id.empty())
         {
-            std::string cbstring = MessageProcess::GetCallBackString(std::move(calllog_id), mysqlclient);
-            HttpRequester::PostUrl(infoBase->url,cbstring,1,true);
+            if(!infoBase->url.empty())
+            {
+                std::string cbstring = MessageProcess::GetCallBackString(std::move(calllog_id), mysqlclient);
+                HttpRequester::PostUrl(infoBase->url,cbstring,1,true);
+            }
+            MessageProcess::UpdateCalllogSubsidiary(mysqlclient,2,calllog_id);
         }
-        MessageProcess::UpdateCalllogSubsidiary(mysqlclient,2,calllog_id);
     }
 };
 
