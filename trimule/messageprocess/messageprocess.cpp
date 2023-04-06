@@ -129,7 +129,6 @@ int MessageProcess::GetManualType(int &stop_reason)
         case 7:
             return ManualType::ManualNotAnswered;
         case 26:
-            return ManualType::ManualRefuse;
         case 25:
         case 31:
         case 29:
