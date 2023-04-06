@@ -1,10 +1,17 @@
 set(CMAKE_CXX_STANDARD 20)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/yalantinglibs/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/yalantinglibs/thirdparty/asio)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/yalantinglibs/thirdparty/async_simple)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/yalantinglibs/thirdparty/cinatra)
 
-add_executable(lantingstudy lantingstudy.cpp)
+SET(3rdparty ${CMAKE_CURRENT_SOURCE_DIR}/yalantinglibs/thirdparty)
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/yalantinglibs/include)
+include_directories(${3rdparty}/asio)
+include_directories(${3rdparty}/async_simple)
+include_directories(${3rdparty}/cinatra)
+
+add_definitions(-DASYNC_SIMPLE_HAS_NOT_AIO)
+
+file(GLOB executors_src ${3rdparty}/async_simple/async_simple/executors/*.cpp)
+
+add_executable(lantingstudy lantingstudy.cpp ${executors_src})
 target_link_libraries(lantingstudy pthread)
 
 add_executable(core_rpc_client core_rpc_client.cpp)

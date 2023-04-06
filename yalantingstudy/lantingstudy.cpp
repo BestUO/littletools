@@ -25,13 +25,17 @@ void struct_pack_test()
     person person3;
     auto ec = struct_pack::deserialize_to(person3, result);
 }
-
+#include <async_simple/executors/SimpleExecutor.h>
+#include <async_simple/Try.h>
 int main()
 {
     // struct_pack_test();
     // auto core_a = test1(1,2);
     // auto result_a = syncAwait(core_a);
-    auto core_b = test2(4,5);
-    auto result_ = syncAwait(core_b);
+    // auto core_b = test2(4,5);
+    // auto result_ = syncAwait(core_b);
+
+    async_simple::executors::SimpleExecutor executor(1);
+    test1(1, 2).via(&executor).start([](async_simple::Try<int> result) {});
     return 0;  
 }
