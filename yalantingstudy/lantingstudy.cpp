@@ -1,5 +1,7 @@
 #include <iostream>
 #include "struct_pack/struct_pack.hpp"
+#include <async_simple/executors/SimpleExecutor.h>
+#include <async_simple/Try.h>
 #include "testhun.hpp"
 
 void struct_pack_test()
@@ -25,8 +27,7 @@ void struct_pack_test()
     person person3;
     auto ec = struct_pack::deserialize_to(person3, result);
 }
-#include <async_simple/executors/SimpleExecutor.h>
-#include <async_simple/Try.h>
+
 int main()
 {
     // struct_pack_test();
@@ -35,7 +36,10 @@ int main()
     // auto core_b = test2(4,5);
     // auto result_ = syncAwait(core_b);
 
-    async_simple::executors::SimpleExecutor executor(1);
-    test1(1, 2).via(&executor).start([](async_simple::Try<int> result) {});
+    auto core_b = test3();
+    auto result_ = syncAwait(core_b);
+
+    // async_simple::executors::SimpleExecutor executor(1);
+    // test1(1, 2).via(&executor).start([](async_simple::Try<int> result) {});
     return 0;  
 }
