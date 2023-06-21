@@ -5,3 +5,4 @@ log/*
 data/*
 conf/
 .svn
+.cache
