@@ -1,6 +1,5 @@
 #pragma once
 
-#include <linux/limits.h>
 #include <chrono>
 #include <thread>
 #include <mutex>
@@ -8,7 +7,8 @@
 #include <condition_variable>
 
 #include "RBTreeWrap.hpp"
-namespace Boray {
+namespace Boray
+{
 
 template <typename T>
 class TimerManager
@@ -79,33 +79,41 @@ private:
     {
         while (!__stop)
         {
+            auto timepointopt = __timerqueue.GetTopObjKey(
+                std::function<std::chrono::system_clock::time_point(
+                    TimerElement*)>([](TimerElement* element) {
+                    return element->alarm;
+                }));
+
             std::unique_lock<std::mutex> lck(__cv_m);
-            auto timerelementptr = __timerqueue.GetTopObj();
-            if (timerelementptr != nullptr)
-                __cv.wait_until(lck, timerelementptr->alarm);
+            if (timepointopt.has_value())
+                __cv.wait_until(lck, timepointopt.value());
             else
                 __cv.wait_until(lck,
                     std::chrono::system_clock::now() + std::chrono::hours(1));
-            if (timerelementptr
-                && std::chrono::system_clock::now() >= timerelementptr->alarm)
+
+            auto elementopt
+                = __timerqueue.GetTopObjAndDelete([](TimerElement* e) {
+                      return std::chrono::system_clock::now() > e->alarm;
+                  });
+            if (elementopt.has_value())
             {
-                TimerElement timerelement = *timerelementptr;
-                if (timerelement.interval > std::chrono::seconds(0))
-                    AddAlarm(timerelement.alarm + timerelement.interval,
-                        timerelement.key,
-                        timerelement.fun,
-                        timerelement.interval);
-                __timerqueue.PopTopObj();
-                if (timerelement.fun)
+                auto element = elementopt.value();
+                if (element.interval > std::chrono::seconds(0))
+                    AddAlarm(element.alarm + element.interval,
+                        element.key,
+                        element.fun,
+                        element.interval,
+                        element.runinmainthread);
+                if (element.fun)
                 {
-                    if (timerelement.runinmainthread)
-                        timerelement.fun();
+                    if (element.runinmainthread)
+                        element.fun();
                     else
                     {
-                        std::thread tmp(
-                            [timerelement = std::move(timerelement)]() {
-                                timerelement.fun();
-                            });
+                        std::thread tmp([fun = element.fun]() {
+                            fun();
+                        });
                         tmp.detach();
                     }
                 }
@@ -113,5 +121,5 @@ private:
         }
     }
 };
-    
-} // namespace Boray
+
+}  // namespace Boray

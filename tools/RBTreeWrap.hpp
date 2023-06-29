@@ -4,12 +4,19 @@
 #include <chrono>
 #include <functional>
 #include <mutex>
+#include <optional>
 
 template <typename T>
 class RBTreeWrap
 {
 public:
-    void AddObj(T t)
+    ~RBTreeWrap()
+    {
+        DeleteObj([](const T&) {
+            return true;
+        });
+    }
+    void AddObj(const T& t)
     {
         auto newentry = new Entry(t);
 
@@ -40,6 +47,7 @@ public:
             {
                 rb_erase(node, &__rbtree);
                 delete entry;
+                entry = nullptr;
             }
             node = next;
         }
@@ -53,7 +61,36 @@ public:
         });
     }
 
-    T* GetTopObj()
+    template <typename R>
+    std::optional<R> GetTopObjKey(std::function<R(T*)> f)
+    {
+        std::lock_guard<std::recursive_mutex> guard(__mutex);
+        auto top = rb_first(&__rbtree);
+        if (top)
+            return f(&(reinterpret_cast<Entry*>(top))->t);
+        return std::nullopt;
+    }
+
+    std::optional<T> GetTopObjAndDelete(std::function<bool(T*)> f)
+    {
+        std::lock_guard<std::recursive_mutex> guard(__mutex);
+        auto top = rb_first(&__rbtree);
+        if (top)
+        {
+            Entry* entry = (reinterpret_cast<Entry*>(top));
+            if (f(&(entry->t)))
+            {
+                T t = entry->t;
+                rb_erase(&(entry->rbnode), &__rbtree);
+                delete entry;
+                entry = nullptr;
+                return t;
+            }
+        }
+        return std::nullopt;
+    }
+
+    T* GetTopObjPtr()
     {
         std::lock_guard<std::recursive_mutex> guard(__mutex);
         auto top = rb_first(&__rbtree);
@@ -71,6 +108,7 @@ public:
             Entry* entry = (reinterpret_cast<Entry*>(top));
             rb_erase(&(entry->rbnode), &__rbtree);
             delete entry;
+            entry = nullptr;
         }
     }
 

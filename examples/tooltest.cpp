@@ -306,15 +306,15 @@ TEST_CASE("RBTreeWrap")
     tree.AddObj(val3);
     tree.AddObj(val4);
 
-    auto t = tree.GetTopObj();
+    auto t = tree.GetTopObjPtr();
     REQUIRE_EQ(t->age, val1.age);
 
     tree.PopTopObj();
-    t = tree.GetTopObj();
+    t = tree.GetTopObjPtr();
     REQUIRE_EQ(t->age, val2.age);
 
     tree.DeleteObj(*t);
-    t = tree.GetTopObj();
+    t = tree.GetTopObjPtr();
     REQUIRE_EQ(t->age, val3.age);
 
     t = tree.SearchObj(val4);
