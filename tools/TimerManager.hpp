@@ -23,8 +23,8 @@ public:
     void AddAlarm(std::chrono::system_clock::time_point alarm,
         T key,
         std::function<void()> fun,
-        std::chrono::seconds interval = std::chrono::seconds(0),
-        bool runinmainthread          = true)
+        std::chrono::milliseconds interval = std::chrono::milliseconds(0),
+        bool runinmainthread               = true)
     {
         __timerqueue.AddObj({{}, alarm, fun, key, interval, runinmainthread});
         __cv.notify_one();
@@ -42,6 +42,20 @@ public:
     {
         __stop = true;
         __cv.notify_one();
+        if (__timerthread.joinable())
+        {
+            __timerthread.join();
+        }
+    }
+
+    void StartTimerManager()
+    {
+        if (!__stop)
+        {
+            return;
+        }
+        __stop        = false;
+        __timerthread = std::thread(&TimerManager::RunTimerManager, this);
     }
 
 private:
@@ -51,8 +65,8 @@ private:
         std::chrono::system_clock::time_point alarm;
         std::function<void()> fun;
         T key;
-        std::chrono::seconds interval = std::chrono::seconds(0);
-        bool runinmainthread          = true;
+        std::chrono::milliseconds interval = std::chrono::seconds(0);
+        bool runinmainthread               = true;
         bool operator<(const TimerElement& t) const
         {
             return alarm < t.alarm;
@@ -67,12 +81,12 @@ private:
 
     TimerManager()
     {
-        __timerthread = std::thread(&TimerManager::RunTimerManager, this);
+        StartTimerManager();
     }
 
     ~TimerManager()
     {
-        __timerthread.join();
+        StopTimerManager();
     }
 
     void RunTimerManager()
@@ -90,7 +104,7 @@ private:
                 __cv.wait_until(lck, timepointopt.value());
             else
                 __cv.wait_until(lck,
-                    std::chrono::system_clock::now() + std::chrono::hours(1));
+                    std::chrono::system_clock::now() + std::chrono::seconds(1));
 
             auto elementopt
                 = __timerqueue.GetTopObjAndDelete([](TimerElement* e) {
@@ -99,7 +113,7 @@ private:
             if (elementopt.has_value())
             {
                 auto element = elementopt.value();
-                if (element.interval > std::chrono::seconds(0))
+                if (element.interval > std::chrono::milliseconds(0))
                     AddAlarm(element.alarm + element.interval,
                         element.key,
                         element.fun,
