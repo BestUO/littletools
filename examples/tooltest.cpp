@@ -8,6 +8,7 @@
 #include "tools/lrucache.hpp"
 #include "tools/threadpool.hpp"
 #include "tools/objectpool.hpp"
+#include "tools/simplepoll.hpp"
 
 TEST_CASE("ObjectPool test")
 {
@@ -360,4 +361,23 @@ TEST_CASE("TimerManager")
     timerManager->DeleteAlarm(std::string("3"));
     sleep(6);
     Boray::TimerManager<std::string>::GetInstance()->StopTimerManager();
+}
+
+TEST_CASE("simplepoll")
+{
+    auto simplepoll = SimplePoll<>::getInstance();
+    simplepoll->bindAndSetCB("0.0.0.0",
+        9987,
+        "234.56.78.90",
+        [](const char* data,
+            uint16_t len,
+            const std::string& ip,
+            uint16_t port) {
+            REQUIRE_EQ(std::string(data) == "123", true);
+            return std::string();
+        });
+    usleep(10000);
+    simplepoll->sendData("123", 3, "234.56.78.90", 9987);
+    usleep(10000);
+    simplepoll->stop();
 }

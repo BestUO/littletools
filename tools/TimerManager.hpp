@@ -5,6 +5,7 @@
 #include <mutex>
 #include <functional>
 #include <condition_variable>
+#include <atomic>
 
 #include "RBTreeWrap.hpp"
 namespace Boray
@@ -43,17 +44,15 @@ public:
         __stop = true;
         __cv.notify_one();
         if (__timerthread.joinable())
-        {
             __timerthread.join();
-        }
+        while (__timerqueue.PopTopObj())
+        { };
     }
 
     void StartTimerManager()
     {
         if (!__stop)
-        {
             return;
-        }
         __stop        = false;
         __timerthread = std::thread(&TimerManager::RunTimerManager, this);
     }
@@ -73,7 +72,7 @@ private:
         }
     };
 
-    bool __stop = false;
+    std::atomic<bool> __stop = {true};
     RBTreeWrap<TimerElement> __timerqueue;
     std::thread __timerthread;
     std::condition_variable __cv;

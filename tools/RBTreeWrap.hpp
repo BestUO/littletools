@@ -99,7 +99,7 @@ public:
         return nullptr;
     }
 
-    void PopTopObj()
+    bool PopTopObj()
     {
         std::lock_guard<std::recursive_mutex> guard(__mutex);
         auto top = rb_first(&__rbtree);
@@ -109,7 +109,10 @@ public:
             rb_erase(&(entry->rbnode), &__rbtree);
             delete entry;
             entry = nullptr;
+            return true;
         }
+        else
+            return false;
     }
 
     T* SearchObj(const T& key)
