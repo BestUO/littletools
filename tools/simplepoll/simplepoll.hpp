@@ -3,9 +3,9 @@
 #include "../PlatformUtils.hpp"
 
 #ifdef _WIN32
-    #include "SimplePollWin32.h"
+    #include "simplepollwin32.h"
 #else
-    #include "SimplePollUnix.hpp"
+    #include "simplepollunix.hpp"
 #endif
 
 template <typename T>

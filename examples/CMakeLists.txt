@@ -5,6 +5,16 @@ include_directories(${CMAKE_SOURCE_DIR})
 include_directories(${THIRD_PARTY_PATH}/include/doctest)
 include_directories(${THIRD_PARTY_PATH}/include/nanobench/src/include)
 
-add_executable(${PROJ_NAME} tooltest.cpp ${CMAKE_SOURCE_DIR}/tools/rbtree/rbtree.cpp)
+add_executable(${PROJ_NAME})
+target_sources(${PROJ_NAME} 
+PRIVATE tooltest.cpp 
+timermanager.cpp
+rbtreewrap.cpp 
+simplepoll.cpp
+threadpool.cpp 
+objectpool.cpp 
+lrucache.cpp 
+${CMAKE_SOURCE_DIR}/tools/rbtree/rbtree.cpp
+)
 
 target_link_libraries(${PROJ_NAME} pthread)

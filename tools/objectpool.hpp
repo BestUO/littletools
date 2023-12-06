@@ -1,6 +1,8 @@
 #pragma once
 #include <thread>
 #include <mutex>
+#include <memory>
+#include <vector>
 
 #define NITEM 1024
 #define CACHE_LINE 64
@@ -10,33 +12,33 @@ template <typename T>
 class ObjectPool
 {
 public:
-    static ObjectPool *GetInstance()
+    static ObjectPool* GetInstance()
     {
         static ObjectPool instance;
         return &instance;
     }
-    template <typename ...Args>
-    T* GetObject(Args ...args)
+    template <typename... Args>
+    T* GetObject(Args... args)
     {
-        if(!__local_pool)
+        if (!__local_pool)
             __local_pool = std::make_shared<LocalPool>(this);
         return __local_pool->GetObject(args...);
     }
 
     void PutObject(T* ptr)
     {
-        if(!__local_pool)
+        if (!__local_pool)
             __local_pool = std::make_shared<LocalPool>(this);
         __local_pool->PutObject(ptr);
     }
-private:
-    
-    ObjectPool()=default;
-    ~ObjectPool()=default;
 
-    struct FreeChunk 
+private:
+    ObjectPool()  = default;
+    ~ObjectPool() = default;
+
+    struct FreeChunk
     {
-        unsigned int nfree=0;
+        unsigned int nfree = 0;
         T* ptrs[NITEM];
     };
 
@@ -47,8 +49,8 @@ private:
     };
     std::shared_ptr<FreeChunk> GetFreeChunk()
     {
-        std::lock_guard<std::mutex> lck (__mutex);
-        if(__freechunks.empty())
+        std::lock_guard<std::mutex> lck(__mutex);
+        if (__freechunks.empty())
             return nullptr;
         else
         {
@@ -60,18 +62,18 @@ private:
 
     void PutFreeChunk(std::shared_ptr<FreeChunk> freechunk)
     {
-        std::lock_guard<std::mutex> lck (__mutex);
+        std::lock_guard<std::mutex> lck(__mutex);
         __freechunks.emplace_back(freechunk);
     }
 
     std::shared_ptr<Block> GetBlock()
     {
-        if(__blocks.empty())
+        if (__blocks.empty())
             __blocks.emplace_back(std::make_shared<Block>());
         else
         {
             auto block = __blocks.back();
-            if(!block->nfree)
+            if (!block->nfree)
                 __blocks.emplace_back(std::make_shared<Block>());
         }
         return __blocks.back();
@@ -79,21 +81,22 @@ private:
 
     T* GetPtrFromBlock()
     {
-        std::lock_guard<std::mutex> lck (__mutex);
+        std::lock_guard<std::mutex> lck(__mutex);
         auto block = GetBlock();
         return &block->ptrs[--block->nfree];
     }
 
-    class LocalPool 
+    class LocalPool
     {
     public:
-        explicit LocalPool(ObjectPool* pool): __pool(pool){};
-        template <typename ...Args>
-        T* GetObject(Args ...args)
+        explicit LocalPool(ObjectPool* pool)
+            : __pool(pool){};
+        template <typename... Args>
+        T* GetObject(Args... args)
         {
-            if(!__freechunk || !__freechunk->nfree)
+            if (!__freechunk || !__freechunk->nfree)
                 __freechunk = __pool->GetFreeChunk();
-            if(__freechunk && __freechunk->nfree)
+            if (__freechunk && __freechunk->nfree)
                 return new (__freechunk->ptrs[--__freechunk->nfree]) T(args...);
             else
             {
@@ -104,9 +107,9 @@ private:
         }
         void PutObject(T* ptr)
         {
-            if(__freechunk)
+            if (__freechunk)
             {
-                if(__freechunk->nfree == NITEM)
+                if (__freechunk->nfree == NITEM)
                 {
                     __pool->PutFreeChunk(__freechunk);
                     __freechunk = std::make_shared<FreeChunk>();
@@ -115,10 +118,10 @@ private:
             else
                 __freechunk = std::make_shared<FreeChunk>();
             __freechunk->ptrs[__freechunk->nfree++] = ptr;
-
         }
+
     private:
-        std::shared_ptr<FreeChunk> __freechunk=nullptr;
+        std::shared_ptr<FreeChunk> __freechunk = nullptr;
         ObjectPool* __pool;
     };
     static thread_local std::shared_ptr<LocalPool> __local_pool;
@@ -128,4 +131,5 @@ private:
 };
 
 template <typename T>
-thread_local std::shared_ptr<typename ObjectPool<T>::LocalPool> ObjectPool<T>::__local_pool=nullptr;
+thread_local std::shared_ptr<typename ObjectPool<T>::LocalPool>
+    ObjectPool<T>::__local_pool = nullptr;
