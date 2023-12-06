@@ -8,7 +8,7 @@
 #include <atomic>
 #include <map>
 #include "../queue/threadsafecontainer.hpp"
-#include "RBTreeWrap.hpp"
+#include "rbtree/RBTreeWrap.hpp"
 
 namespace timermanager
 {
@@ -162,7 +162,7 @@ public:
             timepoint, fun, key, additional, interval, runinmainthread});
 
         std::lock_guard<std::recursive_mutex> lck(m_datamutex);
-        auto rbtreenode     = m_timerQueue.addObj(element);
+        auto rbtreenode     = m_timerQueue.AddObj(element);
         element->rbtreenode = rbtreenode;
         m_key2element.insert({key, element});
 
@@ -181,7 +181,7 @@ public:
         {
             if (member->second->additional == additional)
             {
-                m_timerQueue.deleteObj(member->second->rbtreenode);
+                m_timerQueue.DeleteObj(member->second->rbtreenode);
                 member = m_key2element.erase(member);
                 flag   = true;
                 if (deletemodel == DeleteModel::ANY)
@@ -206,7 +206,7 @@ public:
         auto members = m_key2element.equal_range(key);
         for (auto member = members.first; member != members.second;)
         {
-            m_timerQueue.deleteObj(member->second->rbtreenode);
+            m_timerQueue.DeleteObj(member->second->rbtreenode);
             member = m_key2element.erase(member);
             flag   = true;
         }
@@ -260,7 +260,7 @@ private:
     };
 
     std::atomic<bool> m_stop = {true};
-    RBTreeWrap<std::shared_ptr<TimerElement>> m_timerQueue;
+    rbtreewrap::v2::RBTreeWrap<std::shared_ptr<TimerElement>> m_timerQueue;
     std::thread m_timerThread;
     std::condition_variable m_cv;
     std::mutex m_cvmutex;
@@ -293,7 +293,7 @@ private:
         std::unique_lock<std::mutex> lck(m_cvmutex);
         bool flag;
         TIMETYPE::time_point timepoint;
-        std::tie(flag, timepoint) = m_timerQueue.getTopObjKeyByFunction(
+        std::tie(flag, timepoint) = m_timerQueue.GetTopObjKeyByFunction(
             std::function<TIMETYPE::time_point(
                 const std::shared_ptr<TimerElement>&)>(
                 [](const std::shared_ptr<TimerElement>& e) {
@@ -315,7 +315,7 @@ private:
         bool flag;
         std::shared_ptr<TimerElement> element;
         std::lock_guard<std::recursive_mutex> lck(m_datamutex);
-        std::tie(flag, element) = m_timerQueue.getTopObjByFunction(
+        std::tie(flag, element) = m_timerQueue.GetTopObjByFunction(
             [](const std::shared_ptr<TimerElement>& e) {
                 return TIMETYPE::now() > e->alarm;
             });

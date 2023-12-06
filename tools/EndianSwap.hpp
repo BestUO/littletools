@@ -1,6 +1,25 @@
 #pragma once
 #include <iostream>
 
+template <typename T>
+constexpr T maxOfTwo(T a, T b)
+{
+    return (a > b) ? a : b;
+}
+
+template <typename T>
+constexpr T maxOfTotalArgs(T arg)
+{
+    return arg;
+}
+
+template <typename T, typename... Args>
+constexpr T maxOfTotalArgs(T arg, Args... args)
+{
+    T currentMax = maxOfTotalArgs(args...);
+    return maxOfTwo(arg, currentMax);
+}
+
 template <bool ISLITTLEENDIAN = __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__>
 class EndianSwap
 {

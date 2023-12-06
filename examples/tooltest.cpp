@@ -4,11 +4,11 @@
 #include "nanobench.h"
 
 #include "tools/timermanager.hpp"
-#include "tools/TimerManager.hpp"
 #include "tools/lrucache.hpp"
 #include "tools/threadpool.hpp"
 #include "tools/objectpool.hpp"
 #include "tools/simplepoll/SimplePoll.hpp"
+#include "tools/rbtree/RBTreeWrap.hpp"
 
 TEST_CASE("ObjectPool test")
 {
@@ -294,7 +294,7 @@ TEST_CASE("RBTreeWrap")
             return key == t.key;
         }
     };
-    RBTreeWrap<TestStruct> tree;
+    rbtreewrap::v1::RBTreeWrap<TestStruct> tree;
     TestStruct val1 = {"67", 1};
     TestStruct val2 = {"1338", 5};
     TestStruct val3 = {"1337", 5};
@@ -326,7 +326,7 @@ TEST_CASE("RBTreeWrap")
     REQUIRE_EQ(t->age, val5.age);
 }
 
-TEST_CASE("TimerManager")
+TEST_CASE("TimerManagerV1")
 {
     auto timerManager
         = timermanager::V1::TimerManager<std::string>::GetInstance();
