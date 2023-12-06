@@ -8,7 +8,7 @@
 #include "tools/lrucache.hpp"
 #include "tools/threadpool.hpp"
 #include "tools/objectpool.hpp"
-#include "tools/simplepoll.hpp"
+#include "tools/simplepoll/SimplePoll.hpp"
 
 TEST_CASE("ObjectPool test")
 {
@@ -129,7 +129,7 @@ TEST_CASE("testing TimerManager AddAlarm DeleteAlarm")
     auto fun2 = [](int a, int b) {
         std::cout << a << '\t' << b << std::endl;
     };
-    TimerManager<Key>* tm = TimerManager<Key>::GetInstance();
+    auto tm = timermanager::V1::TimerManager<Key>::GetInstance();
     for (int i = 5; i < 10; i++)
         tm->AddAlarm(std::chrono::system_clock::now() + std::chrono::seconds(2),
             Key{"123", i},
@@ -159,7 +159,7 @@ TEST_CASE("testing TimerManager AddAlarmInterval DeleteAlarm")
     auto fun2 = [](int a, int b) {
         std::cout << a << '\t' << b << std::endl;
     };
-    TimerManager<Key>* tm = TimerManager<Key>::GetInstance();
+    auto tm = timermanager::V1::TimerManager<Key>::GetInstance();
 
     tm->AddAlarm(std::chrono::system_clock::now() + std::chrono::seconds(2),
         Key{"run fun1interval", 3},
@@ -191,7 +191,7 @@ TEST_CASE("testing TimerManager two same key")
     auto fun2 = [](int a, int b) {
         std::cout << a << '\t' << b << std::endl;
     };
-    TimerManager<Key>* tm = TimerManager<Key>::GetInstance();
+    auto tm = timermanager::V1::TimerManager<Key>::GetInstance();
     tm->AddAlarm(std::chrono::system_clock::now() + std::chrono::seconds(2),
         Key{"123", 6},
         std::bind(fun2, 8, 8));
@@ -328,7 +328,8 @@ TEST_CASE("RBTreeWrap")
 
 TEST_CASE("TimerManager")
 {
-    auto timerManager = Boray::TimerManager<std::string>::GetInstance();
+    auto timerManager
+        = timermanager::V1::TimerManager<std::string>::GetInstance();
     class TestTimerManager
     {
     public:
@@ -360,13 +361,14 @@ TEST_CASE("TimerManager")
         std::bind(&TestTimerManager::TimeOutFun, &testTimerManager, 1, 2));
     timerManager->DeleteAlarm(std::string("3"));
     sleep(6);
-    Boray::TimerManager<std::string>::GetInstance()->StopTimerManager();
+    timermanager::V1::TimerManager<std::string>::GetInstance()
+        ->StopTimerManager();
 }
 
 TEST_CASE("simplepoll")
 {
-    auto simplepoll = SimplePoll<>::getInstance();
-    simplepoll->bindAndSetCB("0.0.0.0",
+    SimplePoll<> simplepoll;
+    simplepoll.bindAndSetCB("0.0.0.0",
         9987,
         "234.56.78.90",
         [](const char* data,
@@ -377,7 +379,7 @@ TEST_CASE("simplepoll")
             return std::string();
         });
     usleep(10000);
-    simplepoll->sendData("123", 3, "234.56.78.90", 9987);
+    simplepoll.sendData("123", 3, "234.56.78.90", 9987);
     usleep(10000);
-    simplepoll->stop();
+    simplepoll.stop();
 }
