@@ -2,7 +2,6 @@
 #include <unistd.h>
 #include "doctest/doctest.h"
 #include "nanobench.h"
-#include "tools/objectpool.hpp"
 #include "tools/lrucache.hpp"
 
 TEST_CASE("LRUCache")

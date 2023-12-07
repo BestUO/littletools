@@ -1,11 +1,12 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #define ANKERL_NANOBENCH_IMPLEMENT
+#include <iostream>
+#include <unistd.h>
 #include "doctest/doctest.h"
 #include "nanobench.h"
-
 #include "queue/threadsafecontainer.hpp"
 
-TEST_CASE("testLockQueue")
+TEST_CASE("LockQueue")
 {
     struct point
     {

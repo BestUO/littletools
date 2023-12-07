@@ -7,7 +7,7 @@ include_directories(${THIRD_PARTY_PATH}/include/nanobench/src/include)
 
 add_executable(${PROJ_NAME})
 target_sources(${PROJ_NAME} 
-PRIVATE tooltest.cpp 
+PRIVATE lockqueue.cpp 
 timermanager.cpp
 rbtreewrap.cpp 
 simplepoll.cpp
