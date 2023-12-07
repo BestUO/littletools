@@ -205,14 +205,17 @@ private:
     }
 };
 }  // namespace v1
-
 namespace v2
 {
-template <class QueueType>
+template <typename QueueType,
+    std::enable_if_t<function_traits<typename QueueType::Type>::arity == 0, int>
+        m
+    = 0>
 class ThreadPool
 {
 public:
     using FunType = typename QueueType::Type;
+    using RetType = typename function_traits<FunType>::return_type;
     ThreadPool(size_t minsize,
         size_t maxsize              = 10,
         unsigned int expireduration = 60)
@@ -220,6 +223,8 @@ public:
         , __maxsize(maxsize)
         , _expire_duration(expireduration)
     {
+        auto a = function_traits<typename QueueType::Type>::arity;
+        std::cout << a << std::endl;
         if (!_queue)
             _queue = std::shared_ptr<QueueType>(new QueueType);
 
@@ -238,13 +243,31 @@ public:
             __workerthreads.emplace_back(std::move(CreateWorker(true)));
     }
 
-    void EnqueueFun(FunType&& fun)
+    auto EnqueueFun(FunType&& fun)
     {
-        while (!_queue->AddObj(std::move(fun)))
+        if constexpr (std::is_void_v<RetType>)
         {
-            if (__totalnum < __maxsize)
-                CreateWorker(false).detach();
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            while (!_queue->AddObj(std::bind(std::forward<FunType>(fun))))
+            {
+                if (__totalnum < __maxsize)
+                    CreateWorker(false).detach();
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+        }
+        else
+        {
+            auto task = std::make_shared<std::packaged_task<RetType()>>(
+                std::bind(std::forward<FunType>(fun)));
+            while (!_queue->AddObj(std::function<RetType()>([task]() {
+                (*task)();
+                return RetType();
+            })))
+            {
+                if (__totalnum < __maxsize)
+                    CreateWorker(false).detach();
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+            return task->get_future();
         }
     }
 
@@ -293,10 +316,11 @@ public:
         }
     }
 
-    void DealElement(FunType&& fun)
+    template <typename TTtype>
+    void DealElement(TTtype&& p)
     {
-        if constexpr (std::is_invocable_v<FunType>)
-            fun();
+        if constexpr (std::is_invocable_v<TTtype>)
+            p();
         else
         {
             return;
@@ -326,259 +350,4 @@ private:
     }
 };
 }  // namespace v2
-namespace v3
-{
-template <class QueueType>
-class ThreadPool
-{
-public:
-    using FunType = typename QueueType::Type;
-    using RetType = typename function_traits<FunType>::return_type;
-    ThreadPool(size_t minsize,
-        size_t maxsize              = 10,
-        unsigned int expireduration = 60)
-        : __minsize(minsize)
-        , __maxsize(maxsize)
-        , _expire_duration(expireduration)
-    {
-        if (!_queue)
-            _queue = std::shared_ptr<QueueType>(new QueueType);
-
-        for (size_t i = 0; i < __minsize; ++i)
-            __workerthreads.emplace_back(std::move(CreateWorker(true)));
-    }
-
-    ThreadPool(std::shared_ptr<QueueType> queue,
-        size_t minsize,
-        size_t maxsize = 10)
-        : _queue(queue)
-        , __minsize(minsize)
-        , __maxsize(maxsize)
-    {
-        for (size_t i = 0; i < __minsize; ++i)
-            __workerthreads.emplace_back(std::move(CreateWorker(true)));
-    }
-
-    // template <class F, class... Args>
-    // auto EnqueueFun(F&& f, Args&&... args)
-    //     -> std::future<typename std::result_of<F(Args...)>::type>
-    // {
-    //     using return_type = typename std::result_of<F(Args...)>::type;
-    //     auto task         =
-    //     std::make_shared<std::packaged_task<return_type()>>(
-    //         std::bind(std::forward<F>(f), std::forward<Args>(args)...));
-
-    //     std::future<return_type> res = task->get_future();
-    //     while (!_queue->AddObj([task]() {
-    //         (*task)();
-    //     }))
-    //     {
-    //         if (__totalnum < __maxsize)
-    //             CreateWorker(false).detach();
-    //         std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    //     }
-    //     return res;
-    // }
-
-    // void EnqueueFun(FunType&& t)
-    // {
-    //     while (!_queue->AddObj(std::move(t)))
-    //     {
-    //         if (__totalnum < __maxsize)
-    //             CreateWorker(false).detach();
-    //         std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    //     }
-    // }
-
-    // template <std::enable_if_t<std::is_void_v<RetType>, int> = 1>
-    // void EnqueueFun(FunType&& t)
-    // {
-    //     while (!_queue->AddObj(std::move(t)))
-    //     {
-    //         if (__totalnum < __maxsize)
-    //             CreateWorker(false).detach();
-    //         std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    //     }
-    // }
-
-    // template <std::enable_if_t<!std::is_void_v<RetType>, int> = 1>
-    // RetType EnqueueFun(FunType&& t)
-    // {
-    //     //     while (!_queue->AddObj(std::move(t)))
-    //     //     {
-    //     //         if (__totalnum < __maxsize)
-    //     //             CreateWorker(false).detach();
-    //     // std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    //     //     }
-    //     return RetType();
-    // }
-
-    auto EnqueueFun(FunType&& fun)
-    {
-        if constexpr (std::is_void_v<RetType>)
-        {
-            while (!_queue->AddObj(std::move(fun)))
-            {
-                if (__totalnum < __maxsize)
-                    CreateWorker(false).detach();
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            }
-        }
-        else
-        {
-            auto task = std::make_shared<std::packaged_task<RetType()>>(
-                std::forward<FunType>(fun));
-            while (!_queue->AddObj(std::function<RetType()>([task]() {
-                RetType a = (*task)();
-                return RetType();
-            })))
-            // auto task = std::packaged_task<RetType()>(fun);
-            // while (!_queue->AddObj(std::function<RetType()>([task]() {
-            //     RetType a = task();
-            //     return RetType();
-            // })))
-            {
-                if (__totalnum < __maxsize)
-                    CreateWorker(false).detach();
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            }
-            std::future<RetType> res = task->get_future();
-            return res.get();
-        }
-    }
-
-    // std::enable_if<!std::is_void_v<TTtype>, int> EnqueueFun(TTtype&& t)
-    // {
-    //     while (!_queue->AddObj(std::move(t)))
-    //     {
-    //         if (__totalnum < __maxsize)
-    //             CreateWorker(false).detach();
-    //         std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    //     }
-    //     return 1;
-    // }
-
-    // template <class T>
-    // auto EnqueueFun(T&& t) -> std::future<typename std::result_of<T()>::type>
-    // {
-    //     using return_type = typename std::result_of<T()>::type;
-    //     auto task         =
-    //     std::make_shared<std::packaged_task<return_type()>>(
-    //         std::forward<T>(t));
-
-    //     while (!_queue->AddObj([task]() -> return_type {
-    //         return (*task)();
-    //     }))
-    //     {
-    //         if (__totalnum < __maxsize)
-    //             CreateWorker(false).detach();
-    //         std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    //     }
-    //     return task->get_future();
-    // }
-
-    // template <class T>
-    // void EnqueueFun2(T&& t)
-    // {
-    //     while (!_queue->AddObj(std::move(t)))
-    //     {
-    //         if (__totalnum < __maxsize)
-    //             CreateWorker(false).detach();
-    //         std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    //     }
-    // }
-
-    virtual ~ThreadPool()
-    {
-        for (std::thread& worker : __workerthreads)
-            worker.join();
-    }
-
-    void StopThreadPool()
-    {
-        _stop = true;
-        _queue->NoticeAllConsumer();
-    }
-
-    virtual void WorkerRun(bool original)
-    {
-        auto worktime = std::chrono::system_clock::now();
-        while (!_stop)
-        {
-            auto e = _queue->GetObjBulk();
-            if (e)
-            {
-                worktime = std::chrono::system_clock::now();
-                while (!e->empty())
-                {
-                    DealElement(std::move(e->front()));
-                    e->pop();
-                }
-            }
-            else
-            {
-                if (!original)
-                {
-                    if (worktime + std::chrono::seconds(_expire_duration)
-                        > std::chrono::system_clock::now())
-                    {
-                        std::this_thread::sleep_for(std::chrono::seconds(1));
-                        continue;
-                    }
-                    else
-                        break;
-                }
-                _queue->WaitComingObj();
-            }
-        }
-    }
-
-    // template<typename TTtype>
-    // void DealElement(TTtype &&p)
-    // {
-    //     if constexpr (std::is_function_v<std::remove_pointer_t<TTtype>>)
-    //         p();
-    //     else
-    //         return;
-    // }
-
-    template <typename TTtype>
-    void DealElement(TTtype&& p)
-    {
-        if constexpr (std::is_invocable_v<TTtype>)
-            p();
-        else
-        {
-            return;
-        }
-    }
-
-    // virtual typename std::enable_if<std::is_same<TTtype,
-    // std::function<void()>>::value>::type DealElement(TTtype &&p)
-    // {
-    //     p();
-    // }
-protected:
-    std::shared_ptr<QueueType> _queue;
-    unsigned int _expire_duration = 60;
-    bool _stop                    = false;
-
-private:
-    size_t __minsize;
-    size_t __maxsize;
-    std::atomic<unsigned int> __totalnum;
-    std::vector<std::thread> __workerthreads;
-
-    std::thread CreateWorker(bool original)
-    {
-        std::thread t([this, original] {
-            __totalnum++;
-            WorkerRun(original);
-            __totalnum--;
-        });
-
-        return t;
-    }
-};
-}  // namespace v3
 }  // namespace threadpool

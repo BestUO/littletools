@@ -16,11 +16,6 @@ TEST_CASE("testing threadpool v1")
     tp3.StopThreadPool();
 }
 
-int test(int a)
-{
-    return a;
-}
-
 TEST_CASE("testing threadpool v2")
 {
     auto fun  = []() {};
@@ -32,8 +27,9 @@ TEST_CASE("testing threadpool v2")
     tp1.StopThreadPool();
 
     threadpool::v2::ThreadPool<FreeLockRingQueue<std::function<int()>>> tp2(1);
-    tp2.EnqueueFun(std::function<int()>([]() -> int {
+    auto future = tp2.EnqueueFun(std::function<int()>([]() -> int {
         return 1;
     }));
+    CHECK_EQ(1, future.get());
     tp2.StopThreadPool();
 }
