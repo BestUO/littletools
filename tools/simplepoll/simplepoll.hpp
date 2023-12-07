@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../PlatformUtils.hpp"
+#include "../platformutils.hpp"
 
 #ifdef _WIN32
     #include "simplepollwin32.h"

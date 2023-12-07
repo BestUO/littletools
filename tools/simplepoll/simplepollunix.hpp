@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../SimpleLog.hpp"
+#include "../simplelog.hpp"
 
 template <size_t N = 65536>
 class SimplePollImpl : public SimpleLog

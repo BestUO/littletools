@@ -26,8 +26,8 @@ public:
     {
         auto newentry = new Entry(t);
 
-        std::lock_guard<std::recursive_mutex> guard(m_mutex);
-        auto newPos = &(m_rbtree.rb_node);
+        std::lock_guard<std::recursive_mutex> guard(__mutex);
+        auto newPos = &(__rbtree.rb_node);
         auto parent = static_cast<rb_node*>(nullptr);
         while (*newPos != nullptr)
         {
@@ -43,19 +43,19 @@ public:
             }
         }
         rb_link_node(&newentry->rbnode, parent, newPos);
-        rb_insert_color(&newentry->rbnode, &m_rbtree);
+        rb_insert_color(&newentry->rbnode, &__rbtree);
     }
 
     void DeleteObj(std::function<bool(const T&)> comparefun)
     {
-        std::lock_guard<std::recursive_mutex> guard(m_mutex);
-        for (auto node = rb_first(&m_rbtree); node;)
+        std::lock_guard<std::recursive_mutex> guard(__mutex);
+        for (auto node = rb_first(&__rbtree); node;)
         {
             struct rb_node* next = rb_next(node);
             Entry* entry         = rb_entry(node, Entry, rbnode);
             if (comparefun(entry->t))
             {
-                rb_erase(node, &m_rbtree);
+                rb_erase(node, &__rbtree);
                 delete entry;
                 entry = nullptr;
             }
@@ -65,17 +65,17 @@ public:
 
     void DeleteObj(const T& t)
     {
-        std::lock_guard<std::recursive_mutex> guard(m_mutex);
+        std::lock_guard<std::recursive_mutex> guard(__mutex);
         DeleteObj([element = t](const T& m) {
             return element == m;
         });
     }
 
     template <typename R>
-    std::optional<R> getTopObjKey(std::function<R(T*)> f)
+    std::optional<R> GetTopObjKey(std::function<R(T*)> f)
     {
-        std::lock_guard<std::recursive_mutex> guard(m_mutex);
-        auto top = rb_first(&m_rbtree);
+        std::lock_guard<std::recursive_mutex> guard(__mutex);
+        auto top = rb_first(&__rbtree);
         if (top)
         {
             return std::optional<R>(f(&(reinterpret_cast<Entry*>(top))->t));
@@ -85,15 +85,15 @@ public:
 
     std::optional<T> GetTopObjAndDelete(std::function<bool(T*)> f)
     {
-        std::lock_guard<std::recursive_mutex> guard(m_mutex);
-        auto top = rb_first(&m_rbtree);
+        std::lock_guard<std::recursive_mutex> guard(__mutex);
+        auto top = rb_first(&__rbtree);
         if (top)
         {
             Entry* entry = (reinterpret_cast<Entry*>(top));
             if (f(&(entry->t)))
             {
                 T t = entry->t;
-                rb_erase(&(entry->rbnode), &m_rbtree);
+                rb_erase(&(entry->rbnode), &__rbtree);
                 delete entry;
                 entry = nullptr;
                 return std::optional<T>(t);
@@ -104,8 +104,8 @@ public:
 
     T* GetTopObjPtr()
     {
-        std::lock_guard<std::recursive_mutex> guard(m_mutex);
-        auto top = rb_first(&m_rbtree);
+        std::lock_guard<std::recursive_mutex> guard(__mutex);
+        auto top = rb_first(&__rbtree);
         if (top)
         {
             return &(reinterpret_cast<Entry*>(top))->t;
@@ -115,12 +115,12 @@ public:
 
     bool PopTopObj()
     {
-        std::lock_guard<std::recursive_mutex> guard(m_mutex);
-        auto top = rb_first(&m_rbtree);
+        std::lock_guard<std::recursive_mutex> guard(__mutex);
+        auto top = rb_first(&__rbtree);
         if (top)
         {
             Entry* entry = (reinterpret_cast<Entry*>(top));
-            rb_erase(&(entry->rbnode), &m_rbtree);
+            rb_erase(&(entry->rbnode), &__rbtree);
             delete entry;
             entry = nullptr;
             return true;
@@ -133,7 +133,7 @@ public:
 
     T* SearchObj(const T& key)
     {
-        std::lock_guard<std::recursive_mutex> guard(m_mutex);
+        std::lock_guard<std::recursive_mutex> guard(__mutex);
         return SearchObj([key = key](const T& t) {
             return key == t;
         });
@@ -141,9 +141,9 @@ public:
 
     T* SearchObj(std::function<bool(const T&)> comparefun)
     {
-        std::lock_guard<std::recursive_mutex> guard(m_mutex);
+        std::lock_guard<std::recursive_mutex> guard(__mutex);
         struct rb_node* node;
-        for (node = rb_first(&m_rbtree); node; node = rb_next(node))
+        for (node = rb_first(&__rbtree); node; node = rb_next(node))
         {
             Entry* entry = rb_entry(node, Entry, rbnode);
             if (comparefun(entry->t))
@@ -164,8 +164,8 @@ private:
         rb_node rbnode = {nullptr, nullptr, nullptr, RB_RED};
         T t;
     };
-    rb_root m_rbtree = {nullptr};
-    std::recursive_mutex m_mutex;
+    rb_root __rbtree = {nullptr};
+    std::recursive_mutex __mutex;
 };
 }  // namespace v1
 namespace v2
@@ -194,16 +194,16 @@ public:
 
     void Clear()
     {
-        std::lock_guard<std::recursive_mutex> guard(m_mutex);
-        for (auto node = rb_first(&m_rbtree); node;)
+        std::lock_guard<std::recursive_mutex> guard(__mutex);
+        for (auto node = rb_first(&__rbtree); node;)
         {
             struct rb_node* next = rb_next(node);
             DeleteObj(node);
 
             node = next;
         }
-        m_rbtree.rb_node = nullptr;
-        m_size           = 0;
+        __rbtree.rb_node = nullptr;
+        __size           = 0;
     }
 
     template <typename U                                 = T,
@@ -212,8 +212,8 @@ public:
     {
         auto newentry = new Entry({{nullptr, nullptr, nullptr, RB_RED}, t});
 
-        std::lock_guard<std::recursive_mutex> guard(m_mutex);
-        auto newPos = &(m_rbtree.rb_node);
+        std::lock_guard<std::recursive_mutex> guard(__mutex);
+        auto newPos = &(__rbtree.rb_node);
         auto parent = static_cast<rb_node*>(nullptr);
         while (*newPos != nullptr)
         {
@@ -229,8 +229,8 @@ public:
             }
         }
         rb_link_node(&newentry->rbnode, parent, newPos);
-        rb_insert_color(&newentry->rbnode, &m_rbtree);
-        m_size++;
+        rb_insert_color(&newentry->rbnode, &__rbtree);
+        __size++;
         return &newentry->rbnode;
     }
 
@@ -240,8 +240,8 @@ public:
     {
         auto newentry = new Entry({{nullptr, nullptr, nullptr, RB_RED}, t});
 
-        std::lock_guard<std::recursive_mutex> guard(m_mutex);
-        auto newPos = &(m_rbtree.rb_node);
+        std::lock_guard<std::recursive_mutex> guard(__mutex);
+        auto newPos = &(__rbtree.rb_node);
         auto parent = static_cast<rb_node*>(nullptr);
         while (*newPos != nullptr)
         {
@@ -257,32 +257,32 @@ public:
             }
         }
         rb_link_node(&newentry->rbnode, parent, newPos);
-        rb_insert_color(&newentry->rbnode, &m_rbtree);
-        m_size++;
+        rb_insert_color(&newentry->rbnode, &__rbtree);
+        __size++;
         return &newentry->rbnode;
     }
 
     void DeleteObj(void* nodeptr)
     {
-        std::lock_guard<std::recursive_mutex> guard(m_mutex);
+        std::lock_guard<std::recursive_mutex> guard(__mutex);
         auto node = reinterpret_cast<rb_node*>(nodeptr);
-        rb_erase(node, &m_rbtree);
+        rb_erase(node, &__rbtree);
         delete reinterpret_cast<Entry*>(nodeptr);
         nodeptr = nullptr;
-        m_size--;
+        __size--;
     }
 
     size_t GetSize()
     {
-        std::lock_guard<std::recursive_mutex> guard(m_mutex);
-        return m_size;
+        std::lock_guard<std::recursive_mutex> guard(__mutex);
+        return __size;
     }
 
     template <typename R>
     std::tuple<bool, R> GetTopObjKeyByFunction(std::function<R(const T&)> f)
     {
-        std::lock_guard<std::recursive_mutex> guard(m_mutex);
-        auto top = rb_first(&m_rbtree);
+        std::lock_guard<std::recursive_mutex> guard(__mutex);
+        auto top = rb_first(&__rbtree);
         if (top)
         {
             Entry* entry = (reinterpret_cast<Entry*>(top));
@@ -293,8 +293,8 @@ public:
 
     std::tuple<bool, T> GetTopObjByFunction(std::function<bool(const T&)> f)
     {
-        std::lock_guard<std::recursive_mutex> guard(m_mutex);
-        auto top = rb_first(&m_rbtree);
+        std::lock_guard<std::recursive_mutex> guard(__mutex);
+        auto top = rb_first(&__rbtree);
         if (top)
         {
             Entry* entry = (reinterpret_cast<Entry*>(top));
@@ -310,8 +310,8 @@ public:
     std::tuple<bool, T> GetTopObjByFunctionAndDelete(
         std::function<bool(const T&)> f)
     {
-        std::lock_guard<std::recursive_mutex> guard(m_mutex);
-        auto top = rb_first(&m_rbtree);
+        std::lock_guard<std::recursive_mutex> guard(__mutex);
+        auto top = rb_first(&__rbtree);
         if (top)
         {
             Entry* entry = (reinterpret_cast<Entry*>(top));
@@ -327,9 +327,9 @@ public:
 
     void PrintAll(std::function<void(const T&)> fun)
     {
-        std::lock_guard<std::recursive_mutex> guard(m_mutex);
+        std::lock_guard<std::recursive_mutex> guard(__mutex);
         struct rb_node* node;
-        for (node = rb_first(&m_rbtree); node; node = rb_next(node))
+        for (node = rb_first(&__rbtree); node; node = rb_next(node))
         {
             Entry* entry = rb_entry(node, Entry, rbnode);
             fun(entry->t);
@@ -345,9 +345,9 @@ public:
 
     std::tuple<bool, T> SearchObj(std::function<bool(const T&)> comparefun)
     {
-        std::lock_guard<std::recursive_mutex> guard(m_mutex);
+        std::lock_guard<std::recursive_mutex> guard(__mutex);
         struct rb_node* node;
-        for (node = rb_first(&m_rbtree); node; node = rb_next(node))
+        for (node = rb_first(&__rbtree); node; node = rb_next(node))
         {
             Entry* entry = rb_entry(node, Entry, rbnode);
             if (comparefun(entry->t))
@@ -364,9 +364,9 @@ private:
         rb_node rbnode = {nullptr, nullptr, nullptr, RB_RED};
         T t;
     };
-    rb_root m_rbtree = {nullptr};
-    std::recursive_mutex m_mutex;
-    size_t m_size = 0;
+    rb_root __rbtree = {nullptr};
+    std::recursive_mutex __mutex;
+    size_t __size = 0;
 };
 }  // namespace v2
 }  // namespace rbtreewrap
