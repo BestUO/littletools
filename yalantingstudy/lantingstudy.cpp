@@ -1,27 +1,29 @@
 #include <iostream>
-#include "struct_pack/struct_pack.hpp"
-#include <async_simple/executors/SimpleExecutor.h>
-#include <async_simple/Try.h>
+#include "ylt/struct_pack.hpp"
+#include "async_simple/executors/SimpleExecutor.h"
+#include "async_simple/Try.h"
 #include "testhun.hpp"
 
 void struct_pack_test()
 {
-    struct person 
+    struct person
     {
         int64_t id;
         std::string name;
         int age;
         double salary;
     };
-    person person1{.id = 1, .name = "hello struct pack", .age = 20, .salary = 1024.42};
+    person person1{
+        .id = 1, .name = "hello struct pack", .age = 20, .salary = 1024.42};
     auto result = struct_pack::serialize<std::string>(person1);
     std::cout << result << std::endl;
 
-    std::string result2="The next line is struct_pack serialize result.\n";
-    struct_pack::serialize_to(result2,person1);
+    std::string result2 = "The next line is struct_pack serialize result.\n";
+    struct_pack::serialize_to(result2, person1);
     std::cout << result2 << std::endl;
 
-    // auto result3 = struct_pack::serialize(person1.id, person1.name, person1.age, person1.salary);
+    // auto result3 = struct_pack::serialize(person1.id, person1.name,
+    // person1.age, person1.salary);
 
     auto person2 = struct_pack::deserialize<person>(result);
     person person3;
@@ -36,10 +38,10 @@ int main()
     // auto core_b = test2(4,5);
     // auto result_ = syncAwait(core_b);
 
-    auto core_b = test3();
+    auto core_b  = test3();
     auto result_ = syncAwait(core_b);
 
     // async_simple::executors::SimpleExecutor executor(1);
     // test1(1, 2).via(&executor).start([](async_simple::Try<int> result) {});
-    return 0;  
+    return 0;
 }

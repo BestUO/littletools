@@ -1,11 +1,9 @@
 set(CMAKE_CXX_STANDARD 20)
 
-SET(3rdparty ${CMAKE_CURRENT_SOURCE_DIR}/yalantinglibs/thirdparty)
-
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/yalantinglibs/include)
-include_directories(${3rdparty}/asio)
-include_directories(${3rdparty}/async_simple)
-include_directories(${3rdparty}/cinatra)
+SET(3rdparty ${CMAKE_CURRENT_SOURCE_DIR}/yalantinglibs/include/ylt/thirdparty)
+
+include_directories(${3rdparty})
 
 add_definitions(-DASYNC_SIMPLE_HAS_NOT_AIO)
 
