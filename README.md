@@ -19,7 +19,8 @@ littletools usage in tooltest
 * Simple LRU_Cache
 
 # ToolExample
-cmake -B build -DCMAKE_BUILD_TYPE=Debug; cmake --build build --target doctooltest -j 1
+git submodule update --init
+cmake -B build -DCMAKE_BUILD_TYPE=Debug; cmake --build build -j 1
 
 # Two Projects
 need mysql support
