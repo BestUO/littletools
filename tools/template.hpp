@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include <bit>
 
 template <typename T>
 constexpr T maxOfTwo(T a, T b)
@@ -20,14 +21,13 @@ constexpr T maxOfTotalArgs(T arg, Args... args)
     return maxOfTwo(arg, currentMax);
 }
 
-template <bool ISLITTLEENDIAN = __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__>
+template <bool ISLITTLEENDIAN = std::endian::little == std::endian::native>
 class EndianSwap
 {
 public:
     template <typename T>
     static T swap(T value)
     {
-
         if constexpr (!ISLITTLEENDIAN)
         {
             return value;
