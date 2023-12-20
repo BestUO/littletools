@@ -13,7 +13,8 @@ rbtreewrap.cpp
 simplepoll.cpp
 threadpool.cpp 
 objectpool.cpp 
-lrucache.cpp 
+lrucache.cpp
+serialize.cpp
 ${CMAKE_SOURCE_DIR}/tools/rbtree/rbtree.cpp
 )
 

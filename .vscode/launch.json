@@ -14,8 +14,8 @@
             "cwd": "${workspaceFolder}",
             "environment": [
                 {
-                "name": "LD_LIBRARY_PATH",
-                "value": "${LD_LIBRARY_PATH}:${workspaceFolder}/3rdparty/lib/rdkafka"
+                    "name": "LD_LIBRARY_PATH",
+                    "value": "${LD_LIBRARY_PATH}:${workspaceFolder}/3rdparty/lib/rdkafka"
                 }
             ],
             "externalConsole": false,
