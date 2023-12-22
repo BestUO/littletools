@@ -498,7 +498,11 @@ private:
         {
             char buf[5] = "ACCM";
             buf[4]      = (uint8_t)MessageType::STOP;
-            sendData(buf, sizeof(buf), "127.0.0.1", m_controlPort, m_controlfd);
+            while (!m_quit)
+            {
+                sendData(
+                    buf, sizeof(buf), "127.0.0.1", m_controlPort, m_controlfd);
+            }
         }
     }
 
