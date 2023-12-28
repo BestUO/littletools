@@ -21,7 +21,7 @@ public:
         return r;
     }
 
-    UUID();
+    UUID() = default;
     constexpr UUID(std::uint64_t a, std::uint64_t b)
         : m_a(a)
         , m_b(b)

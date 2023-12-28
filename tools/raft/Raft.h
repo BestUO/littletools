@@ -3,12 +3,8 @@
 #include <chrono>
 #include <mutex>
 #include "RaftStructs.h"
-#include "service_registry/SimpleLog.h"
+#include "../simplelog.hpp"
 
-namespace acfw
-{
-namespace cm
-{
 class Raft : public SimpleLog
 {
 public:
@@ -38,5 +34,3 @@ private:
     void Vote();
     std::string votePrepare();
 };
-}  // namespace cm
-}  // namespace acfw

@@ -1,12 +1,9 @@
 #pragma once
-#include <chrono>
 
-#include "CmInternal.h"
-#include "Uuid.h"
-namespace acfw
-{
-namespace cm
-{
+#include <chrono>
+#include <string>
+#include "../uuid.hpp"
+
 struct RaftInfos
 {
     struct RaftBaseInfo
@@ -27,9 +24,9 @@ struct RaftInfos
     uint32_t term = 0;
     std::chrono::time_point<std::chrono::steady_clock> last_heartbeat_timepoint
         = std::chrono::steady_clock::now();
-    acfw::cm::Uuid self_uuid   = acfw::cm::Uuid::gen();
-    acfw::cm::Uuid leader_uuid = {};
-    uint32_t control_socket    = -1;
+    UUID self_uuid          = UUID::gen();
+    UUID leader_uuid        = {};
+    uint32_t control_socket = -1;
     RaftBaseInfo base_info;
 
     RaftInfos() = default;
@@ -53,7 +50,7 @@ struct RaftCommandType
     {
         MessageType messageType = MessageType::VOTE;
         uint32_t term;
-        Id uuid;
+        UUID uuid;
         static constexpr char constname[15] = "ACCM-Raft\0";
         uint64_t timestamp
             = std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -109,5 +106,3 @@ struct RaftCommandType
         std::string serialize();
     };
 };
-}  // namespace cm
-}  // namespace acfw

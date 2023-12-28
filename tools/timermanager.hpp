@@ -160,7 +160,7 @@ private:
 };
 }  // namespace v1
 
-namespace v2
+inline namespace v2
 {
 
 template <typename T>

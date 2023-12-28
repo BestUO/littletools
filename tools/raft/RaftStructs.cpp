@@ -1,9 +1,7 @@
+#include <string.h>
 #include "RaftStructs.h"
-#include "service_registry/Templates.h"
-namespace acfw
-{
-namespace cm
-{
+#include "../template.hpp"
+
 constexpr char RaftCommandType::CommonInfo::constname[15];
 RaftCommandType::CommonInfo::CommonInfo(MessageType m)
     : messageType(m)
@@ -40,8 +38,8 @@ RaftCommandType::CommonInfo::CommonInfo(const char* buf, uint16_t size)
 
     messageType = MessageType(EndianSwap<>::swap((uint16_t)messageType));
     term        = EndianSwap<>::swap(term);
-    uuid        = {EndianSwap<>::swap(uuid.a), EndianSwap<>::swap(uuid.b)};
-    timestamp   = EndianSwap<>::swap(timestamp);
+    uuid = {EndianSwap<>::swap(uuid.hi64()), EndianSwap<>::swap(uuid.lo64())};
+    timestamp = EndianSwap<>::swap(timestamp);
     if (size != offset)
     { }
 }
@@ -53,8 +51,8 @@ std::string RaftCommandType::CommonInfo::serialize()
 
     auto messageTypeBigEndian = EndianSwap<>::swap((uint16_t)messageType);
     auto termBigEndian        = EndianSwap<>::swap(term);
-    auto uuidBigEndian
-        = Id{EndianSwap<>::swap(uuid.a), EndianSwap<>::swap(uuid.b)};
+    auto uuidBigEndian        = UUID{
+        EndianSwap<>::swap(uuid.hi64()), EndianSwap<>::swap(uuid.lo64())};
     auto timestampBigEndian = EndianSwap<>::swap(timestamp);
 
     len = sizeof(messageTypeBigEndian);
@@ -198,5 +196,3 @@ std::string RaftCommandType::VoteResult::serialize()
 
     return context;
 }
-}  // namespace cm
-}  // namespace acfw

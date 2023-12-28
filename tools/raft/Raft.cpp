@@ -1,13 +1,9 @@
 #include "Raft.h"
 #include <chrono>
 #include <mutex>
-#include "service_registry/net/SimplePoll.h"
-#include "service_registry/TimerManager.h"
-
-namespace acfw
-{
-namespace cm
-{
+#include "../simplepoll/simplepoll.hpp"
+#include "../timermanager.hpp"
+#include "../template.hpp"
 
 Raft::Raft(const RaftInfos::RaftBaseInfo& baseinfo)
     : m_infos(baseinfo)
@@ -15,7 +11,7 @@ Raft::Raft(const RaftInfos::RaftBaseInfo& baseinfo)
 
 Raft::~Raft()
 {
-    timermanager::TimerManager<Uuid>::getInstance()->deleteAlarm(
+    timermanager::TimerManager<UUID>::GetInstance()->DeleteAlarm(
         m_infos.self_uuid);
 }
 
@@ -86,7 +82,7 @@ std::chrono::milliseconds Raft::getRandTimeout() const
 
 void Raft::checkHeartBeat()
 {
-    timermanager::TimerManager<Uuid>::getInstance()->addAlarm(
+    timermanager::TimerManager<UUID>::GetInstance()->AddAlarm(
         m_infos.base_info.heartbeat_interval * 3 + getRandTimeout(),
         m_infos.self_uuid,
         "checkHeartBeat",
@@ -109,7 +105,7 @@ std::string Raft::votePrepare()
 {
     if (m_infos.role == RaftInfos::Role::LEADER)
     {
-        timermanager::TimerManager<Uuid>::getInstance()->deleteAlarm(
+        timermanager::TimerManager<UUID>::GetInstance()->DeleteAlarm(
             m_infos.self_uuid, "sendHeartBeat");
     }
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
@@ -122,7 +118,7 @@ std::string Raft::votePrepare()
     vote.commonInfo.term = m_infos.term;
     vote.commonInfo.uuid = m_infos.self_uuid;
 
-    logOut(Uuid(vote.commonInfo.uuid).toString(),
+    logOut(UUID(vote.commonInfo.uuid).toString(),
         " term is ",
         vote.commonInfo.term,
         " send vote");
@@ -144,7 +140,7 @@ std::string Raft::handlerVote(const RaftCommandType::Vote& cmd)
 {
     logOut(m_infos.self_uuid.toString(),
         " handle remote vote ",
-        Uuid(cmd.commonInfo.uuid).toString(),
+        UUID(cmd.commonInfo.uuid).toString(),
         " local term is ",
         m_infos.term,
         " remote term is ",
@@ -166,8 +162,8 @@ std::string Raft::handlerVote(const RaftCommandType::Vote& cmd)
         {
             if (m_infos.role == RaftInfos::Role::LEADER)
             {
-                acfw::cm::timermanager::TimerManager<Uuid>::getInstance()
-                    ->deleteAlarm(m_infos.self_uuid, "sendHeartBeat");
+                timermanager::TimerManager<UUID>::GetInstance()->DeleteAlarm(
+                    m_infos.self_uuid, "sendHeartBeat");
             }
             m_infos.leader_uuid  = {0, 0};
             m_infos.term         = cmd.commonInfo.term;
@@ -186,7 +182,7 @@ std::string Raft::handlerVoteResponse(const RaftCommandType::VoteResponse& cmd)
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     logOut(m_infos.self_uuid.toString(),
         " recv voteresponse from ",
-        Uuid(cmd.commonInfo.uuid).toString(),
+        UUID(cmd.commonInfo.uuid).toString(),
         " vote result is ",
         cmd.voteGranted,
         " voteAgreeCount ",
@@ -211,7 +207,7 @@ std::string Raft::handlerVoteResponse(const RaftCommandType::VoteResponse& cmd)
                 m_infos.role        = RaftInfos::Role::LEADER;
                 m_infos.leader_uuid = m_infos.self_uuid;
                 m_voteAgreeCount    = 0;
-                timermanager::TimerManager<Uuid>::getInstance()->addAlarm(
+                timermanager::TimerManager<UUID>::GetInstance()->AddAlarm(
                     std::chrono::milliseconds{0},
                     m_infos.self_uuid,
                     "sendHeartBeat",
@@ -254,7 +250,7 @@ std::string Raft::handlerHeartBeat(const RaftCommandType::HeartBeat& cmd)
 
     if (cmd.commonInfo.term > m_infos.term)
     {
-        acfw::cm::timermanager::TimerManager<Uuid>::getInstance()->deleteAlarm(
+        timermanager::TimerManager<UUID>::GetInstance()->DeleteAlarm(
             m_infos.self_uuid, "sendHeartBeat");
         m_infos.role                     = RaftInfos::Role::FOLLOWER;
         m_infos.term                     = cmd.commonInfo.term;
@@ -275,8 +271,8 @@ std::string Raft::handlerHeartBeat(const RaftCommandType::HeartBeat& cmd)
             { }
             else if (m_infos.leader_uuid < cmd.commonInfo.uuid)
             {
-                acfw::cm::timermanager::TimerManager<Uuid>::getInstance()
-                    ->deleteAlarm(m_infos.self_uuid, "sendHeartBeat");
+                timermanager::TimerManager<UUID>::GetInstance()->DeleteAlarm(
+                    m_infos.self_uuid, "sendHeartBeat");
                 m_infos.role        = RaftInfos::Role::FOLLOWER;
                 m_infos.leader_uuid = cmd.commonInfo.uuid;
             }
@@ -292,6 +288,3 @@ RaftInfos::Role Raft::getRole()
 {
     return m_infos.role;
 }
-
-}  // namespace cm
-}  // namespace acfw

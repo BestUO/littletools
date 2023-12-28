@@ -15,6 +15,10 @@ threadpool.cpp
 objectpool.cpp 
 lrucache.cpp
 serialize.cpp
+pickleader.cpp
+# ${CMAKE_SOURCE_DIR}/tools/uuid.hpp
+${CMAKE_SOURCE_DIR}/tools/raft/Raft.cpp
+${CMAKE_SOURCE_DIR}/tools/raft/RaftStructs.cpp
 ${CMAKE_SOURCE_DIR}/tools/rbtree/rbtree.cpp
 )
 
