@@ -2,6 +2,7 @@
 #pragma once
 #include <string>
 #include <inttypes.h>
+#include <thread>
 
 class UUID
 {
@@ -15,6 +16,8 @@ public:
         const std::uint64_t t = rand();
         r.m_a ^= (t << 62);
         r.m_b ^= ((t >> 2) << 62);
+        r.m_b ^= static_cast<std::uint64_t>(
+            std::hash<std::thread::id>{}(std::this_thread::get_id()));
         return r;
     }
 
@@ -45,6 +48,16 @@ public:
     std::uint64_t hash() const
     {
         return m_a ^ m_b;
+    }
+
+    std::uint64_t hi64() const
+    {
+        return m_a;
+    }
+
+    std::uint64_t lo64() const
+    {
+        return m_b;
     }
 
 private:
