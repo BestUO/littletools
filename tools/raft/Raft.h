@@ -17,7 +17,9 @@ public:
         uint16_t port);
     RaftInfos::Role getRole();
     void start();
+    void stop();
     void setSendSocket(int32_t socket);
+    void setBaseInfo(const RaftInfos::RaftBaseInfo& baseinfo);
 
 private:
     RaftInfos m_infos;

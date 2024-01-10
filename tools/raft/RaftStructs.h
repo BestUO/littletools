@@ -25,7 +25,7 @@ struct RaftInfos
     std::chrono::time_point<std::chrono::steady_clock> last_heartbeat_timepoint
         = std::chrono::steady_clock::now();
     UUID self_uuid          = UUID::gen();
-    UUID leader_uuid        = {};
+    UUID leader_uuid        = {0, 0};
     uint32_t control_socket = -1;
     RaftBaseInfo base_info;
 

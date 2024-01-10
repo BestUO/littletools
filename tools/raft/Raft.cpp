@@ -11,8 +11,12 @@ Raft::Raft(const RaftInfos::RaftBaseInfo& baseinfo)
 
 Raft::~Raft()
 {
-    timermanager::TimerManager<UUID>::GetInstance()->DeleteAlarm(
-        m_infos.self_uuid);
+    stop();
+}
+
+void Raft::setBaseInfo(const RaftInfos::RaftBaseInfo& baseinfo)
+{
+    m_infos = baseinfo;
 }
 
 void Raft::setSendSocket(int32_t bindsocket)
@@ -23,6 +27,16 @@ void Raft::setSendSocket(int32_t bindsocket)
 void Raft::start()
 {
     checkHeartBeat();
+    while (m_infos.leader_uuid == UUID{0, 0})
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds{100});
+    }
+}
+
+void Raft::stop()
+{
+    timermanager::TimerManager<UUID>::GetInstance()->DeleteAlarm(
+        m_infos.self_uuid);
 }
 
 std::string Raft::handleIncomingData(const char* buf,
