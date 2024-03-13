@@ -62,5 +62,4 @@ TEST_CASE("LockQueue")
     q.AddObjBulk(std::move(v));
     auto bulk = q.GetObjBulk();
     q.AddObj(std::move(p1));
-    std::cout << "end" << std::endl;
 }

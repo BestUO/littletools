@@ -16,6 +16,7 @@ objectpool.cpp
 lrucache.cpp
 serialize.cpp
 pickleader.cpp
+coroutine_test.cpp
 ${CMAKE_SOURCE_DIR}/tools/raft/Raft.cpp
 ${CMAKE_SOURCE_DIR}/tools/raft/RaftStructs.cpp
 ${CMAKE_SOURCE_DIR}/tools/rbtree/rbtree.cpp

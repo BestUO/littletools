@@ -338,6 +338,27 @@ private:
         }
     }
 
+    bool __DeleteAlarm(std::shared_ptr<TimerElement> element)
+    {
+        std::lock_guard<std::recursive_mutex> lck(__data_mutex);
+        __timer_queue.DeleteObj(element->rbtreenode);
+        auto members = __key_2_element.equal_range(element->key);
+        for (auto member = members.first; member != members.second;)
+        {
+            if (member->second == element)
+            {
+                member = __key_2_element.erase(member);
+                return true;
+            }
+            else
+            {
+                member++;
+            }
+        }
+        __cv.notify_one();
+        return false;
+    }
+
     std::shared_ptr<TimerElement> PopTopObjIfTimeOut()
     {
         bool flag;
@@ -349,8 +370,7 @@ private:
             });
         if (flag)
         {
-            if (DeleteAlarm(
-                    element->key, element->additional, DeleteModel::ANY))
+            if (__DeleteAlarm(element))
             {
                 return element;
             }
@@ -388,7 +408,255 @@ private:
         }
     }
 };
-
 }  // namespace v2
+
+namespace v3
+{
+template <typename T>
+class TimerManager
+{
+public:
+    enum class DeleteModel
+    {
+        ANY,
+        ALL
+    };
+    static TimerManager* GetInstance()
+    {
+        static TimerManager instance;
+        return &instance;
+    }
+
+    void AddAlarm(std::chrono::milliseconds alarm,
+        const T& key,
+        const std::string& additional,
+        std::function<void()> fun,
+        std::chrono::milliseconds interval = std::chrono::milliseconds(0),
+        bool runinmainthread               = true)
+    {
+        TIMETYPE::time_point timepoint = TIMETYPE::now() + alarm;
+        auto element = std::make_shared<TimerElement>(TimerElement{
+            timepoint, fun, key, additional, interval, runinmainthread});
+
+        std::lock_guard<std::recursive_mutex> lck(__data_mutex);
+        auto rbtreenode     = __timer_queue.AddObj(element);
+        element->rbtreenode = rbtreenode;
+        __key_2_element.insert({key, element});
+
+        __cv.notify_one();
+    }
+
+    bool DeleteAlarm(const T& key,
+        const std::string& additional,
+        DeleteModel deletemodel = DeleteModel::ALL)
+    {
+        bool flag = false;
+        std::lock_guard<std::recursive_mutex> lck(__data_mutex);
+        auto members = __key_2_element.equal_range(key);
+
+        for (auto member = members.first; member != members.second;)
+        {
+            if (member->second->additional == additional)
+            {
+                __timer_queue.DeleteObj(member->second->rbtreenode);
+                member = __key_2_element.erase(member);
+                flag   = true;
+                if (deletemodel == DeleteModel::ANY)
+                {
+                    break;
+                }
+            }
+            else
+            {
+                member++;
+            }
+        }
+
+        __cv.notify_one();
+        return flag;
+    }
+
+    bool DeleteAlarm(const T& key)
+    {
+        bool flag = false;
+        std::lock_guard<std::recursive_mutex> lck(__data_mutex);
+        auto members = __key_2_element.equal_range(key);
+        for (auto member = members.first; member != members.second;)
+        {
+            __timer_queue.DeleteObj(member->second->rbtreenode);
+            member = __key_2_element.erase(member);
+            flag   = true;
+        }
+        __cv.notify_one();
+        return flag;
+    }
+
+    size_t GetSize()
+    {
+        return __timer_queue.GetSize();
+    }
+
+    void StopTimerManager()
+    {
+        __stop = true;
+        __cv.notify_one();
+        if (__timer_thread.joinable())
+        {
+            __timer_thread.join();
+        }
+        std::lock_guard<std::recursive_mutex> lck2(__data_mutex);
+        __key_2_element.clear();
+        __timer_queue.Clear();
+    }
+
+    void StartTimerManager()
+    {
+        if (!__stop)
+        {
+            return;
+        }
+        __stop         = false;
+        __timer_thread = std::thread(&TimerManager::RunTimerManager, this);
+    }
+
+private:
+    using TIMETYPE = std::chrono::steady_clock;
+    struct TimerElement
+    {
+        TIMETYPE::time_point alarm;
+        std::function<void()> fun;
+        T key;
+        std::string additional             = "";
+        std::chrono::milliseconds interval = std::chrono::milliseconds(0);
+        bool run_in_main_thread            = true;
+        void* rbtreenode                   = nullptr;
+        bool operator<(const TimerElement& t) const
+        {
+            return alarm < t.alarm;
+        }
+    };
+
+    std::atomic<bool> __stop = {true};
+    rbtreewrap::v2::RBTreeWrap<std::shared_ptr<TimerElement>> __timer_queue;
+    std::thread __timer_thread;
+    std::condition_variable __cv;
+    std::mutex __cv_mutex;
+    std::recursive_mutex __data_mutex;
+    std::multimap<T, std::shared_ptr<TimerElement>> __key_2_element;
+
+    TimerManager()
+    {
+        StartTimerManager();
+    }
+
+    ~TimerManager()
+    {
+        StopTimerManager();
+    }
+
+    void RunTimerManager()
+    {
+        pthread_setname_np(pthread_self(), "ACCM-TimerManager");
+        while (!__stop)
+        {
+            Wait();
+            auto element = PopTopObjIfTimeOut();
+            DealWithTimerElement(element);
+        }
+    }
+
+    void Wait()
+    {
+        std::unique_lock<std::mutex> lck(__cv_mutex);
+        bool flag;
+        TIMETYPE::time_point timepoint;
+        std::tie(flag, timepoint) = __timer_queue.GetTopObjKeyByFunction(
+            std::function<TIMETYPE::time_point(
+                const std::shared_ptr<TimerElement>&)>(
+                [](const std::shared_ptr<TimerElement>& e) {
+                    return e->alarm;
+                }));
+
+        if (flag)
+        {
+            __cv.wait_until(lck, timepoint);
+        }
+        else
+        {
+            __cv.wait_until(lck, TIMETYPE::now() + std::chrono::seconds(1));
+        }
+    }
+
+    bool __DeleteAlarm(std::shared_ptr<TimerElement> element)
+    {
+        std::lock_guard<std::recursive_mutex> lck(__data_mutex);
+        __timer_queue.DeleteObj(element->rbtreenode);
+        auto members = __key_2_element.equal_range(element->key);
+        for (auto member = members.first; member != members.second;)
+        {
+            if (member->second == element)
+            {
+                member = __key_2_element.erase(member);
+                return true;
+            }
+            else
+            {
+                member++;
+            }
+        }
+        __cv.notify_one();
+        return false;
+    }
+
+    std::shared_ptr<TimerElement> PopTopObjIfTimeOut()
+    {
+        bool flag;
+        std::shared_ptr<TimerElement> element;
+        std::lock_guard<std::recursive_mutex> lck(__data_mutex);
+        std::tie(flag, element) = __timer_queue.GetTopObjByFunction(
+            [](const std::shared_ptr<TimerElement>& e) {
+                return TIMETYPE::now() > e->alarm;
+            });
+        if (flag)
+        {
+            if (__DeleteAlarm(element))
+            {
+                return element;
+            }
+        }
+        return nullptr;
+    }
+
+    void DealWithTimerElement(std::shared_ptr<TimerElement> element)
+    {
+        if (element)
+        {
+            if (element->fun)
+            {
+                if (element->run_in_main_thread)
+                {
+                    element->fun();
+                }
+                else
+                {
+                    std::thread tmp([fun = element->fun]() {
+                        fun();
+                    });
+                    tmp.detach();
+                }
+            }
+            if (element->interval > std::chrono::milliseconds(0))
+            {
+                AddAlarm(element->interval,
+                    element->key,
+                    element->additional,
+                    element->fun,
+                    element->interval,
+                    element->run_in_main_thread);
+            }
+        }
+    }
+};
+}  // namespace v3
 
 }  // namespace timermanager

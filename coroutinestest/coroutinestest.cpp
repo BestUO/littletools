@@ -4,8 +4,6 @@
 template <class T>
 struct generator
 {
-    struct promise_type;
-    using handle = std::coroutine_handle<promise_type>;
     struct promise_type
     {
         T _current_value;
@@ -41,6 +39,7 @@ struct generator
             return std::suspend_always{};
         }
     };
+    using handle                = std::coroutine_handle<promise_type>;
     generator(generator const&) = delete;
     generator(generator&& rhs)
         : coro(rhs.coro)
@@ -163,6 +162,26 @@ lazy f2(int n = 0)
 #include <thread>
 using namespace std;
 
+class tt
+{
+public:
+    constexpr bool await_ready() const noexcept
+    {
+        return false;
+    }
+
+    constexpr auto await_suspend(coroutine_handle<> coro) const noexcept
+    {
+        // return coro;
+        return;
+    }
+
+    void await_resume() const noexcept
+    {
+        std::cout << "aa" << std::endl;
+    }
+};
+
 struct my_future
 {
     struct promise_type;
@@ -215,6 +234,10 @@ struct my_future
     {
         coro.resume();
     };
+    void destroy()
+    {
+        coro.destroy();
+    };
     my_future(my_future const&) = delete;
     my_future(my_future&& rhs)
         : coro(rhs.coro)
@@ -263,12 +286,20 @@ auto operator co_await(std::chrono::duration<Rep, Period> d)
     return awaiter{d};
 }
 
+my_future te()
+{
+    co_return 1;
+}
+
 my_future sleep_coro()
 {
+    // auto aaa = te();
+    // aaa.resume();
+    co_await tt();
     printf("Start sleeping\n");
     //   int ans = co_await - 1s;
     //   printf("before seconde co_await value %d\n", ans);
-    int ans = co_await 1s;
+    int ans = co_await 2s;
     std::cout << "leave sleep_coro " << ans << std::endl;
 }
 

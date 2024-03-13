@@ -139,7 +139,7 @@
             "name": "coroutinestest",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/coroutinestest/coroutinestest.out",
+            "program": "${workspaceFolder}/build/coroutinestest/coroutinestest",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
