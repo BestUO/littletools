@@ -341,12 +341,12 @@ private:
     bool __DeleteAlarm(std::shared_ptr<TimerElement> element)
     {
         std::lock_guard<std::recursive_mutex> lck(__data_mutex);
-        __timer_queue.DeleteObj(element->rbtreenode);
         auto members = __key_2_element.equal_range(element->key);
         for (auto member = members.first; member != members.second;)
         {
             if (member->second == element)
             {
+                __timer_queue.DeleteObj(element->rbtreenode);
                 member = __key_2_element.erase(member);
                 return true;
             }
@@ -590,12 +590,12 @@ private:
     bool __DeleteAlarm(std::shared_ptr<TimerElement> element)
     {
         std::lock_guard<std::recursive_mutex> lck(__data_mutex);
-        __timer_queue.DeleteObj(element->rbtreenode);
         auto members = __key_2_element.equal_range(element->key);
         for (auto member = members.first; member != members.second;)
         {
             if (member->second == element)
             {
+                __timer_queue.DeleteObj(element->rbtreenode);
                 member = __key_2_element.erase(member);
                 return true;
             }
