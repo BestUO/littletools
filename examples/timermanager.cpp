@@ -204,3 +204,32 @@ TEST_CASE("TimerManager v2 10w")
     CHECK_EQ(count, num);
     tm->StopTimerManager();
 }
+
+TEST_CASE("TimerManager v3")
+{
+    auto func = [](int a, int b) {
+        std::cout << a << '\t' << b << std::endl;
+    };
+    auto tm = timermanager::v3::TimerManager<std::string>::GetInstance();
+    tm->StartTimerManager();
+
+    tm->AddAlarm(
+        std::chrono::milliseconds(500), "0", "5", std::bind(func, 2, 3));
+    tm->AddAlarm(
+        std::chrono::milliseconds(200), "0", "2", std::bind(func, 1, 1));
+    tm->AddAlarm(
+        std::chrono::milliseconds(400), "0", "4", std::bind(func, 2, 2));
+    tm->AddAlarm(
+        std::chrono::milliseconds(300), "0", "3-1", std::bind(func, 1, 2));
+    tm->AddAlarm(
+        std::chrono::milliseconds(300), "0", "3-2", std::bind(func, 1, 20));
+    tm->AddAlarm(
+        std::chrono::milliseconds(200), "T", "", std::bind(func, 1, 100));
+    auto ele = tm->AddAlarm(
+        std::chrono::milliseconds(200), "T", "1-1", std::bind(func, 1, 100));
+    tm->DeleteAlarm("0", "3-2");
+    tm->DeleteAlarm(ele);
+    tm->DeleteAlarm("T");
+    sleep(1);
+    tm->StopTimerManager();
+}

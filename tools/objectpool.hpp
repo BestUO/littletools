@@ -9,7 +9,11 @@
 
 #define NITEM 1024
 #define CACHE_LINE 64
-#define CACHE_ALIGN __attribute__((__aligned__(CACHE_LINE)))
+#ifdef _MSVC_LANG
+    #define CACHE_ALIGN __declspec(align(CACHE_LINE))
+#else
+    #define CACHE_ALIGN __attribute__((__aligned__(CACHE_LINE)))
+#endif
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
 
@@ -145,7 +149,7 @@ thread_local std::shared_ptr<typename ObjectPool<T>::LocalPool>
     ObjectPool<T>::__local_pool = nullptr;
 }  // namespace v1
 
-namespace v2
+inline namespace v2
 {
 
 class SpinLock
@@ -367,6 +371,8 @@ private:
                 __free_chunk        = (FreeChunk*)malloc(sizeof(FreeChunk));
                 __free_chunk->nfree = 0;
             }
+            if (likely(std::is_destructible<T>::value))
+                ptr->~T();
             __free_chunk->ptrs[__free_chunk->nfree++] = ptr;
         }
 

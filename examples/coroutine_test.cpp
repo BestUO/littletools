@@ -131,8 +131,5 @@ TEST_CASE("coroutine_task_collect_all_int_void_string")
 
 TEST_CASE("coroutine_task_collect_final")
 {
-    while (timermanager::v3::TimerManager<uint8_t>::GetInstance()->GetSize())
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 }

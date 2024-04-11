@@ -9,6 +9,7 @@
 #include <map>
 #include "../queue/threadsafecontainer.hpp"
 #include "rbtree/rbtreewrap.hpp"
+#include "objectpool.hpp"
 
 namespace timermanager
 {
@@ -415,98 +416,144 @@ namespace v3
 template <typename T>
 class TimerManager
 {
+    using TIMETYPE = std::chrono::steady_clock;
+
 public:
     enum class DeleteModel
     {
         ANY,
         ALL
     };
+    struct TimerElement
+    {
+        rb_node rbnode = {nullptr, nullptr, nullptr, RB_RED};
+        typename std::multimap<T, TimerElement*>::iterator iter;
+        TIMETYPE::time_point alarm;
+        std::function<void()> fun;
+        T key;
+        std::string additional             = "";
+        std::chrono::milliseconds interval = std::chrono::milliseconds(0);
+        bool runInMainThread               = true;
+        bool operator<(const TimerElement& t) const
+        {
+            return alarm < t.alarm;
+        }
+        TimerElement(TIMETYPE::time_point _alarm,
+            std::function<void()>&& _fun,
+            const T& _key,
+            const std::string& _additional,
+            std::chrono::milliseconds _interval,
+            bool _runinmainthread)
+            : alarm(_alarm)
+            , fun(std::move(_fun))
+            , key(std::move(_key))
+            , additional(std::move(_additional))
+            , interval(_interval)
+            , runInMainThread(_runinmainthread)
+        { }
+        ~TimerElement()
+        {
+            iter = {};
+            fun  = nullptr;
+        }
+    };
+
     static TimerManager* GetInstance()
     {
         static TimerManager instance;
         return &instance;
     }
 
-    void AddAlarm(std::chrono::milliseconds alarm,
+    TimerElement* AddAlarm(std::chrono::milliseconds alarm,
         const T& key,
         const std::string& additional,
-        std::function<void()> fun,
+        std::function<void()>&& fun,
         std::chrono::milliseconds interval = std::chrono::milliseconds(0),
         bool runinmainthread               = true)
     {
-        TIMETYPE::time_point timepoint = TIMETYPE::now() + alarm;
-        auto element = std::make_shared<TimerElement>(TimerElement{
-            timepoint, fun, key, additional, interval, runinmainthread});
+        TimerElement* element = nullptr;
+        if (!__stop)
+        {
+            element = ObjectPool<TimerElement>::GetInstance()->GetObject(
+                TIMETYPE::now() + alarm,
+                std::move(fun),
+                std::move(key),
+                std::move(additional),
+                interval,
+                runinmainthread);
 
-        std::lock_guard<std::recursive_mutex> lck(__data_mutex);
-        auto rbtreenode     = __timer_queue.AddObj(element);
-        element->rbtreenode = rbtreenode;
-        __key_2_element.insert({key, element});
-
-        __cv.notify_one();
+            std::lock_guard<std::mutex> lck(__mutex);
+            __timerQueue.AddObj(std::move(*element));
+            element->iter = __key2element.emplace(key, element);
+            __cv.notify_one();
+        }
+        return element;
     }
 
-    bool DeleteAlarm(const T& key,
+    void DeleteAlarm(const T& key,
         const std::string& additional,
-        DeleteModel deletemodel = DeleteModel::ALL)
+        DeleteModel deletemodel = DeleteModel::ANY)
     {
-        bool flag = false;
-        std::lock_guard<std::recursive_mutex> lck(__data_mutex);
-        auto members = __key_2_element.equal_range(key);
-
-        for (auto member = members.first; member != members.second;)
-        {
-            if (member->second->additional == additional)
+        std::lock_guard<std::mutex> lck(__mutex);
+        __timerQueue.ExecuteAll([&](TimerElement* element) {
+            if (element->key == key && element->additional == additional)
             {
-                __timer_queue.DeleteObj(member->second->rbtreenode);
-                member = __key_2_element.erase(member);
-                flag   = true;
+                __timerQueue.DeleteObj((rb_node*)element);
+                __key2element.erase(element->iter);
+                ObjectPool<TimerElement>::GetInstance()->PutObject(
+                    (TimerElement*)element);
                 if (deletemodel == DeleteModel::ANY)
-                {
-                    break;
-                }
+                    return true;
             }
-            else
+            return false;
+        });
+        __cv.notify_one();
+    }
+
+    void DeleteAlarm(const T& key)
+    {
+        std::lock_guard<std::mutex> lck(__mutex);
+        __timerQueue.ExecuteAll([&](TimerElement* element) {
+            if (element->key == key)
             {
-                member++;
+                __timerQueue.DeleteObj((rb_node*)element);
+                __key2element.erase(element->iter);
+                ObjectPool<TimerElement>::GetInstance()->PutObject(
+                    (TimerElement*)element);
             }
-        }
-
+            return false;
+        });
         __cv.notify_one();
-        return flag;
     }
 
-    bool DeleteAlarm(const T& key)
+    void DeleteAlarm(TimerElement* element)
     {
-        bool flag = false;
-        std::lock_guard<std::recursive_mutex> lck(__data_mutex);
-        auto members = __key_2_element.equal_range(key);
-        for (auto member = members.first; member != members.second;)
-        {
-            __timer_queue.DeleteObj(member->second->rbtreenode);
-            member = __key_2_element.erase(member);
-            flag   = true;
-        }
+        // makesure element is available, if not sure, please use
+        // deleteAlarm(key, additional, DeleteModel::ANY)
+        std::lock_guard<std::mutex> lck(__mutex);
+        __timerQueue.DeleteObj((rb_node*)element);
+        __key2element.erase(element->iter);
+        ObjectPool<TimerElement>::GetInstance()->PutObject(
+            (TimerElement*)element);
         __cv.notify_one();
-        return flag;
-    }
-
-    size_t GetSize()
-    {
-        return __timer_queue.GetSize();
     }
 
     void StopTimerManager()
     {
         __stop = true;
         __cv.notify_one();
-        if (__timer_thread.joinable())
+        if (__timerThread.joinable())
         {
-            __timer_thread.join();
+            __timerThread.join();
         }
-        std::lock_guard<std::recursive_mutex> lck2(__data_mutex);
-        __key_2_element.clear();
-        __timer_queue.Clear();
+        std::lock_guard<std::mutex> lck2(__mutex);
+        __timerQueue.ExecuteAll([&](TimerElement* element) {
+            __timerQueue.DeleteObj((rb_node*)element);
+            __key2element.erase(element->iter);
+            ObjectPool<TimerElement>::GetInstance()->PutObject(
+                (TimerElement*)element);
+            return false;
+        });
     }
 
     void StartTimerManager()
@@ -515,34 +562,17 @@ public:
         {
             return;
         }
-        __stop         = false;
-        __timer_thread = std::thread(&TimerManager::RunTimerManager, this);
+        __stop        = false;
+        __timerThread = std::thread(&TimerManager::RunTimerManager, this);
     }
 
 private:
-    using TIMETYPE = std::chrono::steady_clock;
-    struct TimerElement
-    {
-        TIMETYPE::time_point alarm;
-        std::function<void()> fun;
-        T key;
-        std::string additional             = "";
-        std::chrono::milliseconds interval = std::chrono::milliseconds(0);
-        bool run_in_main_thread            = true;
-        void* rbtreenode                   = nullptr;
-        bool operator<(const TimerElement& t) const
-        {
-            return alarm < t.alarm;
-        }
-    };
-
     std::atomic<bool> __stop = {true};
-    rbtreewrap::v2::RBTreeWrap<std::shared_ptr<TimerElement>> __timer_queue;
-    std::thread __timer_thread;
+    rbtreewrap::v3::RBTreeWrap<TimerElement> __timerQueue;
+    std::thread __timerThread;
     std::condition_variable __cv;
-    std::mutex __cv_mutex;
-    std::recursive_mutex __data_mutex;
-    std::multimap<T, std::shared_ptr<TimerElement>> __key_2_element;
+    std::mutex __mutex;
+    std::multimap<T, TimerElement*> __key2element;
 
     TimerManager()
     {
@@ -560,20 +590,18 @@ private:
         while (!__stop)
         {
             Wait();
-            auto element = PopTopObjIfTimeOut();
-            DealWithTimerElement(element);
+            DealWithTimerElement(GetTimerElement());
         }
     }
 
     void Wait()
     {
-        std::unique_lock<std::mutex> lck(__cv_mutex);
         bool flag;
         TIMETYPE::time_point timepoint;
-        std::tie(flag, timepoint) = __timer_queue.GetTopObjKeyByFunction(
-            std::function<TIMETYPE::time_point(
-                const std::shared_ptr<TimerElement>&)>(
-                [](const std::shared_ptr<TimerElement>& e) {
+        std::unique_lock<std::mutex> lck(__mutex);
+        std::tie(flag, timepoint) = __timerQueue.GetTopObjKeyByFunction(
+            std::function<TIMETYPE::time_point(const TimerElement*)>(
+                [](const TimerElement* e) -> TIMETYPE::time_point {
                     return e->alarm;
                 }));
 
@@ -587,73 +615,91 @@ private:
         }
     }
 
-    bool __DeleteAlarm(std::shared_ptr<TimerElement> element)
-    {
-        std::lock_guard<std::recursive_mutex> lck(__data_mutex);
-        auto members = __key_2_element.equal_range(element->key);
-        for (auto member = members.first; member != members.second;)
-        {
-            if (member->second == element)
-            {
-                __timer_queue.DeleteObj(element->rbtreenode);
-                member = __key_2_element.erase(member);
-                return true;
-            }
-            else
-            {
-                member++;
-            }
-        }
-        __cv.notify_one();
-        return false;
-    }
-
-    std::shared_ptr<TimerElement> PopTopObjIfTimeOut()
-    {
-        bool flag;
-        std::shared_ptr<TimerElement> element;
-        std::lock_guard<std::recursive_mutex> lck(__data_mutex);
-        std::tie(flag, element) = __timer_queue.GetTopObjByFunction(
-            [](const std::shared_ptr<TimerElement>& e) {
-                return TIMETYPE::now() > e->alarm;
-            });
-        if (flag)
-        {
-            if (__DeleteAlarm(element))
-            {
-                return element;
-            }
-        }
-        return nullptr;
-    }
-
-    void DealWithTimerElement(std::shared_ptr<TimerElement> element)
+    void DealWithTimerElement(TimerElement* element)
     {
         if (element)
         {
             if (element->fun)
             {
-                if (element->run_in_main_thread)
+                if (element->runInMainThread)
                 {
                     element->fun();
+                    if (element->interval > std::chrono::milliseconds(0))
+                    {
+                        element->alarm = TIMETYPE::now() + element->interval;
+                        std::lock_guard<std::mutex> lck(__mutex);
+                        element->iter
+                            = __key2element.emplace(element->key, element);
+                        __timerQueue.AddObj(std::move(*element));
+                    }
+                    else
+                        ObjectPool<TimerElement>::GetInstance()->PutObject(
+                            element);
                 }
                 else
                 {
-                    std::thread tmp([fun = element->fun]() {
-                        fun();
+                    std::thread tmp([this, element = element]() {
+                        element->fun();
+                        if (element->interval > std::chrono::milliseconds(0))
+                        {
+                            element->alarm
+                                = TIMETYPE::now() + element->interval;
+                            std::lock_guard<std::mutex> lck(__mutex);
+                            element->iter
+                                = __key2element.emplace(element->key, element);
+                            __timerQueue.AddObj(std::move(*element));
+                        }
+                        else
+                            ObjectPool<TimerElement>::GetInstance()->PutObject(
+                                element);
                     });
                     tmp.detach();
                 }
             }
-            if (element->interval > std::chrono::milliseconds(0))
+            else
             {
-                AddAlarm(element->interval,
-                    element->key,
-                    element->additional,
-                    element->fun,
-                    element->interval,
-                    element->run_in_main_thread);
+                ObjectPool<TimerElement>::GetInstance()->PutObject(element);
             }
+        }
+    }
+
+    TimerElement* GetTimerElement()
+    {
+        bool flag;
+        TimerElement* element;
+        std::lock_guard<std::mutex> lck(__mutex);
+        std::tie(flag, element) = __timerQueue.GetTopObjByFunctionAndDelete(
+            [](const TimerElement* e) {
+                return TIMETYPE::now() > e->alarm;
+            });
+        if (flag)
+        {
+            __key2element.erase(element->iter);
+            return element;
+        }
+        else
+            return nullptr;
+    }
+
+    void AddAlarmNoLock(std::chrono::milliseconds alarm,
+        const T& key,
+        const std::string& additional,
+        std::function<void()>&& fun,
+        std::chrono::milliseconds interval = std::chrono::milliseconds(0),
+        bool runinmainthread               = true)
+    {
+        if (!__stop)
+        {
+            auto element = ObjectPool<TimerElement>::GetInstance()->GetObject();
+            element->alarm           = TIMETYPE::now() + alarm;
+            element->fun             = std::move(fun);
+            element->key             = std::move(key);
+            element->additional      = std::move(additional);
+            element->interval        = interval;
+            element->runInMainThread = runinmainthread;
+
+            __timerQueue.addObj(std::move(*element));
+            __cv.notify_one();
         }
     }
 };
