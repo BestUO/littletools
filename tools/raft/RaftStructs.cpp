@@ -1,198 +1,93 @@
 #include <string.h>
 #include "RaftStructs.h"
 #include "../template.hpp"
+#include "../simple_serialize.hpp"
 
-constexpr char RaftCommandType::CommonInfo::constname[15];
+constexpr char RaftCommandType::CommonInfo::version[15];
 RaftCommandType::CommonInfo::CommonInfo(MessageType m)
     : messageType(m)
 { }
 
 RaftCommandType::CommonInfo::CommonInfo(const char* buf, uint16_t size)
 {
-    uint16_t len;
-    uint16_t offset = 0;
-
-    memcpy(&len, buf + offset, sizeof(uint16_t));
-    offset += sizeof(uint16_t);
-    memcpy(&messageType, buf + offset, len);
-    offset += len;
-
-    memcpy(&len, buf + offset, sizeof(uint16_t));
-    offset += sizeof(uint16_t);
-    offset += len;
-
-    memcpy(&len, buf + offset, sizeof(uint16_t));
-    offset += sizeof(uint16_t);
-    memcpy(&term, buf + offset, len);
-    offset += len;
-
-    memcpy(&len, buf + offset, sizeof(uint16_t));
-    offset += sizeof(uint16_t);
-    memcpy(&uuid, buf + offset, len);
-    offset += len;
-
-    memcpy(&len, buf + offset, sizeof(uint16_t));
-    offset += sizeof(uint16_t);
-    memcpy(&timestamp, buf + offset, len);
-    offset += len;
-
-    messageType = MessageType(EndianSwap<>::swap((uint16_t)messageType));
-    term        = EndianSwap<>::swap(term);
-    uuid = {EndianSwap<>::swap(uuid.hi64()), EndianSwap<>::swap(uuid.lo64())};
-    timestamp = EndianSwap<>::swap(timestamp);
-    if (size != offset)
-    { }
+    deserialize(buf, size);
 }
 
 std::string RaftCommandType::CommonInfo::serialize()
 {
     std::string context;
-    uint16_t len;
-
-    auto messageTypeBigEndian = EndianSwap<>::swap((uint16_t)messageType);
-    auto termBigEndian        = EndianSwap<>::swap(term);
-    auto uuidBigEndian        = UUID{
-        EndianSwap<>::swap(uuid.hi64()), EndianSwap<>::swap(uuid.lo64())};
-    auto timestampBigEndian = EndianSwap<>::swap(timestamp);
-
-    len = sizeof(messageTypeBigEndian);
-    context.append((char*)&len, sizeof(uint16_t));
-    context.append((char*)&messageTypeBigEndian, sizeof(messageTypeBigEndian));
-
-    len = sizeof(constname);
-    context.append((char*)&len, sizeof(uint16_t));
-    context.append(constname, len);
-
-    len = sizeof(termBigEndian);
-    context.append((char*)&len, sizeof(uint16_t));
-    context.append((char*)&termBigEndian, sizeof(termBigEndian));
-
-    len = sizeof(uuidBigEndian);
-    context.append((char*)&len, sizeof(uint16_t));
-    context.append((char*)&uuidBigEndian, sizeof(uuidBigEndian));
-
-    len = sizeof(timestampBigEndian);
-    context.append((char*)&len, sizeof(uint16_t));
-    context.append((char*)&timestampBigEndian, len);
+    writeBuffer(messageType, sizeof(messageType), context);
+    std::string ver(version, sizeof(version));
+    writeBuffer(ver, ver.size(), context);
+    writeBuffer(term, sizeof(term), context);
+    writeBuffer(uuid, sizeof(uuid), context);
+    writeBuffer(timestamp, sizeof(timestamp), context);
 
     return context;
 }
 
+void RaftCommandType::CommonInfo::deserialize(const char* buf, uint16_t size)
+{
+    (void)size;
+    uint16_t offset = 0;
+    readBuffer(buf, offset, messageType);
+    std::string ver;
+    readBuffer(buf, offset, ver);
+    readBuffer(buf, offset, term);
+    readBuffer(buf, offset, uuid);
+    readBuffer(buf, offset, timestamp);
+}
+
 RaftCommandType::Vote::Vote(const char* buf, uint16_t size)
 {
-    uint16_t len;
     uint16_t offset = 0;
-
-    memcpy(&len, buf + offset, sizeof(uint16_t));
-    offset += sizeof(uint16_t);
-    commonInfo = CommonInfo(buf + offset, len);
-    offset += len;
-
-    if (size != offset)
-    { }
+    readBuffer(buf, offset, commonInfo);
 }
 
 std::string RaftCommandType::Vote::serialize()
 {
-    std::string context, structcontext;
-    uint16_t len;
-
-    structcontext = commonInfo.serialize();
-    len           = structcontext.size();
-    context.append((char*)&len, sizeof(uint16_t));
-    context.append(structcontext.data(), len);
-
+    std::string context;
+    writeBuffer(commonInfo, 0, context);
     return context;
 }
 
 RaftCommandType::VoteResponse::VoteResponse(const char* buf, uint16_t size)
 {
-    uint16_t len;
     uint16_t offset = 0;
-
-    memcpy(&len, buf + offset, sizeof(uint16_t));
-    offset += sizeof(uint16_t);
-    commonInfo = CommonInfo(buf + offset, len);
-    offset += len;
-
-    memcpy(&len, buf + offset, sizeof(uint16_t));
-    offset += sizeof(uint16_t);
-    memcpy(&voteGranted, buf + offset, len);
-    offset += len;
-
-    voteGranted = EndianSwap<>::swap(voteGranted);
-    if (size != offset)
-    { }
+    readBuffer(buf, offset, commonInfo);
+    readBuffer(buf, offset, voteGranted);
 }
 
 std::string RaftCommandType::VoteResponse::serialize()
 {
-    std::string context, structcontext;
-    uint16_t len;
-    auto voteGrantedBigEndian = EndianSwap<>::swap(voteGranted);
-
-    structcontext = commonInfo.serialize();
-    len           = structcontext.size();
-    context.append((char*)&len, sizeof(uint16_t));
-    context.append(structcontext.data(), len);
-
-    len = sizeof(voteGrantedBigEndian);
-    context.append((char*)&len, sizeof(uint16_t));
-    context.append((char*)&voteGrantedBigEndian, sizeof(voteGrantedBigEndian));
-
+    std::string context;
+    writeBuffer(commonInfo, 0, context);
+    writeBuffer(voteGranted, sizeof(voteGranted), context);
     return context;
 }
 
 RaftCommandType::HeartBeat::HeartBeat(const char* buf, uint16_t size)
 {
-    uint16_t len;
     uint16_t offset = 0;
-
-    memcpy(&len, buf + offset, sizeof(uint16_t));
-    offset += sizeof(uint16_t);
-    commonInfo = CommonInfo(buf + offset, len);
-    offset += len;
-
-    if (size != offset)
-    { }
+    readBuffer(buf, offset, commonInfo);
 }
 
 std::string RaftCommandType::HeartBeat::serialize()
 {
-    std::string context, structcontext;
-    uint16_t len;
-
-    structcontext = commonInfo.serialize();
-    len           = structcontext.size();
-    context.append((char*)&len, sizeof(uint16_t));
-    context.append(structcontext.data(), len);
-
+    std::string context;
+    writeBuffer(commonInfo, 0, context);
     return context;
 }
 
 RaftCommandType::VoteResult::VoteResult(const char* buf, uint16_t size)
 {
-    uint16_t len;
     uint16_t offset = 0;
-
-    memcpy(&len, buf + offset, sizeof(uint16_t));
-    offset += sizeof(uint16_t);
-    commonInfo = CommonInfo(buf + offset, len);
-    offset += len;
-
-    if (size != offset)
-    { }
+    readBuffer(buf, offset, commonInfo);
 }
 
 std::string RaftCommandType::VoteResult::serialize()
 {
-    std::string context, structcontext;
-    uint16_t len;
-
-    structcontext = commonInfo.serialize();
-    len           = structcontext.size();
-    context.append((char*)&len, sizeof(uint16_t));
-    context.append(structcontext.data(), len);
-
+    std::string context;
+    writeBuffer(commonInfo, 0, context);
     return context;
 }

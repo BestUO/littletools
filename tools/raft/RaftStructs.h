@@ -51,7 +51,7 @@ struct RaftCommandType
         MessageType messageType = MessageType::VOTE;
         uint32_t term;
         UUID uuid;
-        static constexpr char constname[15] = "ACCM-Raft\0";
+        static constexpr char version[15] = "ACCM-Raft\0";
         uint64_t timestamp
             = std::chrono::duration_cast<std::chrono::nanoseconds>(
                 std::chrono::steady_clock::now().time_since_epoch())
@@ -61,11 +61,11 @@ struct RaftCommandType
         CommonInfo(MessageType m);
         CommonInfo(const char* buf, uint16_t size);
         std::string serialize();
+        void deserialize(const char* buf, uint16_t size);
 
         constexpr static uint16_t size()
         {
-            return sizeof(messageType) + sizeof(constname)
-                + sizeof(uint16_t) * 2;
+            return sizeof(messageType) + sizeof(version) + sizeof(uint16_t) * 2;
         }
     };
 
