@@ -4,6 +4,8 @@
 #include <string>
 #include "../uuid.hpp"
 
+#define RAFT_VERSION "RAFT-V2.0\0"
+
 struct RaftInfos
 {
     struct RaftBaseInfo
@@ -51,7 +53,7 @@ struct RaftCommandType
         MessageType messageType = MessageType::VOTE;
         uint32_t term;
         UUID uuid;
-        static constexpr char version[15] = "ACCM-Raft\0";
+        char version[15] = RAFT_VERSION;
         uint64_t timestamp
             = std::chrono::duration_cast<std::chrono::nanoseconds>(
                 std::chrono::steady_clock::now().time_since_epoch())

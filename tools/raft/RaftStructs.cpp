@@ -3,7 +3,6 @@
 #include "../template.hpp"
 #include "../simple_serialize.hpp"
 
-constexpr char RaftCommandType::CommonInfo::version[15];
 RaftCommandType::CommonInfo::CommonInfo(MessageType m)
     : messageType(m)
 { }
@@ -17,8 +16,7 @@ std::string RaftCommandType::CommonInfo::serialize()
 {
     std::string context;
     writeBuffer(messageType, sizeof(messageType), context);
-    std::string ver(version, sizeof(version));
-    writeBuffer(ver, ver.size(), context);
+    writeBuffer(version, sizeof(version), context);
     writeBuffer(term, sizeof(term), context);
     writeBuffer(uuid, sizeof(uuid), context);
     writeBuffer(timestamp, sizeof(timestamp), context);
@@ -31,8 +29,7 @@ void RaftCommandType::CommonInfo::deserialize(const char* buf, uint16_t size)
     (void)size;
     uint16_t offset = 0;
     readBuffer(buf, offset, messageType);
-    std::string ver;
-    readBuffer(buf, offset, ver);
+    readBuffer(buf, offset, version);
     readBuffer(buf, offset, term);
     readBuffer(buf, offset, uuid);
     readBuffer(buf, offset, timestamp);

@@ -50,13 +50,13 @@ std::string Raft::handleIncomingData(const char* buf,
     }
     else
     {
-        if (strcmp(buf + 8, RaftCommandType::CommonInfo::version))
+        if (strcmp(buf + 8, RAFT_VERSION))
         {
             logOut((void*)this,
                 ": handleIncomingData: serializename ",
                 std::string(buf + 8, 15),
                 " != ",
-                RaftCommandType::CommonInfo::version);
+                RAFT_VERSION);
             return "";
         }
         else
