@@ -546,9 +546,11 @@ public:
         {
             __timerThread.join();
         }
-        std::lock_guard<std::mutex> lck2(__mutex);
-        __timerQueue.ExecuteAll([&](TimerElement* element) {
-            __timerQueue.DeleteObj((rb_node*)element);
+        std::unique_lock<std::mutex> lck(__mutex);
+        auto timerQueue(std::move(__timerQueue));
+        lck.unlock();
+        timerQueue.ExecuteAll([&](TimerElement* element) {
+            timerQueue.DeleteObj((rb_node*)element);
             __key2element.erase(element->iter);
             ObjectPool<TimerElement>::GetInstance()->PutObject(
                 (TimerElement*)element);

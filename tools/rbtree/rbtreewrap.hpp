@@ -389,6 +389,12 @@ template <typename T>
 class RBTreeWrap
 {
 public:
+    RBTreeWrap() = default;
+    RBTreeWrap(RBTreeWrap&& other) noexcept
+        : m_rbtree(other.m_rbtree)
+    {
+        other.m_rbtree.rb_node = nullptr;
+    }
     ~RBTreeWrap()
     {
         m_rbtree.rb_node = nullptr;
