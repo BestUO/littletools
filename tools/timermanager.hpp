@@ -483,9 +483,17 @@ public:
                 runinmainthread);
 
             std::lock_guard<std::mutex> lck(__mutex);
-            __timerQueue.AddObj(std::move(*element));
-            element->iter = __key2element.emplace(key, element);
-            __cv.notify_one();
+            if (!__stop)
+            {
+                __timerQueue.AddObj(std::move(*element));
+                element->iter = __key2element.emplace(key, element);
+                __cv.notify_one();
+            }
+            else
+            {
+                ObjectPool<TimerElement>::GetInstance()->PutObject(element);
+                element = nullptr;
+            }
         }
         return element;
     }
