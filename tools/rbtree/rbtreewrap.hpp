@@ -429,7 +429,7 @@ public:
     }
 
     template <typename R>
-    std::tuple<bool, R> GetTopObjKeyByFunction(std::function<R(const T*)> f)
+    std::tuple<bool, R> GetTopObjIf(std::function<R(const T*)> f)
     {
         auto top = rb_first(&m_rbtree);
         if (top)
@@ -439,7 +439,7 @@ public:
         return std::make_tuple(false, R());
     }
 
-    std::tuple<bool, T*> GetTopObjByFunction(std::function<bool(const T*)> f)
+    std::tuple<bool, T*> GetTopObjIf(std::function<bool(const T*)> f)
     {
         auto top = rb_first(&m_rbtree);
         if (top)
@@ -452,8 +452,7 @@ public:
         return std::make_tuple(false, nullptr);
     }
 
-    std::tuple<bool, T*> GetTopObjByFunctionAndDelete(
-        std::function<bool(const T*)> f)
+    std::tuple<bool, T*> GetTopObjIfAndDelete(std::function<bool(const T*)> f)
     {
         auto top = rb_first(&m_rbtree);
         if (top)
