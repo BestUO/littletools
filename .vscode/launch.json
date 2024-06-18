@@ -35,7 +35,9 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/examples/doctooltest",
-            "args": [],
+            "args": [
+                "--test-case=shm_SHMMemoryPool_special_type"
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

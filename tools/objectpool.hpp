@@ -390,7 +390,7 @@ private:
         {
             delete __ptr;
         }
-        void setptr(LocalPool* ptr)
+        void setptr(PTRTYPE* ptr)
         {
             __ptr = ptr;
         }
@@ -410,6 +410,10 @@ private:
 template <typename T>
 thread_local typename ObjectPool<T>::LocalPool* ObjectPool<T>::__local_pool
     = nullptr;
+
+// template <typename T>
+// thread_local std::unique_ptr<typename ObjectPool<T>::LocalPool>
+//     ObjectPool<T>::__local_pool;
 
 template <typename T>
 thread_local typename ObjectPool<T>::template ThreadLocalPtrWrap<
