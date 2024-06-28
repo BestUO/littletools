@@ -234,10 +234,8 @@ TEST_CASE("shm_SHMMemoryPool_SHMMessageQueue_size_type_crazy")
         SHMFactory<SHMMemoryPool<char, 1000>> pool("MemoryPool");
         SHMFactory<SHMMessageQueue<SHMMemoryPool<char, 10>::MPE, true>> queue(
             "SHMMessageQueue");
-        int total = 1000000;
-        int num   = 0;
         auto data = std::to_string(total);
-        while (num++ < total)
+        while (true)
         {
             queue->GetMutex().lock();
             auto [flag, sharedobj] = queue->PopFront(*pool);

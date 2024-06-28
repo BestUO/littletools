@@ -148,10 +148,18 @@ concept PodType = std::is_trivial_v<T> && std::is_standard_layout_v<T>;
 // concept PodType = std::true_type::value;
 
 template <typename T>
-concept QueueElement = requires(T t)
+concept DeQueueElement = requires(T t)
 {
     {
         decltype(t.__prev)(), decltype(t.__next)()
+        } -> std::same_as<int16_t>;
+};
+
+template <typename T>
+concept QueueElement = requires(T t)
+{
+    {
+        decltype(t.__next)()
         } -> std::same_as<int16_t>;
 };
 
@@ -342,7 +350,7 @@ private:
     friend SHMMessageQueue<char, true, SHM_QUEUE_SIZE>;
 };
 
-template <QueueElement T>
+template <DeQueueElement T>
 class SHMFIFOListObj
 {
 public:
@@ -390,7 +398,7 @@ private:
     int32_t __tail = -1;
 };
 
-template <QueueElement T>
+template <DeQueueElement T>
 class SHMLIFOListObj
 {
 public:
@@ -434,6 +442,61 @@ private:
     int32_t __tail = -1;
 };
 
+template <QueueElement T>
+class SHMCircle
+{
+public:
+    SHMCircle(T* data, size_t N)
+    {
+        for (size_t i = 0; i < N - 1; i++)
+            data[i].__next = i + 1;
+        data[N - 1].__next = 0;
+    }
+
+    int32_t PushBack(T* data)
+    {
+        if (IsFull())
+        {
+            return -1;
+        }
+        else
+        {
+            auto oldtail = __tail;
+            __tail       = data[__tail].__next;
+            return oldtail;
+        }
+    }
+
+    int32_t PopFront(T* data)
+    {
+        if (IsEmpty())
+        {
+            return -1;
+        }
+        else
+        {
+            auto oldhead = __head;
+            __head       = data[__head].__next;
+            return oldhead;
+        }
+    }
+
+private:
+    CIRCLEINDEXTYPE __head = 0;
+    CIRCLEINDEXTYPE __tail = 0;
+
+    bool IsFull()
+    {
+        return std::numeric_limits<CIRCLEINDEXTYPE>::max()
+            == CIRCLEINDEXTYPE(__tail - __head);
+    }
+
+    bool IsEmpty()
+    {
+        return __head == __tail;
+    }
+};
+
 template <typename T, size_t N = SHM_QUEUE_SIZE>
 class SHMMemoryPoolBase
 {
@@ -445,10 +508,7 @@ public:
         {
             SHMObjBaseSetIndex(__data[i].__obj, i);
             __FIFOList.PushBack(__data, i);
-            if (i == 65514)
-                int b = 0;
         }
-        int a = 0;
     }
 
     SHAREDOBJYPE Allocate()
