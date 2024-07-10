@@ -13,7 +13,7 @@
 #include <ifaddrs.h>
 #include <tuple>
 #include <functional>
-#include "network_params.hpp"
+#include "network_global.hpp"
 #include "socket.hpp"
 #include <iostream>
 

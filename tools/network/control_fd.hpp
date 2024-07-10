@@ -1,6 +1,6 @@
 #pragma once
 #include "udp.hpp"
-#include "network_params.hpp"
+#include "network_global.hpp"
 
 namespace network
 {

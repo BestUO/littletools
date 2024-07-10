@@ -7,7 +7,7 @@
 #include <mutex>
 #include <map>
 #include "control_fd.hpp"
-#include "network_params.hpp"
+#include "network_global.hpp"
 
 namespace network
 {
