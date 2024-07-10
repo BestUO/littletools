@@ -36,7 +36,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/examples/doctooltest",
             "args": [
-                "--test-case=shm_SHMMemoryPool_special_type"
+                "--test-case=network_UDP_inet_base"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
