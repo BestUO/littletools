@@ -41,17 +41,25 @@ public:
     {
         sockaddr_type addr;
         socklen_t addr_len = sizeof(addr);
-        auto received      = recvfrom(this->__sockfd,
-            buf,
-            size,
-            0,
-            reinterpret_cast<sockaddr*>(&addr),
-            &addr_len);
+        // while (true)
+        {
+            auto received = recvfrom(this->__sockfd,
+                buf,
+                size,
+                0,
+                reinterpret_cast<sockaddr*>(&addr),
+                &addr_len);
 
-        if (received < 0)
-            printf("errno:%d %s\n", errno, strerror(errno));
-        else if (received > 0)
-            HandleData(buf, received, addr);
+            if (received < 0)
+            {
+                // if (errno == EAGAIN || errno == EWOULDBLOCK)
+                //     break;
+                // else
+                printf("errno:%d %s\n", errno, strerror(errno));
+            }
+            else if (received > 0)
+                HandleData(buf, received, addr);
+        }
     };
 
     void Send(const std::string& message, const sockaddr_type& sender_addr)
@@ -90,6 +98,19 @@ public:
     UDP(UDP&&)                 = delete;
     UDP& operator=(UDP&&)      = delete;
     ~UDP()                     = default;
+
+    void SetMultiCastSendNIC(std::string ip)
+    {
+        struct in_addr localInterface;
+        localInterface.s_addr = inet_addr(ip.c_str());
+        if (setsockopt(this->__sockfd,
+                IPPROTO_IP,
+                IP_MULTICAST_IF,
+                reinterpret_cast<char*>(&localInterface),
+                sizeof(localInterface))
+            < 0)
+            printf("errno:%d %s\n", errno, strerror(errno));
+    }
 
     void ListenMultiCast(const std::string& multicastip)
     {

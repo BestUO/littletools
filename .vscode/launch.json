@@ -36,7 +36,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/examples/doctooltest",
             "args": [
-                "--test-case=network_UDP_unix_base"
+                "--test-case=network_SimpleEpoll"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
