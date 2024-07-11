@@ -10,6 +10,7 @@
 #include <sys/un.h>
 #include <string>
 #include <unistd.h>
+#include <fcntl.h>
 
 namespace network
 {
@@ -32,10 +33,38 @@ public:
         strncpy(addr.sun_path, path, sizeof(addr.sun_path) - 1);
         return addr;
     }
+
+    static void setNonBlocking(int fd)
+    {
+        int flags = fcntl(fd, F_GETFL, 0);
+        if (flags == -1)
+        {
+            printf("errno:%d %s\n", errno, strerror(errno));
+        }
+        else
+        {
+            flags |= O_NONBLOCK;
+            if (fcntl(fd, F_SETFL, flags) == -1)
+            {
+                printf("errno:%d %s\n", errno, strerror(errno));
+            }
+        }
+    }
+
+    static bool IsNonBlocking(int fd)
+    {
+        int flags = fcntl(fd, F_GETFL, 0);
+        if (flags == -1)
+        {
+            printf("errno:%d %s\n", errno, strerror(errno));
+            return false;
+        }
+        return flags & O_NONBLOCK;
+    }
 };
 
 template <bool USEUNIX, bool USEUDP>
-class Socket : public SocketBase
+class Socket
 {
 public:
     using sockaddr_type
@@ -58,14 +87,14 @@ public:
     template <bool U = USEUNIX, typename std::enable_if_t<!U, int> = 0>
     void SetAddr(const char* ip, int port)
     {
-        BindSocket(CreateAddr(ip, port));
+        BindSocket(SocketBase::CreateAddr(ip, port));
     }
 
     template <bool U = USEUNIX, typename std::enable_if_t<U, int> = 0>
     void SetAddr(const char* path)
     {
         unlink(path);
-        BindSocket(CreateAddr(path));
+        BindSocket(SocketBase::CreateAddr(path));
     }
 
     sockaddr_type GetAddr() const
@@ -87,6 +116,16 @@ public:
     int GetSocket() const
     {
         return __sockfd;
+    }
+
+    void setNonBlocking()
+    {
+        SocketBase::setNonBlocking(__sockfd);
+    }
+
+    bool IsNonBlocking()
+    {
+        return SocketBase::IsNonBlocking(__sockfd);
     }
 
 protected:

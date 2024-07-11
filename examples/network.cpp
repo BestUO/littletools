@@ -8,6 +8,7 @@
 #include "tools/network/simple_poll.hpp"
 #include "tools/network/simple_epoll.hpp"
 #include "tools/network/network_manager.hpp"
+#include "tools/cpu_bind.hpp"
 
 TEST_CASE("network_UDP_inet_base")
 {
@@ -255,15 +256,14 @@ TEST_CASE("network_SimplePoll_UDP_inet_performance")
     auto recvudp = std::make_shared<network::inet_udp::UDP>();
     recvudp->SetAddr("127.0.0.1", 23456);
     int i = 0;
-    recvudp->SetCallBack([&](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        // CHECK(size == 1024);
+    recvudp->SetCallBack([&]<typename... Args>(Args... args) -> std::string {
         i++;
         return "";
     });
     network_manager.AddListenSocket(recvudp);
 
     std::thread sendthread([] {
+        CPUBind::BindCPU();
         network::inet_udp::UDP sendudp;
         sendudp.SetAddr("127.0.0.1", 12345);
         auto endpoint = network::SocketBase::CreateAddr("127.0.0.1", 23456);
@@ -295,15 +295,14 @@ TEST_CASE("network_SimplePoll_UDP_unix_performance")
     auto recvudp = std::make_shared<network::unix_udp::UDP>();
     recvudp->SetAddr("/tmp/123");
     int i = 0;
-    recvudp->SetCallBack([&](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        // CHECK(size == 1024);
+    recvudp->SetCallBack([&]<typename... Args>(Args... args) -> std::string {
         i++;
         return "";
     });
     network_manager.AddListenSocket(recvudp);
 
     std::thread sendthread([] {
+        CPUBind::BindCPU();
         network::unix_udp::UDP sendudp;
         sendudp.SetAddr("/tmp/456");
         auto endpoint = network::SocketBase::CreateAddr("/tmp/123");
@@ -324,6 +323,86 @@ TEST_CASE("network_SimplePoll_UDP_unix_performance")
     sleep(2);
     sendthread.join();
     std::cout << "simple_poll udp unix qps: " << i << std::endl;
+    network_manager.Stop();
+}
+
+TEST_CASE("network_SimplePoll_nonblock_UDP_inet_performance")
+{
+    network::NetWorkManager<network::SimplePoll> network_manager;
+    network_manager.Start();
+
+    auto recvudp = std::make_shared<network::inet_udp::UDP>();
+    recvudp->SetAddr("127.0.0.1", 23456);
+    int i = 0;
+    recvudp->SetCallBack([&]<typename... Args>(Args... args) -> std::string {
+        i++;
+        return "";
+    });
+    recvudp->setNonBlocking();
+    network_manager.AddListenSocket(recvudp);
+
+    std::thread sendthread([] {
+        CPUBind::BindCPU();
+        network::inet_udp::UDP sendudp;
+        sendudp.SetAddr("127.0.0.1", 12345);
+        auto endpoint = network::SocketBase::CreateAddr("127.0.0.1", 23456);
+        std::string data(200, 'a');
+        usleep(500000);
+        int i    = 0;
+        auto now = std::chrono::high_resolution_clock::now();
+        while (std::chrono::duration_cast<std::chrono::seconds>(
+                   std::chrono::high_resolution_clock::now() - now)
+                   .count()
+            < 1)
+        {
+            i++;
+            sendudp.Send(data, endpoint);
+        }
+        std::cout << "send num: " << i << " ";
+    });
+    sleep(2);
+    sendthread.join();
+    std::cout << "simple_poll nonblock udp inet qps: " << i << std::endl;
+    network_manager.Stop();
+}
+
+TEST_CASE("network_SimplePoll_nonblock_UDP_unix_performance")
+{
+    network::NetWorkManager<network::SimplePoll> network_manager;
+    network_manager.Start();
+
+    auto recvudp = std::make_shared<network::unix_udp::UDP>();
+    recvudp->SetAddr("/tmp/123");
+    int i = 0;
+    recvudp->SetCallBack([&]<typename... Args>(Args... args) -> std::string {
+        i++;
+        return "";
+    });
+    recvudp->setNonBlocking();
+    network_manager.AddListenSocket(recvudp);
+
+    std::thread sendthread([] {
+        CPUBind::BindCPU();
+        network::unix_udp::UDP sendudp;
+        sendudp.SetAddr("/tmp/456");
+        auto endpoint = network::SocketBase::CreateAddr("/tmp/123");
+        std::string data(200, 'a');
+        usleep(500000);
+        int i    = 0;
+        auto now = std::chrono::high_resolution_clock::now();
+        while (std::chrono::duration_cast<std::chrono::seconds>(
+                   std::chrono::high_resolution_clock::now() - now)
+                   .count()
+            < 1)
+        {
+            i++;
+            sendudp.Send(data, endpoint);
+        }
+        std::cout << "send num: " << i << " ";
+    });
+    sleep(2);
+    sendthread.join();
+    std::cout << "simple_poll nonblock udp unix qps: " << i << std::endl;
     network_manager.Stop();
 }
 
@@ -486,7 +565,7 @@ TEST_CASE("network_SimpleEpoll_UDP_merge_inet_unix")
     network_manager.Stop();
 }
 
-TEST_CASE("network_SimpleEpoll_UDP_inet_performance")
+TEST_CASE("network_SimpleEpoll_level_UDP_inet_performance")
 {
     network::NetWorkManager<network::SimpleEpoll> network_manager;
     network_manager.Start();
@@ -494,15 +573,14 @@ TEST_CASE("network_SimpleEpoll_UDP_inet_performance")
     auto recvudp = std::make_shared<network::inet_udp::UDP>();
     recvudp->SetAddr("127.0.0.1", 23456);
     int i = 0;
-    recvudp->SetCallBack([&](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        // CHECK(size == 200);
+    recvudp->SetCallBack([&]<typename... Args>(Args... args) -> std::string {
         i++;
         return "";
     });
     network_manager.AddListenSocket(recvudp);
 
     std::thread sendthread([] {
+        CPUBind::BindCPU();
         network::inet_udp::UDP sendudp;
         sendudp.SetAddr("127.0.0.1", 12345);
         auto endpoint = network::SocketBase::CreateAddr("127.0.0.1", 23456);
@@ -526,7 +604,7 @@ TEST_CASE("network_SimpleEpoll_UDP_inet_performance")
     network_manager.Stop();
 }
 
-TEST_CASE("network_SimpleEpoll_UDP_unix_performance")
+TEST_CASE("network_SimpleEpoll_level_UDP_unix_performance")
 {
     network::NetWorkManager<network::SimpleEpoll> network_manager;
     network_manager.Start();
@@ -534,15 +612,14 @@ TEST_CASE("network_SimpleEpoll_UDP_unix_performance")
     auto recvudp = std::make_shared<network::unix_udp::UDP>();
     recvudp->SetAddr("/tmp/123");
     int i = 0;
-    recvudp->SetCallBack([&](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        // CHECK(size == 1024);
+    recvudp->SetCallBack([&]<typename... Args>(Args... args) -> std::string {
         i++;
         return "";
     });
     network_manager.AddListenSocket(recvudp);
 
     std::thread sendthread([] {
+        CPUBind::BindCPU();
         network::unix_udp::UDP sendudp;
         sendudp.SetAddr("/tmp/456");
         auto endpoint = network::SocketBase::CreateAddr("/tmp/123");
@@ -562,6 +639,86 @@ TEST_CASE("network_SimpleEpoll_UDP_unix_performance")
     });
     sleep(2);
     sendthread.join();
-    std::cout << "simple_poll udp unix qps: " << i << std::endl;
+    std::cout << "simple_Epoll udp unix qps: " << i << std::endl;
+    network_manager.Stop();
+}
+
+TEST_CASE("network_SimpleEpoll_edge_UDP_inet_performance")
+{
+    network::NetWorkManager<network::SimpleEpoll> network_manager;
+    network_manager.Start();
+
+    auto recvudp = std::make_shared<network::inet_udp::UDP>();
+    recvudp->SetAddr("127.0.0.1", 23456);
+    int i = 0;
+    recvudp->SetCallBack([&]<typename... Args>(Args... args) -> std::string {
+        i++;
+        return "";
+    });
+    recvudp->setNonBlocking();
+    network_manager.AddListenSocket(recvudp, true);
+
+    std::thread sendthread([] {
+        CPUBind::BindCPU();
+        network::inet_udp::UDP sendudp;
+        sendudp.SetAddr("127.0.0.1", 12345);
+        auto endpoint = network::SocketBase::CreateAddr("127.0.0.1", 23456);
+        std::string data(200, 'a');
+        usleep(500000);
+        int i    = 0;
+        auto now = std::chrono::high_resolution_clock::now();
+        while (std::chrono::duration_cast<std::chrono::seconds>(
+                   std::chrono::high_resolution_clock::now() - now)
+                   .count()
+            < 1)
+        {
+            i++;
+            sendudp.Send(std::to_string(i), endpoint);
+        }
+        std::cout << "send num: " << i << " ";
+    });
+    sleep(2);
+    sendthread.join();
+    std::cout << "simple_Epoll edge udp inet qps: " << i << std::endl;
+    network_manager.Stop();
+}
+
+TEST_CASE("network_SimpleEpoll_edge_UDP_unix_performance")
+{
+    network::NetWorkManager<network::SimpleEpoll> network_manager;
+    network_manager.Start();
+
+    auto recvudp = std::make_shared<network::unix_udp::UDP>();
+    recvudp->SetAddr("/tmp/123");
+    int i = 0;
+    recvudp->SetCallBack([&]<typename... Args>(Args... args) -> std::string {
+        i++;
+        return "";
+    });
+    recvudp->setNonBlocking();
+    network_manager.AddListenSocket(recvudp, true);
+
+    std::thread sendthread([] {
+        CPUBind::BindCPU();
+        network::unix_udp::UDP sendudp;
+        sendudp.SetAddr("/tmp/456");
+        auto endpoint = network::SocketBase::CreateAddr("/tmp/123");
+        std::string data(200, 'a');
+        usleep(500000);
+        int i    = 0;
+        auto now = std::chrono::high_resolution_clock::now();
+        while (std::chrono::duration_cast<std::chrono::seconds>(
+                   std::chrono::high_resolution_clock::now() - now)
+                   .count()
+            < 1)
+        {
+            i++;
+            sendudp.Send(data, endpoint);
+        }
+        std::cout << "send num: " << i << " ";
+    });
+    sleep(2);
+    sendthread.join();
+    std::cout << "simple_Epoll edge udp unix qps: " << i << std::endl;
     network_manager.Stop();
 }

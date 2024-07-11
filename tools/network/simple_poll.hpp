@@ -69,7 +69,6 @@ protected:
         }
         else
         {
-            std::lock_guard<std::mutex> guard(__mutex);
             for (int i = 0; i < nfds; i++)
                 HandleData(pollfds[i]);
         }
@@ -87,7 +86,12 @@ private:
         std::string response;
         if (pfd.revents & POLLIN)
         {
-            __fd2T[pfd.fd]->Recv(__buf, MAX_BUF_SIZE);
+            std::shared_ptr<ProtocolBase> tmp;
+            {
+                std::lock_guard<std::mutex> guard(__mutex);
+                tmp = __fd2T[pfd.fd];
+            }
+            tmp->Recv(__buf, MAX_BUF_SIZE);
         }
         else if (pfd.revents & POLLOUT)
         {

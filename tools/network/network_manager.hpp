@@ -1,6 +1,7 @@
 #pragma once
 
 #include <thread>
+#include "tools/cpu_bind.hpp"
 
 namespace network
 {
@@ -39,6 +40,7 @@ public:
     void Run()
     {
         pthread_setname_np(pthread_self(), "NetWork");
+        CPUBind::BindCPU();
         while (!__stop)
         {
             this->NetWorkRunOnce();

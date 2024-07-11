@@ -38,6 +38,7 @@ concept SocketType = requires(T t)
 {
     {t.Recv(std::declval<char*>(), size_t())};
     {&T::Send, t};
+    {&T::SetCallBack, t};
 };
 #define MAX_SOCK_SIZE 512
 #define MAX_BUF_SIZE 65536

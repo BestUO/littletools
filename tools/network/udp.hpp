@@ -26,6 +26,13 @@ class UDPBase
     , public Socket<USEUNIX, true>
 {
 public:
+    UDPBase()                          = default;
+    UDPBase(const UDPBase&)            = delete;
+    UDPBase& operator=(const UDPBase&) = delete;
+    UDPBase(UDPBase&&)                 = delete;
+    UDPBase& operator=(UDPBase&&)      = delete;
+    ~UDPBase()                         = default;
+
     using sockaddr_type
         = std::conditional_t<USEUNIX, struct sockaddr_un, struct sockaddr_in>;
     void SetCallBack(std::function<std::string(const char*, size_t size)> cb)
@@ -39,26 +46,15 @@ public:
     };
     void Recv(char* buf, size_t size)
     {
-        sockaddr_type addr;
-        socklen_t addr_len = sizeof(addr);
-        // while (true)
+        bool nonblock = SocketBase::IsNonBlocking(this->__sockfd);
+        if (nonblock)
         {
-            auto received = recvfrom(this->__sockfd,
-                buf,
-                size,
-                0,
-                reinterpret_cast<sockaddr*>(&addr),
-                &addr_len);
-
-            if (received < 0)
-            {
-                // if (errno == EAGAIN || errno == EWOULDBLOCK)
-                //     break;
-                // else
-                printf("errno:%d %s\n", errno, strerror(errno));
-            }
-            else if (received > 0)
-                HandleData(buf, received, addr);
+            while (RecvOnce(this->__sockfd, buf, size))
+            { }
+        }
+        else
+        {
+            RecvOnce(this->__sockfd, buf, size);
         }
     };
 
@@ -72,7 +68,12 @@ public:
                     const_cast<sockaddr_type*>(&sender_addr)),
                 sizeof(sender_addr))
             < 0)
-            printf("errno:%d %s\n", errno, strerror(errno));
+        {
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+                ;
+            else
+                printf("errno:%d %s\n", errno, strerror(errno));
+        }
     };
 
 private:
@@ -85,6 +86,28 @@ private:
         if (!response.empty())
             Send(response, sender_addr);
     }
+
+    bool RecvOnce(int fd, char* buf, size_t size)
+    {
+        sockaddr_type addr;
+        socklen_t addr_len = sizeof(addr);
+        auto received      = recvfrom(
+            fd, buf, size, 0, reinterpret_cast<sockaddr*>(&addr), &addr_len);
+
+        if (received < 0)
+        {
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+            { }
+            else
+                printf("errno:%d %s\n", errno, strerror(errno));
+            return false;
+        }
+        else if (received == 0)
+            return false;
+        else
+            HandleData(buf, received, addr);
+        return true;
+    }
 };
 
 namespace inet_udp
@@ -92,13 +115,6 @@ namespace inet_udp
 class UDP : public UDPBase<false>
 {
 public:
-    UDP()                      = default;
-    UDP(const UDP&)            = delete;
-    UDP& operator=(const UDP&) = delete;
-    UDP(UDP&&)                 = delete;
-    UDP& operator=(UDP&&)      = delete;
-    ~UDP()                     = default;
-
     void SetMultiCastSendNIC(std::string ip)
     {
         struct in_addr localInterface;
@@ -172,14 +188,6 @@ public:
 namespace unix_udp
 {
 class UDP : public UDPBase<true>
-{
-public:
-    UDP()                      = default;
-    UDP(const UDP&)            = delete;
-    UDP& operator=(const UDP&) = delete;
-    UDP(UDP&&)                 = delete;
-    UDP& operator=(UDP&&)      = delete;
-    ~UDP()                     = default;
-};
+{ };
 }  // namespace unix_udp
 }  // namespace network
