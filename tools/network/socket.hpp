@@ -13,8 +13,29 @@
 
 namespace network
 {
+class SocketBase
+{
+public:
+    static sockaddr_in CreateAddr(const char* ip, int port)
+    {
+        sockaddr_in addr;
+        addr.sin_family = AF_INET;
+        addr.sin_port   = htons(port);
+        inet_pton(AF_INET, ip, &addr.sin_addr);
+        return addr;
+    }
+
+    static sockaddr_un CreateAddr(const char* path)
+    {
+        sockaddr_un addr;
+        addr.sun_family = AF_UNIX;
+        strncpy(addr.sun_path, path, sizeof(addr.sun_path) - 1);
+        return addr;
+    }
+};
+
 template <bool USEUNIX, bool USEUDP>
-class Socket
+class Socket : public SocketBase
 {
 public:
     using sockaddr_type
@@ -37,20 +58,14 @@ public:
     template <bool U = USEUNIX, typename std::enable_if_t<!U, int> = 0>
     void SetAddr(const char* ip, int port)
     {
-        sockaddr_type addr;
-        addr.sin_family = AF_INET;
-        addr.sin_port   = htons(port);
-        inet_pton(AF_INET, ip, &addr.sin_addr);
-        BindSocket(addr);
+        BindSocket(CreateAddr(ip, port));
     }
 
     template <bool U = USEUNIX, typename std::enable_if_t<U, int> = 0>
     void SetAddr(const char* path)
     {
-        sockaddr_type addr;
-        addr.sun_family = AF_UNIX;
-        strncpy(addr.sun_path, path, sizeof(addr.sun_path) - 1);
-        BindSocket(addr);
+        unlink(path);
+        BindSocket(CreateAddr(path));
     }
 
     sockaddr_type GetAddr() const

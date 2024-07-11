@@ -19,11 +19,79 @@
 
 namespace network
 {
+
 template <bool USEUNIX>
-class UDP : public Socket<USEUNIX, true>
+class UDPBase
+    : public virtual ProtocolBase
+    , public Socket<USEUNIX, true>
 {
 public:
-    void addToMultiCastImpl(const std::string& multicastip)
+    using sockaddr_type
+        = std::conditional_t<USEUNIX, struct sockaddr_un, struct sockaddr_in>;
+    void SetCallBack(std::function<std::string(const char*, size_t size)> cb)
+    {
+        __cb = cb;
+    }
+
+    int GetSocket() const
+    {
+        return Socket<USEUNIX, true>::GetSocket();
+    };
+    void Recv(char* buf, size_t size)
+    {
+        sockaddr_type addr;
+        socklen_t addr_len = sizeof(addr);
+        auto received      = recvfrom(this->__sockfd,
+            buf,
+            size,
+            0,
+            reinterpret_cast<sockaddr*>(&addr),
+            &addr_len);
+
+        if (received < 0)
+            printf("errno:%d %s\n", errno, strerror(errno));
+        else if (received > 0)
+            HandleData(buf, received, addr);
+    };
+
+    void Send(const std::string& message, const sockaddr_type& sender_addr)
+    {
+        if (sendto(this->__sockfd,
+                message.c_str(),
+                message.size(),
+                0,
+                reinterpret_cast<sockaddr*>(
+                    const_cast<sockaddr_type*>(&sender_addr)),
+                sizeof(sender_addr))
+            < 0)
+            printf("errno:%d %s\n", errno, strerror(errno));
+    };
+
+private:
+    std::function<std::string(const char*, size_t size)> __cb;
+    void HandleData(const char* buf,
+        size_t size,
+        const sockaddr_type& sender_addr)
+    {
+        auto response = this->__cb(buf, size);
+        if (!response.empty())
+            Send(response, sender_addr);
+    }
+};
+
+namespace inet_udp
+{
+class UDP : public UDPBase<false>
+{
+public:
+    UDP()                      = default;
+    UDP(const UDP&)            = delete;
+    UDP& operator=(const UDP&) = delete;
+    UDP(UDP&&)                 = delete;
+    UDP& operator=(UDP&&)      = delete;
+    ~UDP()                     = default;
+
+    void ListenMultiCast(const std::string& multicastip)
     {
         bool flag                  = false;
         struct ifaddrs* ifAddrList = nullptr;
@@ -57,7 +125,7 @@ public:
         freeifaddrs(ifAddrList);
     }
 
-    bool addToMultiCastImpl(const std::string& multicastip,
+    bool ListenMultiCast(const std::string& multicastip,
         const char* interfaceip)
     {
         struct ip_mreq mreq;
@@ -76,51 +144,21 @@ public:
         }
         return true;
     }
-
-    void SetCallBack(std::function<std::string(const char*, size_t size)> cb)
-    {
-        __cb = cb;
-    }
-
-    void Recv(char* buf, size_t size)
-    {
-        sockaddr_in addr;
-        socklen_t addr_len = sizeof(addr);
-        auto received      = recvfrom(this->__sockfd,
-            buf,
-            size,
-            0,
-            reinterpret_cast<sockaddr*>(&addr),
-            &addr_len);
-
-        if (received < 0)
-            printf("errno:%d %s\n", errno, strerror(errno));
-        else if (received > 0)
-            HandleData(buf, received, addr);
-    };
-
-    void Send(const std::string& message, const sockaddr_in& sender_addr)
-    {
-        if (sendto(this->__sockfd,
-                message.c_str(),
-                message.size(),
-                0,
-                reinterpret_cast<sockaddr*>(
-                    const_cast<sockaddr_in*>(&sender_addr)),
-                sizeof(sender_addr))
-            < 0)
-            printf("errno:%d %s\n", errno, strerror(errno));
-    };
-
-private:
-    std::function<std::string(const char*, size_t size)> __cb;
-    void HandleData(const char* buf,
-        size_t size,
-        const sockaddr_in& sender_addr)
-    {
-        auto response = __cb(buf, size);
-        if (!response.empty())
-            Send(response, sender_addr);
-    }
 };
+
+}  // namespace inet_udp
+
+namespace unix_udp
+{
+class UDP : public UDPBase<true>
+{
+public:
+    UDP()                      = default;
+    UDP(const UDP&)            = delete;
+    UDP& operator=(const UDP&) = delete;
+    UDP(UDP&&)                 = delete;
+    UDP& operator=(UDP&&)      = delete;
+    ~UDP()                     = default;
+};
+}  // namespace unix_udp
 }  // namespace network

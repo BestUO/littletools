@@ -1,17 +1,18 @@
 #pragma once
+#include <memory>
 #include "udp.hpp"
 #include "network_global.hpp"
 
 namespace network
 {
-template <SocketType T>
 class ControlFd
 {
 public:
     ControlFd()
+        : __control_socket(std::make_shared<network::inet_udp::UDP>())
     {
-        __control_socket.SetAddr("127.0.0.1", 0);
-        __control_socket.SetCallBack(
+        __control_socket->SetAddr("127.0.0.1", 0);
+        __control_socket->SetCallBack(
             [](const char*, size_t size) -> std::string {
                 return "";
             });
@@ -19,10 +20,10 @@ public:
 
     void Continue()
     {
-        __control_socket.Send("c", __control_socket.GetAddr());
+        __control_socket->Send("c", __control_socket->GetAddr());
     }
 
 protected:
-    UDP<false> __control_socket;
+    std::shared_ptr<network::inet_udp::UDP> __control_socket;
 };
 }  // namespace network
