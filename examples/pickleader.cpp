@@ -18,7 +18,7 @@ TEST_CASE("Raft_1Node")
     simplePoll.bindAndSetCB("0.0.0.0",
         multicastPort,
         multicastIP,
-        std::bind(&Raft::handleIncomingData,
+        std::bind(&Raft::HandleIncomingData,
             &raft,
             std::placeholders::_1,
             std::placeholders::_2,
@@ -27,17 +27,17 @@ TEST_CASE("Raft_1Node")
     auto sendsocket = simplePoll.bindAndSetCB("0.0.0.0",
         0,
         "",
-        std::bind(&Raft::handleIncomingData,
+        std::bind(&Raft::HandleIncomingData,
             &raft,
             std::placeholders::_1,
             std::placeholders::_2,
             std::placeholders::_3,
             std::placeholders::_4));
 
-    raft.setSendSocket(sendsocket);
-    raft.start();
+    raft.SetSendSocket(sendsocket);
+    raft.Start();
     sleep(1);
-    CHECK(RaftInfos::Role::LEADER == raft.getRole());
+    CHECK(RaftInfos::Role::LEADER == raft.GetRole());
     simplePoll.stop();
 }
 
@@ -64,7 +64,7 @@ TEST_CASE("Raft_10Nodes")
                 simplePollptr->bindAndSetCB("0.0.0.0",
                     multicastPort,
                     multicastIP,
-                    std::bind(&Raft::handleIncomingData,
+                    std::bind(&Raft::HandleIncomingData,
                         raft,
                         std::placeholders::_1,
                         std::placeholders::_2,
@@ -73,16 +73,16 @@ TEST_CASE("Raft_10Nodes")
                 auto sendsocket = simplePollptr->bindAndSetCB("0.0.0.0",
                     0,
                     "",
-                    std::bind(&Raft::handleIncomingData,
+                    std::bind(&Raft::HandleIncomingData,
                         raft,
                         std::placeholders::_1,
                         std::placeholders::_2,
                         std::placeholders::_3,
                         std::placeholders::_4));
 
-                raft->setSendSocket(sendsocket);
+                raft->SetSendSocket(sendsocket);
                 vrafts.push_back(raft);
-                raft->start();
+                raft->Start();
             },
             std::ref(rafts)));
     }
@@ -91,8 +91,8 @@ TEST_CASE("Raft_10Nodes")
     int leadernum = 0, fllowernum = 0;
     for (int i = 0; i < num; i++)
     {
-        leadernum += rafts[i]->getRole() == RaftInfos::Role::LEADER ? 1 : 0;
-        fllowernum += rafts[i]->getRole() == RaftInfos::Role::FOLLOWER ? 1 : 0;
+        leadernum += rafts[i]->GetRole() == RaftInfos::Role::LEADER ? 1 : 0;
+        fllowernum += rafts[i]->GetRole() == RaftInfos::Role::FOLLOWER ? 1 : 0;
     }
     CHECK(1 == leadernum);
     CHECK(num - 1 == fllowernum);
@@ -127,7 +127,7 @@ TEST_CASE("Raft_10Nodes2")
                 simplePollptr->bindAndSetCB("0.0.0.0",
                     multicastPort,
                     multicastIP,
-                    std::bind(&Raft::handleIncomingData,
+                    std::bind(&Raft::HandleIncomingData,
                         raft,
                         std::placeholders::_1,
                         std::placeholders::_2,
@@ -136,16 +136,16 @@ TEST_CASE("Raft_10Nodes2")
                 auto sendsocket = simplePollptr->bindAndSetCB("0.0.0.0",
                     0,
                     "",
-                    std::bind(&Raft::handleIncomingData,
+                    std::bind(&Raft::HandleIncomingData,
                         raft,
                         std::placeholders::_1,
                         std::placeholders::_2,
                         std::placeholders::_3,
                         std::placeholders::_4));
 
-                raft->setSendSocket(sendsocket);
+                raft->SetSendSocket(sendsocket);
                 vrafts.push_back(raft);
-                raft->start();
+                raft->Start();
             },
             std::ref(rafts)));
     }
@@ -154,8 +154,8 @@ TEST_CASE("Raft_10Nodes2")
     int leadernum = 0, fllowernum = 0;
     for (int i = 0; i < num; i++)
     {
-        leadernum += rafts[i]->getRole() == RaftInfos::Role::LEADER ? 1 : 0;
-        fllowernum += rafts[i]->getRole() == RaftInfos::Role::FOLLOWER ? 1 : 0;
+        leadernum += rafts[i]->GetRole() == RaftInfos::Role::LEADER ? 1 : 0;
+        fllowernum += rafts[i]->GetRole() == RaftInfos::Role::FOLLOWER ? 1 : 0;
     }
     CHECK(1 == leadernum);
     CHECK(num - 1 == fllowernum);
@@ -181,7 +181,7 @@ TEST_CASE("Raft_add1Node")
         simplePoll.bindAndSetCB("0.0.0.0",
             multicastPort,
             multicastIP,
-            std::bind(&Raft::handleIncomingData,
+            std::bind(&Raft::HandleIncomingData,
                 raft,
                 std::placeholders::_1,
                 std::placeholders::_2,
@@ -190,18 +190,18 @@ TEST_CASE("Raft_add1Node")
         auto sendsocket = simplePoll.bindAndSetCB("0.0.0.0",
             0,
             "",
-            std::bind(&Raft::handleIncomingData,
+            std::bind(&Raft::HandleIncomingData,
                 raft,
                 std::placeholders::_1,
                 std::placeholders::_2,
                 std::placeholders::_3,
                 std::placeholders::_4));
 
-        raft->setSendSocket(sendsocket);
-        raft->start();
+        raft->SetSendSocket(sendsocket);
+        raft->Start();
         sleep(1);
         CHECK((i == 0 ? RaftInfos::Role::LEADER : RaftInfos::Role::FOLLOWER)
-            == raft->getRole());
+            == raft->GetRole());
         rafts.push_back(raft);
     }
     simplePoll.stop();

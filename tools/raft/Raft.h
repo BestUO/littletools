@@ -11,28 +11,28 @@ public:
     Raft() = default;
     Raft(const RaftInfos::RaftBaseInfo& baseinfo);
     ~Raft();
-    std::string handleIncomingData(const char* buf,
+    std::string HandleIncomingData(const char* buf,
         uint16_t len,
         const std::string& ip,
         uint16_t port);
-    RaftInfos::Role getRole();
-    void start();
-    void stop();
-    void setSendSocket(int32_t socket);
-    void setBaseInfo(const RaftInfos::RaftBaseInfo& baseinfo);
+    RaftInfos::Role GetRole();
+    void Start();
+    void Stop();
+    void SetSendSocket(int32_t socket);
+    void SetBaseInfo(const RaftInfos::RaftBaseInfo& baseinfo);
 
 private:
-    RaftInfos m_infos;
-    std::recursive_mutex m_mutex;
-    uint8_t m_voteAgreeCount = 0;
-    int32_t m_sendSocket     = -1;
+    RaftInfos __infos;
+    std::recursive_mutex __mutex;
+    uint8_t __voteAgreeCount = 0;
+    int32_t __sendSocket     = -1;
 
-    std::chrono::milliseconds getRandTimeout() const;
-    std::string handlerHeartBeat(const RaftCommandType::HeartBeat& cmd);
-    std::string handlerVote(const RaftCommandType::Vote& cmd);
+    std::chrono::milliseconds GetRandTimeout() const;
+    std::string HandlerHeartBeat(const RaftCommandType::HeartBeat& cmd);
+    std::string HandlerVote(const RaftCommandType::Vote& cmd);
     std::string handlerVoteResponse(const RaftCommandType::VoteResponse& cmd);
-    void sendHeartBeat();
-    void checkHeartBeat();
+    void SendHeartBeat();
+    void CheckHeartBeat();
     void Vote();
-    std::string votePrepare();
+    std::string VotePrepare();
 };
