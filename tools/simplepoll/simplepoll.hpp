@@ -19,7 +19,7 @@ void CLOSESOCKET(T& socket)
 }
 
 template <size_t N = 65536>
-class SimplePoll : public SimplePollImpl<N>
+class [[deprecated]] SimplePoll : public SimplePollImpl<N>
 {
 public:
     SimplePoll()
