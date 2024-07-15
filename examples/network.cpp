@@ -15,19 +15,21 @@ TEST_CASE("network_UDP_inet_base")
     network::inet_udp::UDP udp1, udp2;
     udp1.SetReuseAddrAndPort();
     udp1.SetAddr("127.0.0.1", 0);
-    udp1.SetCallBack([](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        CHECK(str == "from udp2");
-        return "";
-    });
+    udp1.SetCallBack(
+        [](const char* data, size_t size, const sockaddr&) -> std::string {
+            std::string str(data, size);
+            CHECK(str == "from udp2");
+            return "";
+        });
 
     udp2.SetReuseAddrAndPort();
     udp2.SetAddr("127.0.0.1", 12345);
-    udp2.SetCallBack([](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        CHECK(str == "from udp1");
-        return "from udp2";
-    });
+    udp2.SetCallBack(
+        [](const char* data, size_t size, const sockaddr&) -> std::string {
+            std::string str(data, size);
+            CHECK(str == "from udp1");
+            return "from udp2";
+        });
 
     udp1.Send("from udp1", udp2.GetAddr());
 
@@ -41,19 +43,21 @@ TEST_CASE("network_UDP_inet_multicast")
     network::inet_udp::UDP udp1, udp2;
 
     udp1.SetAddr("0.0.0.0", 12345);
-    udp1.SetCallBack([](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        CHECK(str == "from udp2");
-        return "";
-    });
+    udp1.SetCallBack(
+        [](const char* data, size_t size, const sockaddr&) -> std::string {
+            std::string str(data, size);
+            CHECK(str == "from udp2");
+            return "";
+        });
 
     udp2.SetAddr("0.0.0.0", 23456);
     udp2.AddMultiCast("234.56.78.90");
-    udp2.SetCallBack([](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        CHECK(str == "from udp1");
-        return "from udp2";
-    });
+    udp2.SetCallBack(
+        [](const char* data, size_t size, const sockaddr&) -> std::string {
+            std::string str(data, size);
+            CHECK(str == "from udp1");
+            return "from udp2";
+        });
 
     udp1.Send(
         "from udp1", network::SocketBase::CreateAddr("234.56.78.90", 23456));
@@ -68,19 +72,21 @@ TEST_CASE("network_UDP_unix_base")
     network::unix_udp::UDP udp1, udp2;
     udp1.SetReuseAddrAndPort();
     udp1.SetAddr("/tmp/unix_socket_test1");
-    udp1.SetCallBack([](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        CHECK(str == "from udp2");
-        return "";
-    });
+    udp1.SetCallBack(
+        [](const char* data, size_t size, const sockaddr&) -> std::string {
+            std::string str(data, size);
+            CHECK(str == "from udp2");
+            return "";
+        });
 
     udp2.SetReuseAddrAndPort();
     udp2.SetAddr("/tmp/unix_socket_test2");
-    udp2.SetCallBack([](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        CHECK(str == "from udp1");
-        return "from udp2";
-    });
+    udp2.SetCallBack(
+        [](const char* data, size_t size, const sockaddr&) -> std::string {
+            std::string str(data, size);
+            CHECK(str == "from udp1");
+            return "from udp2";
+        });
 
     udp1.Send("from udp1", udp2.GetAddr());
 
@@ -106,18 +112,20 @@ TEST_CASE("network_SimplePoll_UDP_inet_base_add_poll")
     auto udp2 = std::make_shared<network::inet_udp::UDP>();
     udp1->SetReuseAddrAndPort();
     udp1->SetAddr("127.0.0.1", 0);
-    udp1->SetCallBack([](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        CHECK(str == "from udp2");
-        return "";
-    });
+    udp1->SetCallBack(
+        [](const char* data, size_t size, const sockaddr&) -> std::string {
+            std::string str(data, size);
+            CHECK(str == "from udp2");
+            return "";
+        });
     udp2->SetReuseAddrAndPort();
     udp2->SetAddr("127.0.0.1", 12345);
-    udp2->SetCallBack([](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        CHECK(str == "from udp1");
-        return "from udp2";
-    });
+    udp2->SetCallBack(
+        [](const char* data, size_t size, const sockaddr&) -> std::string {
+            std::string str(data, size);
+            CHECK(str == "from udp1");
+            return "from udp2";
+        });
 
     network_manager.AddListenSocket(udp1);
     network_manager.AddListenSocket(udp2);
@@ -138,19 +146,21 @@ TEST_CASE("network_SimplePoll_UDP_inet_multicast_add_poll")
     auto udp2 = std::make_shared<network::inet_udp::UDP>();
 
     udp1->SetAddr("0.0.0.0", 12345);
-    udp1->SetCallBack([](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        CHECK(str == "from udp2");
-        return "";
-    });
+    udp1->SetCallBack(
+        [](const char* data, size_t size, const sockaddr&) -> std::string {
+            std::string str(data, size);
+            CHECK(str == "from udp2");
+            return "";
+        });
 
     udp2->SetAddr("0.0.0.0", 23456);
     udp2->AddMultiCast("234.56.78.90");
-    udp2->SetCallBack([](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        CHECK(str == "from udp1");
-        return "from udp2";
-    });
+    udp2->SetCallBack(
+        [](const char* data, size_t size, const sockaddr&) -> std::string {
+            std::string str(data, size);
+            CHECK(str == "from udp1");
+            return "from udp2";
+        });
 
     network_manager.AddListenSocket(udp1);
     network_manager.AddListenSocket(udp2);
@@ -171,18 +181,20 @@ TEST_CASE("network_SimplePoll_UDP_unix_base_add_poll")
     auto udp2 = std::make_shared<network::unix_udp::UDP>();
     udp1->SetReuseAddrAndPort();
     udp1->SetAddr("/tmp/unix_socket_test1");
-    udp1->SetCallBack([](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        CHECK(str == "from udp2");
-        return "";
-    });
+    udp1->SetCallBack(
+        [](const char* data, size_t size, const sockaddr&) -> std::string {
+            std::string str(data, size);
+            CHECK(str == "from udp2");
+            return "";
+        });
     udp2->SetReuseAddrAndPort();
     udp2->SetAddr("/tmp/unix_socket_test2");
-    udp2->SetCallBack([](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        CHECK(str == "from udp1");
-        return "from udp2";
-    });
+    udp2->SetCallBack(
+        [](const char* data, size_t size, const sockaddr&) -> std::string {
+            std::string str(data, size);
+            CHECK(str == "from udp1");
+            return "from udp2";
+        });
 
     network_manager.AddListenSocket(udp1);
     network_manager.AddListenSocket(udp2);
@@ -203,35 +215,39 @@ TEST_CASE("network_SimplePoll_UDP_merge_inet_unix")
     auto udp2 = std::make_shared<network::unix_udp::UDP>();
     udp1->SetReuseAddrAndPort();
     udp1->SetAddr("/tmp/unix_socket_test1");
-    udp1->SetCallBack([](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        CHECK(str == "from udp2");
-        return "";
-    });
+    udp1->SetCallBack(
+        [](const char* data, size_t size, const sockaddr&) -> std::string {
+            std::string str(data, size);
+            CHECK(str == "from udp2");
+            return "";
+        });
     udp2->SetReuseAddrAndPort();
     udp2->SetAddr("/tmp/unix_socket_test2");
-    udp2->SetCallBack([](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        CHECK(str == "from udp1");
-        return "from udp2";
-    });
+    udp2->SetCallBack(
+        [](const char* data, size_t size, const sockaddr&) -> std::string {
+            std::string str(data, size);
+            CHECK(str == "from udp1");
+            return "from udp2";
+        });
 
     auto udp3 = std::make_shared<network::inet_udp::UDP>();
     auto udp4 = std::make_shared<network::inet_udp::UDP>();
     udp3->SetReuseAddrAndPort();
     udp3->SetAddr("127.0.0.1", 0);
-    udp3->SetCallBack([](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        CHECK(str == "from udp4");
-        return "";
-    });
+    udp3->SetCallBack(
+        [](const char* data, size_t size, const sockaddr&) -> std::string {
+            std::string str(data, size);
+            CHECK(str == "from udp4");
+            return "";
+        });
     udp4->SetReuseAddrAndPort();
     udp4->SetAddr("127.0.0.1", 12345);
-    udp4->SetCallBack([](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        CHECK(str == "from udp3");
-        return "from udp4";
-    });
+    udp4->SetCallBack(
+        [](const char* data, size_t size, const sockaddr&) -> std::string {
+            std::string str(data, size);
+            CHECK(str == "from udp3");
+            return "from udp4";
+        });
 
     network_manager.AddListenSocket(udp1);
     network_manager.AddListenSocket(udp2);
@@ -269,17 +285,17 @@ TEST_CASE("network_SimplePoll_UDP_inet_performance")
         auto endpoint = network::SocketBase::CreateAddr("127.0.0.1", 23456);
         std::string data(200, 'a');
         usleep(500000);
-        int i    = 0;
+        int j    = 0;
         auto now = std::chrono::high_resolution_clock::now();
         while (std::chrono::duration_cast<std::chrono::seconds>(
                    std::chrono::high_resolution_clock::now() - now)
                    .count()
             < 1)
         {
-            i++;
+            j++;
             sendudp.Send(data, endpoint);
         }
-        std::cout << "send num: " << i << " ";
+        std::cout << "send num: " << j << " ";
     });
     sleep(2);
     sendthread.join();
@@ -308,17 +324,17 @@ TEST_CASE("network_SimplePoll_UDP_unix_performance")
         auto endpoint = network::SocketBase::CreateAddr("/tmp/123");
         std::string data(200, 'a');
         usleep(500000);
-        int i    = 0;
+        int j    = 0;
         auto now = std::chrono::high_resolution_clock::now();
         while (std::chrono::duration_cast<std::chrono::seconds>(
                    std::chrono::high_resolution_clock::now() - now)
                    .count()
             < 1)
         {
-            i++;
+            j++;
             sendudp.Send(data, endpoint);
         }
-        std::cout << "send num: " << i << " ";
+        std::cout << "send num: " << j << " ";
     });
     sleep(2);
     sendthread.join();
@@ -348,17 +364,17 @@ TEST_CASE("network_SimplePoll_nonblock_UDP_inet_performance")
         auto endpoint = network::SocketBase::CreateAddr("127.0.0.1", 23456);
         std::string data(200, 'a');
         usleep(500000);
-        int i    = 0;
+        int j    = 0;
         auto now = std::chrono::high_resolution_clock::now();
         while (std::chrono::duration_cast<std::chrono::seconds>(
                    std::chrono::high_resolution_clock::now() - now)
                    .count()
             < 1)
         {
-            i++;
+            j++;
             sendudp.Send(data, endpoint);
         }
-        std::cout << "send num: " << i << " ";
+        std::cout << "send num: " << j << " ";
     });
     sleep(2);
     sendthread.join();
@@ -388,17 +404,17 @@ TEST_CASE("network_SimplePoll_nonblock_UDP_unix_performance")
         auto endpoint = network::SocketBase::CreateAddr("/tmp/123");
         std::string data(200, 'a');
         usleep(500000);
-        int i    = 0;
+        int j    = 0;
         auto now = std::chrono::high_resolution_clock::now();
         while (std::chrono::duration_cast<std::chrono::seconds>(
                    std::chrono::high_resolution_clock::now() - now)
                    .count()
             < 1)
         {
-            i++;
+            j++;
             sendudp.Send(data, endpoint);
         }
-        std::cout << "send num: " << i << " ";
+        std::cout << "send num: " << j << " ";
     });
     sleep(2);
     sendthread.join();
@@ -423,18 +439,20 @@ TEST_CASE("network_SimpleEpoll_UDP_inet_base_add_poll")
     auto udp2 = std::make_shared<network::inet_udp::UDP>();
     udp1->SetReuseAddrAndPort();
     udp1->SetAddr("127.0.0.1", 0);
-    udp1->SetCallBack([](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        CHECK(str == "from udp2");
-        return "";
-    });
+    udp1->SetCallBack(
+        [](const char* data, size_t size, const sockaddr&) -> std::string {
+            std::string str(data, size);
+            CHECK(str == "from udp2");
+            return "";
+        });
     udp2->SetReuseAddrAndPort();
     udp2->SetAddr("127.0.0.1", 12345);
-    udp2->SetCallBack([](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        CHECK(str == "from udp1");
-        return "from udp2";
-    });
+    udp2->SetCallBack(
+        [](const char* data, size_t size, const sockaddr&) -> std::string {
+            std::string str(data, size);
+            CHECK(str == "from udp1");
+            return "from udp2";
+        });
 
     network_manager.AddListenSocket(udp1);
     network_manager.AddListenSocket(udp2);
@@ -455,19 +473,21 @@ TEST_CASE("network_SimpleEpoll_UDP_inet_multicast_add_poll")
     auto udp2 = std::make_shared<network::inet_udp::UDP>();
 
     udp1->SetAddr("0.0.0.0", 12345);
-    udp1->SetCallBack([](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        CHECK(str == "from udp2");
-        return "";
-    });
+    udp1->SetCallBack(
+        [](const char* data, size_t size, const sockaddr&) -> std::string {
+            std::string str(data, size);
+            CHECK(str == "from udp2");
+            return "";
+        });
 
     udp2->SetAddr("0.0.0.0", 23456);
     udp2->AddMultiCast("234.56.78.90");
-    udp2->SetCallBack([](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        CHECK(str == "from udp1");
-        return "from udp2";
-    });
+    udp2->SetCallBack(
+        [](const char* data, size_t size, const sockaddr&) -> std::string {
+            std::string str(data, size);
+            CHECK(str == "from udp1");
+            return "from udp2";
+        });
 
     network_manager.AddListenSocket(udp1);
     network_manager.AddListenSocket(udp2);
@@ -488,18 +508,20 @@ TEST_CASE("network_SimpleEpoll_UDP_unix_base_add_poll")
     auto udp2 = std::make_shared<network::unix_udp::UDP>();
     udp1->SetReuseAddrAndPort();
     udp1->SetAddr("/tmp/unix_socket_test1");
-    udp1->SetCallBack([](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        CHECK(str == "from udp2");
-        return "";
-    });
+    udp1->SetCallBack(
+        [](const char* data, size_t size, const sockaddr&) -> std::string {
+            std::string str(data, size);
+            CHECK(str == "from udp2");
+            return "";
+        });
     udp2->SetReuseAddrAndPort();
     udp2->SetAddr("/tmp/unix_socket_test2");
-    udp2->SetCallBack([](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        CHECK(str == "from udp1");
-        return "from udp2";
-    });
+    udp2->SetCallBack(
+        [](const char* data, size_t size, const sockaddr&) -> std::string {
+            std::string str(data, size);
+            CHECK(str == "from udp1");
+            return "from udp2";
+        });
 
     network_manager.AddListenSocket(udp1);
     network_manager.AddListenSocket(udp2);
@@ -520,35 +542,39 @@ TEST_CASE("network_SimpleEpoll_UDP_merge_inet_unix")
     auto udp2 = std::make_shared<network::unix_udp::UDP>();
     udp1->SetReuseAddrAndPort();
     udp1->SetAddr("/tmp/unix_socket_test1");
-    udp1->SetCallBack([](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        CHECK(str == "from udp2");
-        return "";
-    });
+    udp1->SetCallBack(
+        [](const char* data, size_t size, const sockaddr&) -> std::string {
+            std::string str(data, size);
+            CHECK(str == "from udp2");
+            return "";
+        });
     udp2->SetReuseAddrAndPort();
     udp2->SetAddr("/tmp/unix_socket_test2");
-    udp2->SetCallBack([](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        CHECK(str == "from udp1");
-        return "from udp2";
-    });
+    udp2->SetCallBack(
+        [](const char* data, size_t size, const sockaddr&) -> std::string {
+            std::string str(data, size);
+            CHECK(str == "from udp1");
+            return "from udp2";
+        });
 
     auto udp3 = std::make_shared<network::inet_udp::UDP>();
     auto udp4 = std::make_shared<network::inet_udp::UDP>();
     udp3->SetReuseAddrAndPort();
     udp3->SetAddr("127.0.0.1", 0);
-    udp3->SetCallBack([](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        CHECK(str == "from udp4");
-        return "";
-    });
+    udp3->SetCallBack(
+        [](const char* data, size_t size, const sockaddr&) -> std::string {
+            std::string str(data, size);
+            CHECK(str == "from udp4");
+            return "";
+        });
     udp4->SetReuseAddrAndPort();
     udp4->SetAddr("127.0.0.1", 12345);
-    udp4->SetCallBack([](const char* data, size_t size) -> std::string {
-        std::string str(data, size);
-        CHECK(str == "from udp3");
-        return "from udp4";
-    });
+    udp4->SetCallBack(
+        [](const char* data, size_t size, const sockaddr&) -> std::string {
+            std::string str(data, size);
+            CHECK(str == "from udp3");
+            return "from udp4";
+        });
 
     network_manager.AddListenSocket(udp1);
     network_manager.AddListenSocket(udp2);
@@ -586,17 +612,17 @@ TEST_CASE("network_SimpleEpoll_level_UDP_inet_performance")
         auto endpoint = network::SocketBase::CreateAddr("127.0.0.1", 23456);
         std::string data(200, 'a');
         usleep(500000);
-        int i    = 0;
+        int j    = 0;
         auto now = std::chrono::high_resolution_clock::now();
         while (std::chrono::duration_cast<std::chrono::seconds>(
                    std::chrono::high_resolution_clock::now() - now)
                    .count()
             < 1)
         {
-            i++;
-            sendudp.Send(std::to_string(i), endpoint);
+            j++;
+            sendudp.Send(std::to_string(j), endpoint);
         }
-        std::cout << "send num: " << i << " ";
+        std::cout << "send num: " << j << " ";
     });
     sleep(2);
     sendthread.join();
@@ -625,17 +651,17 @@ TEST_CASE("network_SimpleEpoll_level_UDP_unix_performance")
         auto endpoint = network::SocketBase::CreateAddr("/tmp/123");
         std::string data(200, 'a');
         usleep(500000);
-        int i    = 0;
+        int j    = 0;
         auto now = std::chrono::high_resolution_clock::now();
         while (std::chrono::duration_cast<std::chrono::seconds>(
                    std::chrono::high_resolution_clock::now() - now)
                    .count()
             < 1)
         {
-            i++;
+            j++;
             sendudp.Send(data, endpoint);
         }
-        std::cout << "send num: " << i << " ";
+        std::cout << "send num: " << j << " ";
     });
     sleep(2);
     sendthread.join();
@@ -665,17 +691,17 @@ TEST_CASE("network_SimpleEpoll_edge_UDP_inet_performance")
         auto endpoint = network::SocketBase::CreateAddr("127.0.0.1", 23456);
         std::string data(200, 'a');
         usleep(500000);
-        int i    = 0;
+        int j    = 0;
         auto now = std::chrono::high_resolution_clock::now();
         while (std::chrono::duration_cast<std::chrono::seconds>(
                    std::chrono::high_resolution_clock::now() - now)
                    .count()
             < 1)
         {
-            i++;
-            sendudp.Send(std::to_string(i), endpoint);
+            j++;
+            sendudp.Send(std::to_string(j), endpoint);
         }
-        std::cout << "send num: " << i << " ";
+        std::cout << "send num: " << j << " ";
     });
     sleep(2);
     sendthread.join();
@@ -705,17 +731,17 @@ TEST_CASE("network_SimpleEpoll_edge_UDP_unix_performance")
         auto endpoint = network::SocketBase::CreateAddr("/tmp/123");
         std::string data(200, 'a');
         usleep(500000);
-        int i    = 0;
+        int j    = 0;
         auto now = std::chrono::high_resolution_clock::now();
         while (std::chrono::duration_cast<std::chrono::seconds>(
                    std::chrono::high_resolution_clock::now() - now)
                    .count()
             < 1)
         {
-            i++;
+            j++;
             sendudp.Send(data, endpoint);
         }
-        std::cout << "send num: " << i << " ";
+        std::cout << "send num: " << j << " ";
     });
     sleep(2);
     sendthread.join();

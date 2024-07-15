@@ -23,11 +23,27 @@
 
 namespace network
 {
+
+enum Result
+{
+    SUCCESS,
+    BIND_FAIL,
+    SENDTO_FAIL,
+    RECVFROM_FAIL,
+    GETSOCKOPT_NONBLOCK_FAIL,
+    SETSOCKOPT_NONBLOCK_FAIL,
+    SETSOCKOPT_PORTREUSE_FAIL,
+    SETSOCKOPT_ADDMEMBERSHIP_FAIL,
+    SETSOCKOPT_MULTICASTIF_FAIL,
+    SETSOCKOPT_RCVBUF_FAIL,
+    SETSOCKOPT_SNDBUF_FAIL,
+};
+
 class ProtocolBase
 {
 public:
-    virtual void SetCallBack(
-        std::function<std::string(const char*, size_t size)> cb)
+    virtual void SetCallBack(std::function<
+        std::string(const char*, size_t size, const sockaddr& addr)> cb)
         = 0;
     virtual void Recv(char* buf, size_t size) = 0;
     virtual int GetSocket() const             = 0;

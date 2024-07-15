@@ -13,7 +13,7 @@ public:
     {
         __control_socket->SetAddr("127.0.0.1", 0);
         __control_socket->SetCallBack(
-            [](const char*, size_t size) -> std::string {
+            []<typename... Args>(Args... args) -> std::string {
                 return "";
             });
     }

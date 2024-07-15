@@ -31,11 +31,12 @@ public:
         this->Continue();
     }
 
-    void RemoveListenSocket(ProtocolBase* t)
+    void RemoveListenSocket(std::shared_ptr<ProtocolBase> t)
     {
         auto fd = t->GetSocket();
+        t->SetCallBack(nullptr);
         std::lock_guard<std::mutex> guard(__mutex);
-        for (int i = 0; i < __fds_count; i++)
+        for (uint32_t i = 0; i < __fds_count; i++)
         {
             if (__pollfds[i].fd == fd)
             {
@@ -86,12 +87,14 @@ private:
         std::string response;
         if (pfd.revents & POLLIN)
         {
-            std::shared_ptr<ProtocolBase> tmp;
+            std::shared_ptr<ProtocolBase> tmp = nullptr;
             {
-                std::lock_guard<std::mutex> guard(__mutex);
-                tmp = __fd2T[pfd.fd];
+                std::lock_guard<std::mutex> lck(__mutex);
+                if (__fd2T.find(pfd.fd) != __fd2T.end())
+                    tmp = __fd2T[pfd.fd];
             }
-            tmp->Recv(__buf, MAX_BUF_SIZE);
+            if (tmp)
+                tmp->Recv(__buf, MAX_BUF_SIZE);
         }
         else if (pfd.revents & POLLOUT)
         {

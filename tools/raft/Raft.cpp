@@ -4,17 +4,12 @@
 #include "tools/timermanager.hpp"
 #include "tools/template.hpp"
 
-Raft::Raft()
-{
-    InitUdp();
-}
-
 Raft::Raft(const RaftInfos::RaftBaseInfo& baseinfo)
     : __infos(baseinfo)
     , __normal_udp(std::make_shared<network::inet_udp::UDP>())
     , __multicast_udp(std::make_shared<network::inet_udp::UDP>())
 {
-    InitUdp();
+    InitRaft();
 }
 
 Raft::~Raft()
@@ -22,44 +17,34 @@ Raft::~Raft()
     Stop();
 }
 
-void Raft::SetBaseInfo(const RaftInfos::RaftBaseInfo& baseinfo)
-{
-    __infos = baseinfo;
-    InitUdp();
-}
-
-void Raft::InitUdp()
+void Raft::InitRaft()
 {
     __multicast_addr = network::SocketBase::CreateAddr(
         __infos.base_info.control_multicast_ip.c_str(),
         __infos.base_info.control_multicast_port);
+
+    __normal_udp = std::make_shared<network::inet_udp::UDP>();
     __normal_udp->SetAddr("0.0.0.0", 0);
     __normal_udp->SetCallBack(
-        [this](const char* buf, size_t len) -> std::string {
+        [this](
+            const char* buf, size_t len, const sockaddr& addr) -> std::string {
             return HandleData(buf, len);
         });
+    __normal_udp->SetMultiCastSendIf(
+        __infos.base_info.control_multicast_send_if.c_str());
+
+    __multicast_udp = std::make_shared<network::inet_udp::UDP>();
     __multicast_udp->SetReuseAddrAndPort();
     __multicast_udp->SetAddr(
         "0.0.0.0", __infos.base_info.control_multicast_port);
     __multicast_udp->SetCallBack(
-        [this](const char* buf, size_t len) -> std::string {
+        [this](
+            const char* buf, size_t len, const sockaddr& addr) -> std::string {
             return HandleData(buf, len);
         });
-
-    if (!__infos.base_info.control_multicast_send_if.empty())
-    {
-        __normal_udp->SetMultiCastSendIf(
-            __infos.base_info.control_multicast_send_if.c_str());
-        __multicast_udp->AddMultiCast(
-            __infos.base_info.control_multicast_ip.c_str(),
-            __infos.base_info.control_multicast_send_if.c_str());
-    }
-    else
-    {
-        __normal_udp->SetMultiCastSendIf();
-        __multicast_udp->AddMultiCast(
-            __infos.base_info.control_multicast_ip.c_str());
-    }
+    __multicast_udp->AddMultiCast(
+        __infos.base_info.control_multicast_ip.c_str(),
+        __infos.base_info.control_multicast_send_if.c_str());
 }
 
 void Raft::Start()

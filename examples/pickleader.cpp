@@ -15,6 +15,7 @@ TEST_CASE("Raft_1Node")
 
     Raft raft(RaftInfos::RaftBaseInfo{
         std::chrono::milliseconds{100}, "234.56.78.90", "", 9987, 1});
+    raft.InitRaft();
     network_manager.AddListenSocket(raft.GetNormalUdp());
     network_manager.AddListenSocket(raft.GetMulticastUdp());
     raft.Start();
@@ -41,6 +42,7 @@ TEST_CASE("Raft_10Nodes_group_size_10")
                 "",
                 multicastPort,
                 num});
+        raft_ptr->InitRaft();
         network_manager.AddListenSocket(raft_ptr->GetNormalUdp());
         network_manager.AddListenSocket(raft_ptr->GetMulticastUdp());
         rafts.push_back(raft_ptr);
@@ -77,6 +79,7 @@ TEST_CASE("Raft_10Nodes_group_size_1")
     {
         auto raft_ptr = std::make_shared<Raft>(RaftInfos::RaftBaseInfo{
             std::chrono::milliseconds{100}, multicastIP, "", multicastPort, 1});
+        raft_ptr->InitRaft();
         network_manager.AddListenSocket(raft_ptr->GetNormalUdp());
         network_manager.AddListenSocket(raft_ptr->GetMulticastUdp());
         rafts.push_back(raft_ptr);
@@ -112,6 +115,7 @@ TEST_CASE("Raft_addNode_in_runtime")
     {
         auto raft_ptr = std::make_shared<Raft>(RaftInfos::RaftBaseInfo{
             std::chrono::milliseconds{100}, multicastIP, "", multicastPort, 1});
+        raft_ptr->InitRaft();
         network_manager.AddListenSocket(raft_ptr->GetNormalUdp());
         network_manager.AddListenSocket(raft_ptr->GetMulticastUdp());
 

@@ -402,7 +402,7 @@ public:
 
     template <typename U                                 = T,
         typename std::enable_if_t<!isPtr<U>::value, int> = 0>
-    void AddObj(T&& t)
+    void AddObj(T* t)
     {
         rb_node** newPos = &(m_rbtree.rb_node);
         rb_node* parent  = static_cast<rb_node*>(nullptr);
@@ -410,7 +410,7 @@ public:
         {
             auto curr = reinterpret_cast<T*>(*newPos);
             parent    = *newPos;
-            if (t < *curr)
+            if (*t < *curr)
             {
                 newPos = &((*newPos)->rb_left);
             }
@@ -419,8 +419,8 @@ public:
                 newPos = &((*newPos)->rb_right);
             }
         }
-        rb_link_node((rb_node*)&t, parent, newPos);
-        rb_insert_color((rb_node*)&t, &m_rbtree);
+        rb_link_node((rb_node*)t, parent, newPos);
+        rb_insert_color((rb_node*)t, &m_rbtree);
     }
 
     void DeleteObj(rb_node* nodeptr)

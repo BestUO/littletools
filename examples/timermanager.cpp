@@ -232,3 +232,30 @@ TEST_CASE("TimerManager v3")
     sleep(1);
     tm->StopTimerManager();
 }
+
+TEST_CASE("TimerManager v3 recursive")
+{
+    auto timerManager = timermanager::v3::TimerManager<int>::GetInstance();
+    timerManager->StartTimerManager();
+    struct A
+    {
+        ~A()
+        {
+            timermanager::v3::TimerManager<int>::GetInstance()->DeleteAlarm(0);
+        }
+        void fun()
+        { }
+    };
+    {
+        auto a = std::make_shared<A>();
+        timermanager::v3::TimerManager<int>::GetInstance()->AddAlarm(
+            std::chrono::milliseconds(0),
+            0,
+            "",
+            [a]() {
+                a->fun();
+            },
+            std::chrono::milliseconds(1000));
+    }
+    timerManager->StopTimerManager();
+}

@@ -37,6 +37,10 @@ public:
         }
     }
 
+private:
+    bool __stop = true;
+    std::thread __net_thread;
+
     void Run()
     {
         pthread_setname_np(pthread_self(), "NetWork");
@@ -46,9 +50,5 @@ public:
             this->NetWorkRunOnce();
         }
     }
-
-private:
-    bool __stop = true;
-    std::thread __net_thread;
 };
 }  // namespace network

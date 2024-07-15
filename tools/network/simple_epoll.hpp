@@ -32,13 +32,15 @@ public:
         this->Continue();
     }
 
-    void RemoveListenSocket(ProtocolBase* t)
+    void RemoveListenSocket(std::shared_ptr<ProtocolBase> t)
     {
         auto fd = t->GetSocket();
+        t->SetCallBack(nullptr);
         std::lock_guard<std::mutex> guard(__mutex);
         epoll_event ev = {0, {0}};
         epoll_ctl(__epoll_fd, EPOLL_CTL_DEL, fd, &ev);
         __fd2T.erase(fd);
+
         this->Continue();
     }
 
@@ -51,12 +53,14 @@ protected:
         {
             if (__recv_events[i].events & EPOLLIN)
             {
-                std::shared_ptr<ProtocolBase> tmp;
+                std::shared_ptr<ProtocolBase> tmp = nullptr;
                 {
-                    std::lock_guard<std::mutex> guard(__mutex);
-                    tmp = __fd2T[__recv_events[i].data.fd];
+                    std::lock_guard<std::mutex> lck(__mutex);
+                    if (__fd2T.find(__recv_events[i].data.fd) != __fd2T.end())
+                        tmp = __fd2T[__recv_events[i].data.fd];
                 }
-                tmp->Recv(__buf, MAX_BUF_SIZE);
+                if (tmp)
+                    tmp->Recv(__buf, MAX_BUF_SIZE);
             }
             else if (__recv_events[i].events & EPOLLOUT)
             {

@@ -1,6 +1,11 @@
 #pragma once
 #include <unistd.h>
+#include <cstdint>
 #include <functional>
+#include <sched.h>
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #define crush_hashmix(a, b, c) \
     do                         \
@@ -99,7 +104,7 @@ inline int set_cpu(int i)
     printf("thread %u, i = %d\n", (uint16_t)pthread_self(), i);
     if (-1 == pthread_setaffinity_np(pthread_self(), sizeof(mask), &mask))
     {
-        fprintf(stderr, "pthread_setaffinity_np erro\n");
+        fprintf(stderr, "pthread_setaffinity_np error\n");
         return -1;
     }
     return 0;

@@ -449,7 +449,7 @@ public:
 
             std::lock_guard<std::mutex> lck(__mutex);
             element->iter = __key2element.emplace(key, element);
-            __timer_queue.AddObj(std::move(*element));
+            __timer_queue.AddObj(element);
             __cv.notify_one();
         }
     }
@@ -462,9 +462,12 @@ public:
         auto members = __key2element.equal_range(key);
         for (auto member = members.first; member != members.second; member++)
         {
-            member->second->SetCallBack(nullptr);
-            if (deletemodel == DeleteModel::ANY)
-                break;
+            if (additional == member->second->additional)
+            {
+                member->second->SetCallBack(nullptr);
+                if (deletemodel == DeleteModel::ANY)
+                    break;
+            }
         }
         __cv.notify_one();
     }
@@ -486,11 +489,12 @@ public:
         {
             __timerThread.join();
         }
+
         std::unique_lock<std::mutex> lck(__mutex);
-        auto timerQueue(std::move(__timer_queue));
+        auto timer_queue(std::move(__timer_queue));
         lck.unlock();
-        timerQueue.ExecuteAll([&](TimerElement* element) {
-            timerQueue.DeleteObj((rb_node*)element);
+        timer_queue.ExecuteAll([&](TimerElement* element) {
+            timer_queue.DeleteObj((rb_node*)element);
             __key2element.erase(element->iter);
             ObjectPool<TimerElement>::GetInstance()->PutObject(element);
             return false;
@@ -517,7 +521,7 @@ private:
         T key;
         std::string additional             = "";
         std::chrono::milliseconds interval = std::chrono::milliseconds(0);
-        std::mutex timer_element_mutex;
+        std::recursive_mutex cb_mutex;
         bool operator<(const TimerElement& t) const
         {
             return alarm < t.alarm;
@@ -539,12 +543,12 @@ private:
         }
         void SetCallBack(std::function<void()> fun)
         {
-            std::lock_guard<std::mutex> lck(timer_element_mutex);
+            std::lock_guard<std::recursive_mutex> lck(cb_mutex);
             this->fun = fun;
         }
         bool Callback()
         {
-            std::lock_guard<std::mutex> lck(timer_element_mutex);
+            std::lock_guard<std::recursive_mutex> lck(cb_mutex);
             if (fun)
             {
                 fun();
@@ -610,12 +614,14 @@ private:
             {
                 element->alarm = TIMETYPE::now() + element->interval;
                 std::lock_guard<std::mutex> lck(__mutex);
-                __timer_queue.AddObj(std::move(*element));
+                __timer_queue.AddObj(element);
             }
             else
             {
-                std::lock_guard<std::mutex> lck(__mutex);
-                __key2element.erase(element->iter);
+                {
+                    std::lock_guard<std::mutex> lck(__mutex);
+                    __key2element.erase(element->iter);
+                }
                 ObjectPool<TimerElement>::GetInstance()->PutObject(element);
             }
         }

@@ -11,6 +11,7 @@
 #include <string>
 #include <unistd.h>
 #include <fcntl.h>
+#include "network_global.hpp"
 
 namespace network
 {
@@ -34,12 +35,13 @@ public:
         return addr;
     }
 
-    static void setNonBlocking(int fd)
+    static Result setNonBlocking(int fd)
     {
         int flags = fcntl(fd, F_GETFL, 0);
         if (flags == -1)
         {
             printf("errno:%d %s\n", errno, strerror(errno));
+            return Result::GETSOCKOPT_NONBLOCK_FAIL;
         }
         else
         {
@@ -47,8 +49,10 @@ public:
             if (fcntl(fd, F_SETFL, flags) == -1)
             {
                 printf("errno:%d %s\n", errno, strerror(errno));
+                return Result::SETSOCKOPT_NONBLOCK_FAIL;
             }
         }
+        return Result::SUCCESS;
     }
 
     static bool IsNonBlocking(int fd)
@@ -71,10 +75,8 @@ public:
         = std::conditional_t<USEUNIX, struct sockaddr_un, struct sockaddr_in>;
     Socket()
     {
-        int domain = USEUNIX ? AF_UNIX : AF_INET;
-        int type   = USEUDP ? SOCK_DGRAM : SOCK_STREAM;
-
-        __sockfd = socket(domain, type, 0);
+        __sockfd = socket(
+            USEUNIX ? AF_UNIX : AF_INET, USEUDP ? SOCK_DGRAM : SOCK_STREAM, 0);
         if (__sockfd < 0)
             printf("errno:%d %s\n", errno, strerror(errno));
     }
@@ -85,9 +87,9 @@ public:
     }
 
     template <bool U = USEUNIX, typename std::enable_if_t<!U, int> = 0>
-    void SetAddr(const char* ip, uint16_t port)
+    Result SetAddr(const char* ip, uint16_t port)
     {
-        BindSocket(SocketBase::CreateAddr(ip, port));
+        return BindSocket(SocketBase::CreateAddr(ip, port));
     }
 
     template <bool U = USEUNIX, typename std::enable_if_t<U, int> = 0>
@@ -102,15 +104,19 @@ public:
         return __send_addr;
     }
 
-    void SetReuseAddrAndPort()
+    Result SetReuseAddrAndPort()
     {
         int opt = 1;
-        if (setsockopt(__sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))
-            < 0)
+        if ((setsockopt(__sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))
+                < 0)
+            || (setsockopt(
+                    __sockfd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt))
+                < 0))
+        {
             printf("errno:%d %s\n", errno, strerror(errno));
-        if (setsockopt(__sockfd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt))
-            < 0)
-            printf("errno:%d %s\n", errno, strerror(errno));
+            return Result::SETSOCKOPT_PORTREUSE_FAIL;
+        }
+        return Result::SUCCESS;
     }
 
     int GetSocket() const
@@ -118,9 +124,9 @@ public:
         return __sockfd;
     }
 
-    void setNonBlocking()
+    Result setNonBlocking()
     {
-        SocketBase::setNonBlocking(__sockfd);
+        return SocketBase::setNonBlocking(__sockfd);
     }
 
     bool IsNonBlocking()
@@ -132,18 +138,22 @@ protected:
     int __sockfd;
     sockaddr_type __send_addr;
 
-    void BindSocket(const sockaddr_type& addr)
+    Result BindSocket(const sockaddr_type& addr)
     {
-        if (bind(__sockfd,
+        if (::bind(__sockfd,
                 reinterpret_cast<const struct sockaddr*>(&addr),
                 sizeof(addr))
             < 0)
+        {
             printf("errno:%d %s\n", errno, strerror(errno));
+            return Result::BIND_FAIL;
+        }
         else
         {
             socklen_t addr_size = sizeof(addr);
             getsockname(__sockfd, (struct sockaddr*)&__send_addr, &addr_size);
         }
+        return Result::SUCCESS;
     }
 };
 }  // namespace network

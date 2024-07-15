@@ -39,16 +39,21 @@ public:
 
     using sockaddr_type
         = std::conditional_t<USEUNIX, struct sockaddr_un, struct sockaddr_in>;
-    void SetCallBack(std::function<std::string(const char*, size_t size)> cb)
+    void SetCallBack(
+        std::function<std::string(const char*, size_t, const sockaddr& addr)>
+            cb)
     {
         std::lock_guard<std::mutex> lock(__mutex4cb);
         __cb = cb;
+        if (__cb == nullptr)
+            close(this->__sockfd);
     }
 
     int GetSocket() const
     {
         return Socket<USEUNIX, true>::GetSocket();
     };
+
     void Recv(char* buf, size_t size)
     {
         bool nonblock = SocketBase::IsNonBlocking(this->__sockfd);
@@ -63,7 +68,7 @@ public:
         }
     };
 
-    void Send(const std::string& message, const sockaddr_type& sender_addr)
+    Result Send(const std::string& message, const sockaddr_type& sender_addr)
     {
         if (sendto(this->__sockfd,
                 message.c_str(),
@@ -78,11 +83,14 @@ public:
                 ;
             else
                 printf("errno:%d %s\n", errno, strerror(errno));
+            return Result::SENDTO_FAIL;
         }
+        return Result::SUCCESS;
     };
 
 private:
-    std::function<std::string(const char*, size_t size)> __cb;
+    std::function<std::string(const char*, size_t size, const sockaddr& addr)>
+        __cb;
     std::mutex __mutex4cb;
     std::string __response;
 
@@ -93,7 +101,8 @@ private:
         {
             std::lock_guard<std::mutex> lock(__mutex4cb);
             if (__cb)
-                __response = std::move(this->__cb(buf, size));
+                __response = std::move(
+                    this->__cb(buf, size, (const sockaddr&)sender_addr));
             else
                 __response.clear();
         }
@@ -129,12 +138,12 @@ namespace inet_udp
 class UDP : public UDPBase<false>
 {
 public:
-    void SetMultiCastSendIf()
+    Result SetMultiCastSendIf()
     {
-        bool flag                  = false;
+        Result r                   = Result::SETSOCKOPT_MULTICASTIF_FAIL;
         struct ifaddrs* ifAddrList = nullptr;
         struct ifaddrs* ifa        = nullptr;
-        int r                      = getifaddrs(&ifAddrList);
+        getifaddrs(&ifAddrList);
         for (ifa = ifAddrList; ifa != nullptr; ifa = ifa->ifa_next)
         {
             if (ifa->ifa_addr && ifa->ifa_addr->sa_family == AF_INET)
@@ -146,16 +155,19 @@ public:
                     char ipAddress[INET_ADDRSTRLEN];
                     inet_ntop(
                         AF_INET, &(sa->sin_addr), ipAddress, INET_ADDRSTRLEN);
-                    if (SetMultiCastSendIf(ipAddress))
+                    if ((r = SetMultiCastSendIf(ipAddress)) == Result::SUCCESS)
                         break;
                 }
             }
         }
         freeifaddrs(ifAddrList);
+        return r;
     }
 
-    bool SetMultiCastSendIf(const char* ip)
+    Result SetMultiCastSendIf(const char* ip)
     {
+        if (strlen(ip) == 0)
+            return SetMultiCastSendIf();
         struct in_addr localInterface;
         localInterface.s_addr = inet_addr(ip);
         if (setsockopt(this->__sockfd,
@@ -166,17 +178,17 @@ public:
             < 0)
         {
             printf("errno:%d %s\n", errno, strerror(errno));
-            return false;
+            return Result::SETSOCKOPT_MULTICASTIF_FAIL;
         }
-        return true;
+        return Result::SUCCESS;
     }
 
-    void AddMultiCast(const char* multicastip)
+    Result AddMultiCast(const char* multicastip)
     {
-        bool flag                  = false;
+        Result r                   = Result::SETSOCKOPT_ADDMEMBERSHIP_FAIL;
         struct ifaddrs* ifAddrList = nullptr;
         struct ifaddrs* ifa        = nullptr;
-        int r                      = getifaddrs(&ifAddrList);
+        getifaddrs(&ifAddrList);
         for (ifa = ifAddrList; ifa != nullptr; ifa = ifa->ifa_next)
         {
             if (ifa->ifa_addr && ifa->ifa_addr->sa_family == AF_INET)
@@ -188,16 +200,20 @@ public:
                     char ipAddress[INET_ADDRSTRLEN];
                     inet_ntop(
                         AF_INET, &(sa->sin_addr), ipAddress, INET_ADDRSTRLEN);
-                    if (AddMultiCast(multicastip, ipAddress))
+                    if ((r = AddMultiCast(multicastip, ipAddress))
+                        == Result::SUCCESS)
                         break;
                 }
             }
         }
         freeifaddrs(ifAddrList);
+        return r;
     }
 
-    bool AddMultiCast(const char* multicastip, const char* interfaceip)
+    Result AddMultiCast(const char* multicastip, const char* interfaceip)
     {
+        if (strlen(interfaceip) == 0)
+            return AddMultiCast(multicastip);
         struct ip_mreq mreq;
         (void)memset(&mreq, 0, sizeof(mreq));
         mreq.imr_multiaddr.s_addr = inet_addr(multicastip);
@@ -210,9 +226,9 @@ public:
             < 0)
         {
             printf("errno:%d %s\n", errno, strerror(errno));
-            return false;
+            return Result::SETSOCKOPT_ADDMEMBERSHIP_FAIL;
         }
-        return true;
+        return Result::SUCCESS;
     }
 };
 
