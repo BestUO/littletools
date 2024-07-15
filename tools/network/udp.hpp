@@ -4,6 +4,7 @@
 #include <string.h>
 #include <errno.h>
 #include <stdio.h>
+#include <mutex>
 #include <type_traits>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -31,12 +32,16 @@ public:
     UDPBase& operator=(const UDPBase&) = delete;
     UDPBase(UDPBase&&)                 = delete;
     UDPBase& operator=(UDPBase&&)      = delete;
-    ~UDPBase()                         = default;
+    ~UDPBase()
+    {
+        SetCallBack(nullptr);
+    }
 
     using sockaddr_type
         = std::conditional_t<USEUNIX, struct sockaddr_un, struct sockaddr_in>;
     void SetCallBack(std::function<std::string(const char*, size_t size)> cb)
     {
+        std::lock_guard<std::mutex> lock(__mutex4cb);
         __cb = cb;
     }
 
@@ -78,13 +83,22 @@ public:
 
 private:
     std::function<std::string(const char*, size_t size)> __cb;
+    std::mutex __mutex4cb;
+    std::string __response;
+
     void HandleData(const char* buf,
         size_t size,
         const sockaddr_type& sender_addr)
     {
-        auto response = this->__cb(buf, size);
-        if (!response.empty())
-            Send(response, sender_addr);
+        {
+            std::lock_guard<std::mutex> lock(__mutex4cb);
+            if (__cb)
+                __response = std::move(this->__cb(buf, size));
+            else
+                __response.clear();
+        }
+        if (!__response.empty())
+            Send(__response, sender_addr);
     }
 
     bool RecvOnce(int fd, char* buf, size_t size)

@@ -225,10 +225,9 @@ TEST_CASE("TimerManager v3")
         std::chrono::milliseconds(300), "0", "3-2", std::bind(func, 1, 20));
     tm->AddAlarm(
         std::chrono::milliseconds(200), "T", "", std::bind(func, 1, 100));
-    auto ele = tm->AddAlarm(
+    tm->AddAlarm(
         std::chrono::milliseconds(200), "T", "1-1", std::bind(func, 1, 100));
     tm->DeleteAlarm("0", "3-2");
-    tm->DeleteAlarm(ele);
     tm->DeleteAlarm("T");
     sleep(1);
     tm->StopTimerManager();
