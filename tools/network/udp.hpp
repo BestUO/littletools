@@ -129,20 +129,7 @@ namespace inet_udp
 class UDP : public UDPBase<false>
 {
 public:
-    void SetMultiCastSendNIC(std::string ip)
-    {
-        struct in_addr localInterface;
-        localInterface.s_addr = inet_addr(ip.c_str());
-        if (setsockopt(this->__sockfd,
-                IPPROTO_IP,
-                IP_MULTICAST_IF,
-                reinterpret_cast<char*>(&localInterface),
-                sizeof(localInterface))
-            < 0)
-            printf("errno:%d %s\n", errno, strerror(errno));
-    }
-
-    void ListenMultiCast(const std::string& multicastip)
+    void SetMultiCastSendIf()
     {
         bool flag                  = false;
         struct ifaddrs* ifAddrList = nullptr;
@@ -159,16 +146,7 @@ public:
                     char ipAddress[INET_ADDRSTRLEN];
                     inet_ntop(
                         AF_INET, &(sa->sin_addr), ipAddress, INET_ADDRSTRLEN);
-                    struct ip_mreq mreq;
-                    (void)memset(&mreq, 0, sizeof(mreq));
-                    mreq.imr_multiaddr.s_addr = inet_addr(multicastip.c_str());
-                    mreq.imr_interface.s_addr = inet_addr(ipAddress);
-                    if (setsockopt(this->__sockfd,
-                            IPPROTO_IP,
-                            IP_ADD_MEMBERSHIP,
-                            &mreq,
-                            sizeof(mreq))
-                        == 0)
+                    if (SetMultiCastSendIf(ipAddress))
                         break;
                 }
             }
@@ -176,12 +154,53 @@ public:
         freeifaddrs(ifAddrList);
     }
 
-    bool ListenMultiCast(const std::string& multicastip,
-        const char* interfaceip)
+    bool SetMultiCastSendIf(const char* ip)
+    {
+        struct in_addr localInterface;
+        localInterface.s_addr = inet_addr(ip);
+        if (setsockopt(this->__sockfd,
+                IPPROTO_IP,
+                IP_MULTICAST_IF,
+                reinterpret_cast<char*>(&localInterface),
+                sizeof(localInterface))
+            < 0)
+        {
+            printf("errno:%d %s\n", errno, strerror(errno));
+            return false;
+        }
+        return true;
+    }
+
+    void AddMultiCast(const char* multicastip)
+    {
+        bool flag                  = false;
+        struct ifaddrs* ifAddrList = nullptr;
+        struct ifaddrs* ifa        = nullptr;
+        int r                      = getifaddrs(&ifAddrList);
+        for (ifa = ifAddrList; ifa != nullptr; ifa = ifa->ifa_next)
+        {
+            if (ifa->ifa_addr && ifa->ifa_addr->sa_family == AF_INET)
+            {
+                if (ifa->ifa_flags & IFF_MULTICAST && ifa->ifa_flags & IFF_UP)
+                {
+                    struct sockaddr_in* sa
+                        = reinterpret_cast<struct sockaddr_in*>(ifa->ifa_addr);
+                    char ipAddress[INET_ADDRSTRLEN];
+                    inet_ntop(
+                        AF_INET, &(sa->sin_addr), ipAddress, INET_ADDRSTRLEN);
+                    if (AddMultiCast(multicastip, ipAddress))
+                        break;
+                }
+            }
+        }
+        freeifaddrs(ifAddrList);
+    }
+
+    bool AddMultiCast(const char* multicastip, const char* interfaceip)
     {
         struct ip_mreq mreq;
         (void)memset(&mreq, 0, sizeof(mreq));
-        mreq.imr_multiaddr.s_addr = inet_addr(multicastip.c_str());
+        mreq.imr_multiaddr.s_addr = inet_addr(multicastip);
         mreq.imr_interface.s_addr = inet_addr(interfaceip);
         if (setsockopt(this->__sockfd,
                 IPPROTO_IP,

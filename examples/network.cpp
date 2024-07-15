@@ -48,7 +48,7 @@ TEST_CASE("network_UDP_inet_multicast")
     });
 
     udp2.SetAddr("0.0.0.0", 23456);
-    udp2.ListenMultiCast("234.56.78.90");
+    udp2.AddMultiCast("234.56.78.90");
     udp2.SetCallBack([](const char* data, size_t size) -> std::string {
         std::string str(data, size);
         CHECK(str == "from udp1");
@@ -145,7 +145,7 @@ TEST_CASE("network_SimplePoll_UDP_inet_multicast_add_poll")
     });
 
     udp2->SetAddr("0.0.0.0", 23456);
-    udp2->ListenMultiCast("234.56.78.90");
+    udp2->AddMultiCast("234.56.78.90");
     udp2->SetCallBack([](const char* data, size_t size) -> std::string {
         std::string str(data, size);
         CHECK(str == "from udp1");
@@ -462,7 +462,7 @@ TEST_CASE("network_SimpleEpoll_UDP_inet_multicast_add_poll")
     });
 
     udp2->SetAddr("0.0.0.0", 23456);
-    udp2->ListenMultiCast("234.56.78.90");
+    udp2->AddMultiCast("234.56.78.90");
     udp2->SetCallBack([](const char* data, size_t size) -> std::string {
         std::string str(data, size);
         CHECK(str == "from udp1");

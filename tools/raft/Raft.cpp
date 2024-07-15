@@ -1,13 +1,21 @@
 #include "Raft.h"
 #include <chrono>
 #include <mutex>
-#include "../simplepoll/simplepoll.hpp"
-#include "../timermanager.hpp"
-#include "../template.hpp"
+#include "tools/timermanager.hpp"
+#include "tools/template.hpp"
+
+Raft::Raft()
+{
+    InitUdp();
+}
 
 Raft::Raft(const RaftInfos::RaftBaseInfo& baseinfo)
     : __infos(baseinfo)
-{ }
+    , __normal_udp(std::make_shared<network::inet_udp::UDP>())
+    , __multicast_udp(std::make_shared<network::inet_udp::UDP>())
+{
+    InitUdp();
+}
 
 Raft::~Raft()
 {
@@ -17,11 +25,41 @@ Raft::~Raft()
 void Raft::SetBaseInfo(const RaftInfos::RaftBaseInfo& baseinfo)
 {
     __infos = baseinfo;
+    InitUdp();
 }
 
-void Raft::SetSendSocket(int32_t bindsocket)
+void Raft::InitUdp()
 {
-    __sendSocket = bindsocket;
+    __multicast_addr = network::SocketBase::CreateAddr(
+        __infos.base_info.control_multicast_ip.c_str(),
+        __infos.base_info.control_multicast_port);
+    __normal_udp->SetAddr("0.0.0.0", 0);
+    __normal_udp->SetCallBack(
+        [this](const char* buf, size_t len) -> std::string {
+            return HandleData(buf, len);
+        });
+    __multicast_udp->SetReuseAddrAndPort();
+    __multicast_udp->SetAddr(
+        "0.0.0.0", __infos.base_info.control_multicast_port);
+    __multicast_udp->SetCallBack(
+        [this](const char* buf, size_t len) -> std::string {
+            return HandleData(buf, len);
+        });
+
+    if (!__infos.base_info.control_multicast_send_if.empty())
+    {
+        __normal_udp->SetMultiCastSendIf(
+            __infos.base_info.control_multicast_send_if.c_str());
+        __multicast_udp->AddMultiCast(
+            __infos.base_info.control_multicast_ip.c_str(),
+            __infos.base_info.control_multicast_send_if.c_str());
+    }
+    else
+    {
+        __normal_udp->SetMultiCastSendIf();
+        __multicast_udp->AddMultiCast(
+            __infos.base_info.control_multicast_ip.c_str());
+    }
 }
 
 void Raft::Start()
@@ -39,10 +77,7 @@ void Raft::Stop()
         __infos.self_uuid);
 }
 
-std::string Raft::HandleIncomingData(const char* buf,
-    uint16_t len,
-    const std::string& ip,
-    uint16_t port)
+std::string Raft::HandleData(const char* buf, uint16_t len)
 {
     if (len < RaftCommandType::CommonInfo::size())
     {
@@ -61,8 +96,6 @@ std::string Raft::HandleIncomingData(const char* buf,
         }
         else
         {
-            (void)ip;
-            (void)port;
             std::string responsedata;
             RaftCommandType::MessageType type
                 = *(RaftCommandType::MessageType*)(buf + 4);
@@ -142,12 +175,7 @@ std::string Raft::VotePrepare()
 
 void Raft::Vote()
 {
-    std::string vote = VotePrepare();
-    SimplePoll<>::sendData(vote.data(),
-        vote.size(),
-        __infos.base_info.control_multicast_ip,
-        __infos.base_info.control_multicast_port,
-        __sendSocket);
+    __normal_udp->Send(VotePrepare(), __multicast_addr);
 }
 
 std::string Raft::HandlerVote(const RaftCommandType::Vote& cmd)
@@ -243,12 +271,7 @@ void Raft::SendHeartBeat()
     RaftCommandType::HeartBeat heartbeat;
     heartbeat.commonInfo.term = __infos.term;
     heartbeat.commonInfo.uuid = __infos.self_uuid;
-    auto data                 = heartbeat.serialize();
-    SimplePoll<>::sendData(data.data(),
-        data.size(),
-        __infos.base_info.control_multicast_ip,
-        __infos.base_info.control_multicast_port,
-        __sendSocket);
+    __normal_udp->Send(heartbeat.serialize(), __multicast_addr);
 }
 
 std::string Raft::HandlerHeartBeat(const RaftCommandType::HeartBeat& cmd)
@@ -296,6 +319,16 @@ std::string Raft::HandlerHeartBeat(const RaftCommandType::HeartBeat& cmd)
         }
     }
     return "";
+}
+
+std::shared_ptr<network::inet_udp::UDP> Raft::GetNormalUdp() const
+{
+    return __normal_udp;
+}
+
+std::shared_ptr<network::inet_udp::UDP> Raft::GetMulticastUdp() const
+{
+    return __multicast_udp;
 }
 
 RaftInfos::Role Raft::GetRole()

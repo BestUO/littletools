@@ -17,7 +17,7 @@ namespace network
 class SocketBase
 {
 public:
-    static sockaddr_in CreateAddr(const char* ip, int port)
+    static sockaddr_in CreateAddr(const char* ip, uint16_t port)
     {
         sockaddr_in addr;
         addr.sin_family = AF_INET;
@@ -85,7 +85,7 @@ public:
     }
 
     template <bool U = USEUNIX, typename std::enable_if_t<!U, int> = 0>
-    void SetAddr(const char* ip, int port)
+    void SetAddr(const char* ip, uint16_t port)
     {
         BindSocket(SocketBase::CreateAddr(ip, port));
     }

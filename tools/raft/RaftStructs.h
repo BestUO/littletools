@@ -12,9 +12,10 @@ struct RaftInfos
     {
         std::chrono::milliseconds heartbeat_interval
             = std::chrono::milliseconds(500);
-        std::string control_multicast_ip = "234.56.78.90";
-        uint16_t control_multicast_port  = 9987;
-        uint8_t cluster_size             = 1;
+        std::string control_multicast_ip      = "234.56.78.90";
+        std::string control_multicast_send_if = "";
+        uint16_t control_multicast_port       = 9987;
+        uint8_t cluster_size                  = 1;
     };
     enum Role
     {
