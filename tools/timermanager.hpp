@@ -521,7 +521,7 @@ private:
         T key;
         std::string additional             = "";
         std::chrono::milliseconds interval = std::chrono::milliseconds(0);
-        std::recursive_mutex cb_mutex;
+        std::mutex cb_mutex;
         bool operator<(const TimerElement& t) const
         {
             return alarm < t.alarm;
@@ -543,12 +543,12 @@ private:
         }
         void SetCallBack(std::function<void()> fun)
         {
-            std::lock_guard<std::recursive_mutex> lck(cb_mutex);
+            std::lock_guard<std::mutex> lck(cb_mutex);
             this->fun = fun;
         }
         bool Callback()
         {
-            std::lock_guard<std::recursive_mutex> lck(cb_mutex);
+            std::lock_guard<std::mutex> lck(cb_mutex);
             if (fun)
             {
                 fun();

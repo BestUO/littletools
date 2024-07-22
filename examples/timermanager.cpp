@@ -8,7 +8,7 @@
 #include "nanobench.h"
 #include "tools/timermanager.hpp"
 
-TEST_CASE("TimerManagerV1 base")
+TEST_CASE("TimerManager_v1_base")
 {
     auto tm = timermanager::v1::TimerManager<std::string>::GetInstance();
     class TestTimerManager
@@ -41,7 +41,7 @@ TEST_CASE("TimerManagerV1 base")
         ->StopTimerManager();
 }
 
-TEST_CASE("TimerManager v1 interval")
+TEST_CASE("TimerManager_v1_interval")
 {
     auto tm = timermanager::v1::TimerManager<std::string>::GetInstance();
     tm->StartTimerManager();
@@ -60,7 +60,7 @@ TEST_CASE("TimerManager v1 interval")
         ->StopTimerManager();
 }
 
-TEST_CASE("testing TimerManager v1 AddAlarm DeleteAlarm")
+TEST_CASE("TimerManager_v1_AddAlarm_DeleteAlarm")
 {
     struct Key
     {
@@ -91,7 +91,7 @@ TEST_CASE("testing TimerManager v1 AddAlarm DeleteAlarm")
     tm->StopTimerManager();
 }
 
-TEST_CASE("testing TimerManager v1 two same key")
+TEST_CASE("TimerManager_v1_two_same_key")
 {
     struct Key
     {
@@ -111,7 +111,7 @@ TEST_CASE("testing TimerManager v1 two same key")
     tm->StopTimerManager();
 }
 
-TEST_CASE("TimerManager v2")
+TEST_CASE("TimerManager_v2")
 {
     auto func = [](int a, int b) {
         std::cout << a << '\t' << b << std::endl;
@@ -139,7 +139,7 @@ TEST_CASE("TimerManager v2")
     tm->StopTimerManager();
 }
 
-TEST_CASE("TimerManager v2 interval")
+TEST_CASE("TimerManager_v2_interval")
 {
     auto func = [](int a, int b) {
         std::cout << a << '\t' << b << std::endl;
@@ -159,7 +159,7 @@ TEST_CASE("TimerManager v2 interval")
     tm->StopTimerManager();
 }
 
-TEST_CASE("TimerManager v2 10w")
+TEST_CASE("TimerManager_v2_10w")
 {
     auto func = [](std::atomic<int>& count) {
         count++;
@@ -205,7 +205,7 @@ TEST_CASE("TimerManager v2 10w")
     tm->StopTimerManager();
 }
 
-TEST_CASE("TimerManager v3")
+TEST_CASE("TimerManager_v3")
 {
     auto func = [](int a, int b) {
         std::cout << a << '\t' << b << std::endl;
@@ -233,7 +233,7 @@ TEST_CASE("TimerManager v3")
     tm->StopTimerManager();
 }
 
-TEST_CASE("TimerManager v3 recursive")
+TEST_CASE("TimerManager_v3_recursive")
 {
     auto timerManager = timermanager::v3::TimerManager<int>::GetInstance();
     timerManager->StartTimerManager();
@@ -243,8 +243,17 @@ TEST_CASE("TimerManager v3 recursive")
         {
             timermanager::v3::TimerManager<int>::GetInstance()->DeleteAlarm(0);
         }
+        void callback()
+        {
+            std::cout << "callback" << std::endl;
+        }
         void fun()
-        { }
+        {
+            timermanager::v3::TimerManager<int>::GetInstance()->AddAlarm(
+                std::chrono::milliseconds(200), 0, "1-1", [this]() {
+                    callback();
+                });
+        }
     };
     {
         auto a = std::make_shared<A>();
@@ -255,7 +264,8 @@ TEST_CASE("TimerManager v3 recursive")
             [a]() {
                 a->fun();
             },
-            std::chrono::milliseconds(1000));
+            std::chrono::milliseconds(100));
+        sleep(1);
     }
     timerManager->StopTimerManager();
 }

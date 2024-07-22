@@ -36,7 +36,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/examples/doctooltest",
             "args": [
-                // "--test-case=Raft_*"
+                "--test-case=*TimerManager_v3_recursive*"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
