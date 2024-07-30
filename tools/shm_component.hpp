@@ -16,6 +16,13 @@
 
 #define CIRCLEINDEXTYPE uint8_t
 #define SHM_QUEUE_SIZE CIRCLEINDEXTYPE(-1) + 1
+#define SHMALIGN(s, a) (((s - 1) | (a - 1)) + 1)
+inline uint8_t* align_address(void* ptr, size_t alignment)
+{
+    auto int_ptr         = reinterpret_cast<uintptr_t>(ptr);
+    auto aligned_int_ptr = SHMALIGN(int_ptr, alignment);
+    return reinterpret_cast<uint8_t*>(aligned_int_ptr);
+}
 
 template <typename T>
 class SHMFactory
