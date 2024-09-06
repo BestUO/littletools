@@ -9,6 +9,12 @@ template <typename T>
 class NetWorkManager : public T
 {
 public:
+    static NetWorkManager<T>* GetInstance()
+    {
+        static NetWorkManager<T> instance;
+        return &instance;
+    }
+
     NetWorkManager() = default;
     ~NetWorkManager()
     {

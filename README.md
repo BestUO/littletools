@@ -20,7 +20,33 @@ littletools usage in tooltest
 
 # ToolExample
 git submodule update --init
-cmake -B build -DCMAKE_BUILD_TYPE=Debug; cmake --build build -j 1
+cmake -B build -DCMAKE_BUILD_TYPE=Debug;  
+cmake --build build -j 1 
+
+## network func_test & bench
+./build/examples/doctooltest --test-case=*network_*
+
+## object_pool func_test & bench
+./build/examples/doctooltest --test-case=*ObjectPool_*
+
+## reliable udp func_test & bench
+./build/examples/doctooltest --test-case=*ReliableUDP_*
+
+## timemanager func_test
+./build/examples/doctooltest --test-case=*TimerManager_*
+
+## raft_pick_leader func_test
+./build/examples/doctooltest --test-case=*Raft_*
+
+## shared memory component func_test
+./build/examples/doctooltest --test-case=*shm_*
+
+## coroutine func_test
+./build/examples/doctooltest --test-case=*coroutine_*
+
+
+
+
 
 # Two Projects
 need mysql support

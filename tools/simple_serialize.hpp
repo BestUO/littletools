@@ -37,6 +37,15 @@ inline void readBuffer(const char* buf, uint16_t& offset, T& data)
     data = EndianSwap<>::swap(tmpData);
 }
 
+template <typename T, std::enable_if_t<!has_serialize<T>::value, int> = 0>
+inline void writeBuffer(const T& data, uint16_t len, std::string& buf)
+{
+    auto lenBigEndian = EndianSwap<>::swap(len);
+    auto tmpData      = EndianSwap<>::swap(data);
+    buf.append((char*)&lenBigEndian, sizeof(uint16_t))
+        .append((char*)&tmpData, len);
+}
+
 template <typename T, std::enable_if_t<has_serialize<T>::value, int> = 0>
 inline void readBuffer(const char* buf, uint16_t& offset, T& data)
 {
@@ -46,15 +55,6 @@ inline void readBuffer(const char* buf, uint16_t& offset, T& data)
     offset += sizeof(uint16_t);
     data.deserialize(buf + offset, lenBigEndian);
     offset += lenBigEndian;
-}
-
-template <typename T, std::enable_if_t<!has_serialize<T>::value, int> = 0>
-inline void writeBuffer(const T& data, uint16_t len, std::string& buf)
-{
-    auto lenBigEndian = EndianSwap<>::swap(len);
-    auto tmpData      = EndianSwap<>::swap(data);
-    buf.append((char*)&lenBigEndian, sizeof(uint16_t))
-        .append((char*)&tmpData, len);
 }
 
 template <typename T, std::enable_if_t<has_serialize<T>::value, int> = 0>
@@ -75,15 +75,14 @@ inline void readBuffer(const char* buf, uint16_t& offset, UUID& data)
     offset += sizeof(uint16_t);
     memcpy(&tmpData, buf + offset, lenBigEndian);
     offset += lenBigEndian;
-    data = UUID{
-        EndianSwap<>::swap(tmpData.hi64()), EndianSwap<>::swap(tmpData.lo64())};
+    data = UUID{EndianSwap<>::swap(tmpData.hi), EndianSwap<>::swap(tmpData.lo)};
 }
 
 inline void writeBuffer(const UUID& data, uint16_t len, std::string& buf)
 {
     auto lenBigEndian = EndianSwap<>::swap(len);
-    auto tmpData      = UUID{
-        EndianSwap<>::swap(data.hi64()), EndianSwap<>::swap(data.lo64())};
+    auto tmpData
+        = UUID{EndianSwap<>::swap(data.hi), EndianSwap<>::swap(data.lo)};
     buf.append((char*)&lenBigEndian, sizeof(uint16_t))
         .append((char*)&tmpData, len);
 }
@@ -99,6 +98,12 @@ inline void readBuffer(const char* buf, uint16_t& offset, std::string& data)
 }
 
 inline void writeBuffer(const std::string& data, uint16_t len, std::string& buf)
+{
+    auto lenBigEndian = EndianSwap<>::swap(len);
+    buf.append((char*)&lenBigEndian, sizeof(uint16_t)).append(data);
+}
+
+inline void writeBuffer(std::string_view data, uint16_t len, std::string& buf)
 {
     auto lenBigEndian = EndianSwap<>::swap(len);
     buf.append((char*)&lenBigEndian, sizeof(uint16_t)).append(data);

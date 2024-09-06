@@ -290,16 +290,16 @@ TEST_CASE("network_SimplePoll_UDP_inet_performance")
         while (std::chrono::duration_cast<std::chrono::seconds>(
                    std::chrono::high_resolution_clock::now() - now)
                    .count()
-            < 1)
+            < 10)
         {
             j++;
             sendudp.Send(data, endpoint);
         }
-        std::cout << "send num: " << j << " ";
+        std::cout << "send num: " << j / 10 << " ";
     });
     sleep(2);
     sendthread.join();
-    std::cout << "simple_poll udp inet qps: " << i << std::endl;
+    std::cout << "simple_poll udp inet qps: " << i / 10 << std::endl;
     network_manager.Stop();
 }
 
@@ -329,16 +329,16 @@ TEST_CASE("network_SimplePoll_UDP_unix_performance")
         while (std::chrono::duration_cast<std::chrono::seconds>(
                    std::chrono::high_resolution_clock::now() - now)
                    .count()
-            < 1)
+            < 10)
         {
             j++;
             sendudp.Send(data, endpoint);
         }
-        std::cout << "send num: " << j << " ";
+        std::cout << "send num: " << j / 10 << " ";
     });
     sleep(2);
     sendthread.join();
-    std::cout << "simple_poll udp unix qps: " << i << std::endl;
+    std::cout << "simple_poll udp unix qps: " << i / 10 << std::endl;
     network_manager.Stop();
 }
 
@@ -369,16 +369,16 @@ TEST_CASE("network_SimplePoll_nonblock_UDP_inet_performance")
         while (std::chrono::duration_cast<std::chrono::seconds>(
                    std::chrono::high_resolution_clock::now() - now)
                    .count()
-            < 1)
+            < 10)
         {
             j++;
             sendudp.Send(data, endpoint);
         }
-        std::cout << "send num: " << j << " ";
+        std::cout << "send num: " << j / 10 << " ";
     });
     sleep(2);
     sendthread.join();
-    std::cout << "simple_poll nonblock udp inet qps: " << i << std::endl;
+    std::cout << "simple_poll nonblock udp inet qps: " << i / 10 << std::endl;
     network_manager.Stop();
 }
 
@@ -409,16 +409,16 @@ TEST_CASE("network_SimplePoll_nonblock_UDP_unix_performance")
         while (std::chrono::duration_cast<std::chrono::seconds>(
                    std::chrono::high_resolution_clock::now() - now)
                    .count()
-            < 1)
+            < 10)
         {
             j++;
             sendudp.Send(data, endpoint);
         }
-        std::cout << "send num: " << j << " ";
+        std::cout << "send num: " << j / 10 << " ";
     });
     sleep(2);
     sendthread.join();
-    std::cout << "simple_poll nonblock udp unix qps: " << i << std::endl;
+    std::cout << "simple_poll nonblock udp unix qps: " << i / 10 << std::endl;
     network_manager.Stop();
 }
 
@@ -617,16 +617,16 @@ TEST_CASE("network_SimpleEpoll_level_UDP_inet_performance")
         while (std::chrono::duration_cast<std::chrono::seconds>(
                    std::chrono::high_resolution_clock::now() - now)
                    .count()
-            < 1)
+            < 10)
         {
             j++;
             sendudp.Send(std::to_string(j), endpoint);
         }
-        std::cout << "send num: " << j << " ";
+        std::cout << "send num: " << j / 10 << " ";
     });
     sleep(2);
     sendthread.join();
-    std::cout << "simple_Epoll udp inet qps: " << i << std::endl;
+    std::cout << "simple_Epoll udp inet qps: " << i / 10 << std::endl;
     network_manager.Stop();
 }
 
@@ -656,16 +656,16 @@ TEST_CASE("network_SimpleEpoll_level_UDP_unix_performance")
         while (std::chrono::duration_cast<std::chrono::seconds>(
                    std::chrono::high_resolution_clock::now() - now)
                    .count()
-            < 1)
+            < 10)
         {
             j++;
             sendudp.Send(data, endpoint);
         }
-        std::cout << "send num: " << j << " ";
+        std::cout << "send num: " << j / 10 << " ";
     });
     sleep(2);
     sendthread.join();
-    std::cout << "simple_Epoll udp unix qps: " << i << std::endl;
+    std::cout << "simple_Epoll udp unix qps: " << i / 10 << std::endl;
     network_manager.Stop();
 }
 

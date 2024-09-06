@@ -45,8 +45,8 @@ public:
     {
         std::lock_guard<std::mutex> lock(__mutex4cb);
         __cb = cb;
-        if (__cb == nullptr)
-            close(this->__sockfd);
+        // if (__cb == nullptr)
+        //     close(this->__sockfd);
     }
 
     int GetSocket() const
@@ -68,10 +68,10 @@ public:
         }
     };
 
-    Result Send(const std::string& message, const sockaddr_type& sender_addr)
+    Result Send(std::string_view message, const sockaddr_type& sender_addr)
     {
         if (sendto(this->__sockfd,
-                message.c_str(),
+                message.data(),
                 message.size(),
                 0,
                 reinterpret_cast<sockaddr*>(

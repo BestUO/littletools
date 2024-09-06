@@ -10,57 +10,54 @@ public:
     // Generate a version 4 UUID
     static UUID gen()
     {
-        UUID r;
-        r.m_a = ((std::uint64_t)rand() << 31) | (std::uint64_t)rand();
-        r.m_b = ((std::uint64_t)rand() << 31) | (std::uint64_t)rand();
+        std::uint64_t hi
+            = ((std::uint64_t)rand() << 31) | (std::uint64_t)rand();
+        std::uint64_t lo
+            = ((std::uint64_t)rand() << 31) | (std::uint64_t)rand();
         const std::uint64_t t = rand();
-        r.m_a ^= (t << 62);
-        r.m_b ^= ((t >> 2) << 62);
-        r.m_b ^= static_cast<std::uint64_t>(
+        hi ^= (t << 62);
+        lo ^= ((t >> 2) << 62);
+        lo ^= static_cast<std::uint64_t>(
             std::hash<std::thread::id>{}(std::this_thread::get_id()));
-        return r;
+        return UUID{hi, lo};
     }
-
-    UUID() = default;
-    constexpr UUID(std::uint64_t a, std::uint64_t b)
-        : m_a(a)
-        , m_b(b)
-    { }
 
     bool operator==(const UUID& r) const
     {
-        return m_a == r.m_a && m_b == r.m_b;
+        return hi == r.hi && lo == r.lo;
     }
     bool operator!=(const UUID& r) const
     {
-        return m_a != r.m_a || m_b != r.m_b;
+        return hi != r.hi || lo != r.lo;
     }
     bool operator<(const UUID& r) const
     {
-        return m_a == r.m_a ? m_b < r.m_b : m_a < r.m_a;
+        return hi == r.hi ? lo < r.lo : hi < r.hi;
+    }
+    std::size_t operator()(const UUID& uuid) const
+    {
+        return hash();
     }
     std::string toString() const
     {
         char buf[64] = {0};
-        snprintf(buf, sizeof(buf), "%016" PRIx64 "-%016" PRIx64, m_a, m_b);
+        snprintf(buf, sizeof(buf), "%016" PRIx64 "-%016" PRIx64, hi, lo);
         return buf;
     }
     std::uint64_t hash() const
     {
-        return m_a ^ m_b;
+        return hi ^ lo;
     }
 
-    std::uint64_t hi64() const
+    std::uint64_t hi = 0;
+    std::uint64_t lo = 0;
+};
+
+template <>
+struct std::hash<UUID>
+{
+    std::size_t operator()(const UUID& uuid) const noexcept
     {
-        return m_a;
+        return uuid.hash();
     }
-
-    std::uint64_t lo64() const
-    {
-        return m_b;
-    }
-
-private:
-    std::uint64_t m_a = 0;
-    std::uint64_t m_b = 0;
 };

@@ -161,7 +161,7 @@ private:
 };
 }  // namespace v1
 
-inline namespace v2
+namespace v2
 {
 
 template <typename T>
@@ -308,7 +308,7 @@ private:
 
     void RunTimerManager()
     {
-        pthread_setname_np(pthread_self(), "ACCM-TimerManager");
+        pthread_setname_np(pthread_self(), "TimerManager");
         while (!__stop)
         {
             Wait();
@@ -411,7 +411,7 @@ private:
 };
 }  // namespace v2
 
-namespace v3
+inline namespace v3
 {
 template <typename T>
 class TimerManager
@@ -494,6 +494,7 @@ public:
         auto timer_queue(std::move(__timer_queue));
         lck.unlock();
         timer_queue.ExecuteAll([&](TimerElement* element) {
+            // element->SetCallBack(nullptr);
             timer_queue.DeleteObj((rb_node*)element);
             __key2element.erase(element->iter);
             ObjectPool<TimerElement>::GetInstance()->PutObject(element);
