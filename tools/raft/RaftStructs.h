@@ -64,7 +64,7 @@ struct RaftCommandType
         CommonInfo(MessageType m);
         CommonInfo(const char* buf, uint16_t size);
         std::string serialize();
-        void deserialize(const char* buf, uint16_t size);
+        uint16_t deserialize(const char* buf);
 
         constexpr static uint16_t size()
         {

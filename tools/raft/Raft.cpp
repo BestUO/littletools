@@ -70,11 +70,11 @@ std::string Raft::HandleData(const char* buf, uint16_t len)
     }
     else
     {
-        if (strcmp(buf + 8, RAFT_VERSION))
+        if (strcmp(buf + 4, RAFT_VERSION))
         {
             logOut((void*)this,
                 ": handleIncomingData: serializename ",
-                std::string(buf + 8, 15),
+                std::string(buf + 4, 15),
                 " != ",
                 RAFT_VERSION);
             return "";
@@ -83,7 +83,7 @@ std::string Raft::HandleData(const char* buf, uint16_t len)
         {
             std::string responsedata;
             RaftCommandType::MessageType type
-                = *(RaftCommandType::MessageType*)(buf + 4);
+                = *(RaftCommandType::MessageType*)(buf);
             type = RaftCommandType::MessageType(
                 EndianSwap<>::swap((uint16_t)type));
 

@@ -1,3 +1,4 @@
+#include <cstring>
 #include <iostream>
 #include <unistd.h>
 #include <memory>
@@ -7,9 +8,61 @@
 #include "tools/raft/Raft.h"
 #include "tools/network/network_manager.hpp"
 #include "tools/network/simple_poll.hpp"
+#include "tools/timermanager.hpp"
+
+TEST_CASE("Raft_struct_serialize_CommonInfo")
+{
+    RaftCommandType::CommonInfo a;
+    auto s = a.serialize();
+    RaftCommandType::CommonInfo b(s.data(), s.size());
+    CHECK(a.messageType == b.messageType);
+    CHECK(a.term == b.term);
+    CHECK(a.uuid == b.uuid);
+    CHECK(memcmp(a.version, b.version, 15) == 0);
+    CHECK(a.timestamp == b.timestamp);
+}
+
+TEST_CASE("Raft_struct_serialize_HeartBeat")
+{
+    RaftCommandType::HeartBeat a;
+    auto s = a.serialize();
+    RaftCommandType::HeartBeat b(s.data(), s.size());
+    CHECK(a.commonInfo.uuid == b.commonInfo.uuid);
+    CHECK(a.commonInfo.timestamp == b.commonInfo.timestamp);
+}
+
+TEST_CASE("Raft_struct_serialize_Vote")
+{
+    RaftCommandType::Vote a;
+    auto s = a.serialize();
+    RaftCommandType::Vote b(s.data(), s.size());
+    CHECK(a.commonInfo.uuid == b.commonInfo.uuid);
+    CHECK(a.commonInfo.timestamp == b.commonInfo.timestamp);
+}
+
+TEST_CASE("Raft_struct_serialize_VoteResponse")
+{
+    RaftCommandType::VoteResponse a;
+    a.voteGranted = true;
+    auto s        = a.serialize();
+    RaftCommandType::VoteResponse b(s.data(), s.size());
+    CHECK(a.commonInfo.uuid == b.commonInfo.uuid);
+    CHECK(a.commonInfo.timestamp == b.commonInfo.timestamp);
+    CHECK(a.voteGranted == b.voteGranted);
+}
+
+TEST_CASE("Raft_struct_serialize_VoteResult")
+{
+    RaftCommandType::VoteResult a;
+    auto s = a.serialize();
+    RaftCommandType::VoteResult b(s.data(), s.size());
+    CHECK(a.commonInfo.uuid == b.commonInfo.uuid);
+    CHECK(a.commonInfo.timestamp == b.commonInfo.timestamp);
+}
 
 TEST_CASE("Raft_1Node")
 {
+    timermanager::TimerManager<UUID>::GetInstance()->StartTimerManager();
     network::NetWorkManager<network::SimplePoll> network_manager;
     network_manager.Start();
 
@@ -23,10 +76,12 @@ TEST_CASE("Raft_1Node")
     sleep(1);
     CHECK(RaftInfos::Role::LEADER == raft.GetRole());
     network_manager.Stop();
+    timermanager::TimerManager<UUID>::GetInstance()->StopTimerManager();
 }
 
 TEST_CASE("Raft_10Nodes_group_size_10")
 {
+    timermanager::TimerManager<UUID>::GetInstance()->StartTimerManager();
     network::NetWorkManager<network::SimplePoll> network_manager;
     network_manager.Start();
     std::string multicastIP = "234.56.78.90";
@@ -64,10 +119,12 @@ TEST_CASE("Raft_10Nodes_group_size_10")
     CHECK(1 == leadernum);
     CHECK(num - 1 == fllowernum);
     network_manager.Stop();
+    timermanager::TimerManager<UUID>::GetInstance()->StopTimerManager();
 }
 
 TEST_CASE("Raft_10Nodes_group_size_1")
 {
+    timermanager::TimerManager<UUID>::GetInstance()->StartTimerManager();
     network::NetWorkManager<network::SimplePoll> network_manager;
     network_manager.Start();
     std::string multicastIP = "234.56.78.90";
@@ -101,10 +158,12 @@ TEST_CASE("Raft_10Nodes_group_size_1")
     CHECK(1 == leadernum);
     CHECK(num - 1 == fllowernum);
     network_manager.Stop();
+    timermanager::TimerManager<UUID>::GetInstance()->StopTimerManager();
 }
 
 TEST_CASE("Raft_addNode_in_runtime")
 {
+    timermanager::TimerManager<UUID>::GetInstance()->StartTimerManager();
     std::vector<std::shared_ptr<Raft>> rafts;
     network::NetWorkManager<network::SimplePoll> network_manager;
     network_manager.Start();
@@ -134,4 +193,5 @@ TEST_CASE("Raft_addNode_in_runtime")
     CHECK(1 == leadernum);
     CHECK(num - 1 == fllowernum);
     network_manager.Stop();
+    timermanager::TimerManager<UUID>::GetInstance()->StopTimerManager();
 }
