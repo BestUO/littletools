@@ -62,15 +62,9 @@ private:
         return Abnormal{ReliableUDPType::Abnormal, message_id}.serialize();
     }
 
-    void DealAbnormal(UUID message_id)
+    void EraseAssembler(UUID message_id)
     {
         __message_assemblers.erase(message_id);
-    }
-
-    void DealAbnormal(std::unordered_map<UUID,
-        MessageSpliter<SPLIT_COUNT, MAX_PAYLOAD_SIZE>>::iterator iter)
-    {
-        __message_assemblers.erase(iter);
     }
 
     std::string Recv(const char* data, size_t size, const sockaddr&)
@@ -94,10 +88,6 @@ private:
                 message_info.cell_info.cell_header,
                 message_info.message_offset,
                 cell_payload_ptr);
-            auto aaa = CellReceived{ReliableUDPType::CellReceived,
-                message_info.message_id,
-                message_info.cell_info.cell_header.cell_id}
-                           .serialize();
             if (is_cell_finish)
                 return CellReceived{ReliableUDPType::CellReceived,
                     message_info.message_id,
@@ -116,10 +106,8 @@ private:
                 auto payload = iter->second.GetPalyload();
                 __message_assemblers.erase(iter);
                 __cb(std::move(payload));
-                return std::string();
             }
-            else
-                return AbnormalMsg(send_ok.message_id);
+            return std::string();
         }
         else if (message_type == ReliableUDPType::CellTimeoutCheck)
         {
@@ -146,7 +134,8 @@ private:
         else if (message_type == ReliableUDPType::Abnormal)
         {
             Abnormal abnormal;
-            DealAbnormal(abnormal.message_id);
+            abnormal.deserialize(data, size);
+            EraseAssembler(abnormal.message_id);
             return std::string();
         }
         else

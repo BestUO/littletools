@@ -86,6 +86,8 @@ public:
                         },
                         std::chrono::milliseconds(TIMEOUT));
                 });
+            if (iter->second.IsFinished())
+                EraseSpliter(iter);
             return true;
         }
         else
@@ -142,35 +144,38 @@ private:
         __message_spliters;
     std::mutex __mutex;
 
-    std::string AbnormalMsg(UUID message_id)
-    {
-        return Abnormal{ReliableUDPType::Abnormal, message_id}.serialize();
-    }
-
-    void DealAbnormal(UUID message_id)
+    void EraseSpliter(UUID message_id)
     {
         std::lock_guard<std::mutex> lock(__mutex);
         if (auto iter = __message_spliters.find(message_id);
-            iter != __message_spliters.end())
+            iter != __message_spliters.end() && iter->second.IsFinished())
         {
             __flow_control->Increase(iter->second.GetLeftMsgSize());
             __message_spliters.erase(message_id);
         }
     }
 
-    void DealAbnormal(std::unordered_map<UUID,
+    void EraseSpliter(std::unordered_map<UUID,
         MessageSpliter<SPLIT_COUNT, MAX_PAYLOAD_SIZE>>::iterator iter)
     {
-        iter->second.DealWithSplitCell(
-            [](const MessageInfo& message_info) {
-                timermanager::TimerManager<UUID>::GetInstance()->DeleteAlarm(
-                    message_info.cell_info.cell_header.cell_id);
-            },
-            nullptr);
         std::lock_guard<std::mutex> lock(__mutex);
         __flow_control->Increase(iter->second.GetLeftMsgSize());
         __message_spliters.erase(iter);
     }
+
+    // void EraseSpliterAndDeleteAlarm(std::unordered_map<UUID,
+    //     MessageSpliter<SPLIT_COUNT, MAX_PAYLOAD_SIZE>>::iterator iter)
+    // {
+    //     iter->second.DealWithSplitCell(
+    //         [](const MessageInfo& message_info) {
+    //             timermanager::TimerManager<UUID>::GetInstance()->DeleteAlarm(
+    //                 message_info.cell_info.cell_header.cell_id);
+    //         },
+    //         nullptr);
+    //     std::lock_guard<std::mutex> lock(__mutex);
+    //     __flow_control->Increase(iter->second.GetLeftMsgSize());
+    //     __message_spliters.erase(iter);
+    // }
 
     std::string Recv(const char* data, size_t size, const sockaddr&)
     {
@@ -187,24 +192,25 @@ private:
             }
             if (iter != __message_spliters.end())
             {
-                auto& spliter = iter->second;
                 timermanager::TimerManager<UUID>::GetInstance()->DeleteAlarm(
                     cell_ack.cell_id);
-                spliter.Remove(cell_ack.cell_id);
-                __flow_control->Increase(spliter.GetCellSize(cell_ack.cell_id));
-                if (!spliter.IsAllRecved())
+                iter->second.Remove(cell_ack.cell_id);
+                __flow_control->Increase(
+                    iter->second.GetCellSize(cell_ack.cell_id));
+                if (!iter->second.IsAllRecved())
                     return std::string();
                 else
                 {
-                    std::lock_guard<std::mutex> lock(__mutex);
-                    __message_spliters.erase(iter);
+                    if (iter->second.IsFinished())
+                        EraseSpliter(iter);
                     return MessageSendOK{
                         ReliableUDPType::MessageSendOK, cell_ack.message_id}
                         .serialize();
                 }
             }
             else
-                return AbnormalMsg(cell_ack.message_id);
+                return Abnormal{ReliableUDPType::Abnormal, cell_ack.message_id}
+                    .serialize();
         }
         else if (message_type == ReliableUDPType::CellTimeoutResponse)
         {
@@ -220,31 +226,24 @@ private:
             if (iter != __message_spliters.end())
             {
                 auto& spliter = iter->second;
-                bool flag     = false;
                 spliter.Resend(cell_timeout_response.cell_id,
                     cell_timeout_response.cell_loss_index,
-                    [this, &flag, addr = spliter.GetAddr()](
+                    [this, addr = spliter.GetAddr()](
                         MessageInfo& message_info) {
-                        flag = true;
                         __endpoint->Send(message_info.serialize(), addr);
                     });
-                if (flag)
-                    return std::string();
-                else
-                {
-                    __flow_control->Increase(
-                        spliter.GetCellSize(cell_timeout_response.cell_id));
-                    DealAbnormal(iter);
-                    return AbnormalMsg(cell_timeout_response.message_id);
-                }
+                return std::string();
             }
             else
-                return AbnormalMsg(cell_timeout_response.message_id);
+                return Abnormal{
+                    ReliableUDPType::Abnormal, cell_timeout_response.message_id}
+                    .serialize();
         }
         else if (message_type == ReliableUDPType::Abnormal)
         {
             Abnormal abnormal;
-            DealAbnormal(abnormal.message_id);
+            abnormal.deserialize(data, size);
+            EraseSpliter(abnormal.message_id);
             return std::string();
         }
         else

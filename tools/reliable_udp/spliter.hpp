@@ -1,4 +1,5 @@
 #pragma once
+#include <atomic>
 #include <cstdint>
 #include <functional>
 #include <netinet/in.h>
@@ -109,7 +110,7 @@ public:
             + (__payload.size() % (MAX_PAYLOAD_SIZE * MAX_SPLIT_COUNT) == 0
                     ? 0
                     : 1);
-        Split();
+        // Split();
     }
 
     MessageSpliter(MessageSpliter&& message_split)
@@ -145,9 +146,7 @@ public:
     {
         auto iter = __cells.find(cell_id);
         if (iter != __cells.end())
-        {
             iter->second.Resend(loss_index, f);
-        }
     }
 
     bool IsAllRecved()
@@ -174,6 +173,11 @@ public:
         return __payload.size();
     }
 
+    bool IsFinished()
+    {
+        return __is_finished.exchange(true);
+    }
+
     ////////// only for test //////////
 public:
     void AddForTest(SplitCellType&& split_cell)
@@ -195,6 +199,7 @@ private:
     std::set<UUID> __loss_cells;
     UUID __message_id;
     sockaddr_in __addr;
+    std::atomic_bool __is_finished{false};
 
     void Split()
     {

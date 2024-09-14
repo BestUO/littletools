@@ -68,30 +68,31 @@ TEST_CASE("ReliableUDP_MessageSpliter")
         std::move(message),
         UUID::gen(),
         network::SocketBase::CreateAddr("127.0.0.1", 0));
-    int a = 0;
-    message_split.DealWithSplitCell(
+    auto message_split_move = std::move(message_split);
+    int a                   = 0;
+    message_split_move.DealWithSplitCell(
         [&a](MessageInfo) {
             a++;
         },
         nullptr);
     CHECK(a == 9);
-    CHECK(message_split.GetSplitCellSizeForTest() == 2);
+    CHECK(message_split_move.GetSplitCellSizeForTest() == 2);
 
     a            = 0;
     auto cell_id = UUID::gen();
-    message_split.AddForTest(SplitCell<MAX_SPLIT_COUNT, MAX_PAYLOAD_SIZE>(
+    message_split_move.AddForTest(SplitCell<MAX_SPLIT_COUNT, MAX_PAYLOAD_SIZE>(
         "abcd", UUID::gen(), 5, 0, cell_id));
-    message_split.DealWithSplitCell(
+    message_split_move.DealWithSplitCell(
         [&a](MessageInfo) {
             a++;
         },
         nullptr);
     CHECK(a == 13);
-    CHECK(message_split.GetSplitCellSizeForTest() == 3);
+    CHECK(message_split_move.GetSplitCellSizeForTest() == 3);
 
     a = 0;
-    message_split.Remove(cell_id);
-    CHECK(message_split.GetSplitCellSizeForTest() == 2);
+    message_split_move.Remove(cell_id);
+    CHECK(message_split_move.GetSplitCellSizeForTest() == 2);
 }
 
 TEST_CASE("ReliableUDP_FlowControl")
@@ -314,7 +315,10 @@ TEST_CASE("ReliableUDP_large_msg_send_lost_partition")
     timermanager::TimerManager<UUID>::GetInstance()->StopTimerManager();
 }
 
-TEST_CASE("ReliableUDP_large_msg_send_bench error to fix" * doctest::skip())
+TEST_CASE("test" * doctest::skip())
+{ }
+
+TEST_CASE("ReliableUDP_large_msg_send_bench")
 {
     // GetLeftMsgSize 改为剩余cell的大小
     // CellReceived 删除iter异常
@@ -347,8 +351,8 @@ TEST_CASE("ReliableUDP_large_msg_send_bench error to fix" * doctest::skip())
         send_count++;
     }
     sleep(1);
-    std::cout << "send 8M msg for 10s, send_num: " << send_count
-              << " recv_num: " << recv_count << std::endl;
+    std::cout << "send 8M msg for 10s, send_num/ps: " << send_count / 10
+              << " recv_num/ps: " << recv_count / 10 << std::endl;
     network::NetWorkManager<network::SimpleEpoll>::GetInstance()->Stop();
     timermanager::TimerManager<UUID>::GetInstance()->StopTimerManager();
 }

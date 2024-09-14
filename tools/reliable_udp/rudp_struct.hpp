@@ -211,7 +211,7 @@ struct Abnormal
         return context;
     }
 
-    void deserialize(const char* buf, uint16_t size, char* ptr)
+    void deserialize(const char* buf, uint16_t size)
     {
         uint16_t offset = 0;
         readBuffer(buf, offset, type);

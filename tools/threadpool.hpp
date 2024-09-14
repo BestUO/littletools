@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+#include <list>
 #include <type_traits>
 #include <vector>
 #include <queue>
@@ -350,4 +352,80 @@ private:
     }
 };
 }  // namespace v2
+
+namespace v3
+{
+template <typename T>
+class Worker
+{
+public:
+    void Put(T&& t)
+    {
+        std::lock_guard<std::mutex> lock(__mutex);
+        __vector.emplace_back(std::move(t));
+        __cond.notify_one();
+    }
+
+    std::vector<T> Get()
+    {
+        std::unique_lock<std::mutex> lock(__mutex);
+        __cond.wait(lock);
+        return std::move(__vector);
+    }
+
+    void Stop()
+    {
+        std::lock_guard<std::mutex> lock(__mutex);
+        __cond.notify_one();
+    }
+
+private:
+    std::mutex __mutex;
+    std::condition_variable __cond;
+    std::vector<T> __vector;
+};
+
+template <typename T>
+class ThreadPoll
+{
+public:
+    void Put(uint64_t hash, T&& t)
+    {
+        __workers[hash % __workers.size()]->Put(std::move(t));
+    }
+
+    void Start(uint8_t threadnum, std::function<void(T&&)> func)
+    {
+        __stop = false;
+        for (uint8_t i = 0; i < threadnum; ++i)
+        {
+            auto worker = std::make_shared<Worker<T>>();
+            __workers.emplace_back(worker);
+            __threads.emplace_back([this, worker, func] {
+                while (!__stop)
+                {
+                    auto elements = worker->Get();
+                    for (auto& element : elements)
+                        func(std::move(element));
+                }
+            });
+        }
+    }
+
+    void Stop()
+    {
+        __stop = true;
+        for (auto& worker : __workers)
+            worker->Stop();
+        for (auto& thread : __threads)
+            thread.join();
+    }
+
+private:
+    bool __stop = true;
+    std::vector<std::thread> __threads;
+    std::vector<std::shared_ptr<Worker<T>>> __workers;
+};
+
+};  // namespace v3
 }  // namespace threadpool
