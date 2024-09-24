@@ -10,7 +10,7 @@ enum class ReliableUDPType : uint8_t
 {
     CellSend,
     CellReceived,
-    MessageSendOK,
+    MessageFinished,
     CellTimeoutCheck,
     CellTimeoutResponse,
     Abnormal,
@@ -19,31 +19,41 @@ enum class ReliableUDPType : uint8_t
 struct CellInfoHeader
 {
     UUID cell_id;
-    uint32_t cell_current_index;
-    uint64_t cell_offset;
-    uint32_t cell_total_count;
-    uint32_t cell_payload_size;
+    uint8_t cell_current_index;
+    uint16_t cell_offset;
+    uint16_t cell_total_count;
 
-    std::string serialize()
+    std::string serialize() const
     {
-        std::string context;
-        writeBuffer(cell_id, sizeof(cell_id), context);
-        writeBuffer(cell_current_index, sizeof(cell_current_index), context);
-        writeBuffer(cell_offset, sizeof(cell_offset), context);
-        writeBuffer(cell_total_count, sizeof(cell_total_count), context);
-        writeBuffer(cell_payload_size, sizeof(cell_payload_size), context);
-
+        std::string context(CalculateSize(), '\0');
+        serialize(context.data());
         return context;
     }
 
-    void deserialize(const char* buf, uint16_t size)
+    char* serialize(char* buf) const
+    {
+        buf = writeBuffer(cell_id, buf);
+        buf = writeBuffer(cell_current_index, buf);
+        buf = writeBuffer(cell_offset, buf);
+        buf = writeBuffer(cell_total_count, buf);
+
+        return buf;
+    }
+
+    uint16_t deserialize(const char* buf)
     {
         uint16_t offset = 0;
         readBuffer(buf, offset, cell_id);
         readBuffer(buf, offset, cell_current_index);
         readBuffer(buf, offset, cell_offset);
         readBuffer(buf, offset, cell_total_count);
-        readBuffer(buf, offset, cell_payload_size);
+        return offset;
+    }
+
+    uint16_t CalculateSize() const
+    {
+        return ::CalculateSize(cell_id) + ::CalculateSize(cell_current_index)
+            + ::CalculateSize(cell_offset) + ::CalculateSize(cell_total_count);
     }
 };
 
@@ -52,20 +62,31 @@ struct CellInfo
     CellInfoHeader cell_header;
     std::string_view cell_payload;
 
-    std::string serialize()
+    std::string serialize() const
     {
-        std::string context;
-        writeBuffer(cell_header, sizeof(cell_header), context);
-        writeBuffer(cell_payload, sizeof(cell_payload), context);
-
+        std::string context(CalculateSize(), '\0');
+        serialize(context.data());
         return context;
     }
 
-    char* deserialize(const char* buf, uint16_t size)
+    char* serialize(char* buf) const
+    {
+        buf = writeBuffer(cell_header, buf);
+        buf = writeBuffer(cell_payload, buf);
+
+        return buf;
+    }
+
+    uint16_t deserialize(const char* buf)
     {
         uint16_t offset = 0;
         readBuffer(buf, offset, cell_header);
-        return const_cast<char*>(buf) + offset + 2;
+        return offset;
+    }
+
+    uint16_t CalculateSize() const
+    {
+        return ::CalculateSize(cell_header) + ::CalculateSize(cell_payload);
     }
 };
 
@@ -77,19 +98,25 @@ struct MessageInfo
     uint64_t message_offset;
     CellInfo cell_info;
 
-    std::string serialize()
+    std::string serialize() const
     {
-        std::string context;
-        writeBuffer(type, sizeof(type), context);
-        writeBuffer(message_id, sizeof(message_id), context);
-        writeBuffer(message_size, sizeof(message_size), context);
-        writeBuffer(message_offset, sizeof(message_offset), context);
-        writeBuffer(cell_info, sizeof(cell_info), context);
-
+        std::string context(CalculateSize(), '\0');
+        serialize(context.data());
         return context;
     }
 
-    char* deserialize(const char* buf, uint16_t size)
+    char* serialize(char* buf) const
+    {
+        buf = writeBuffer(type, buf);
+        buf = writeBuffer(message_id, buf);
+        buf = writeBuffer(message_size, buf);
+        buf = writeBuffer(message_offset, buf);
+        buf = writeBuffer(cell_info, buf);
+
+        return buf;
+    }
+
+    uint16_t deserialize(const char* buf)
     {
         uint16_t offset = 0;
         readBuffer(buf, offset, type);
@@ -97,7 +124,14 @@ struct MessageInfo
         readBuffer(buf, offset, message_size);
         readBuffer(buf, offset, message_offset);
         // readBuffer(buf, offset, cell_info);
-        return cell_info.deserialize(buf + offset + 2, 0);
+        return offset + cell_info.deserialize(buf + offset);
+    }
+
+    uint16_t CalculateSize() const
+    {
+        return ::CalculateSize(type) + ::CalculateSize(message_id)
+            + ::CalculateSize(message_size) + ::CalculateSize(message_offset)
+            + ::CalculateSize(cell_info);
     }
 };
 
@@ -106,44 +140,89 @@ struct CellReceived
     ReliableUDPType type = ReliableUDPType::CellReceived;
     UUID message_id;
     UUID cell_id;
-
-    std::string serialize()
+    CellReceived(const char* data)
     {
-        std::string context;
-        writeBuffer(type, sizeof(type), context);
-        writeBuffer(message_id, sizeof(message_id), context);
-        writeBuffer(cell_id, sizeof(cell_id), context);
-
+        deserialize(data);
+    }
+    CellReceived(ReliableUDPType type,
+        const UUID& message_id,
+        const UUID& cell_id)
+        : type(type)
+        , message_id(message_id)
+        , cell_id(cell_id)
+    { }
+    // GEN_SERIALIZE(type, message_id, cell_id)
+    std::string serialize() const
+    {
+        std::string context(CalculateSize(), '\0');
+        serialize(context.data());
         return context;
     }
 
-    void deserialize(const char* buf, uint16_t size)
+    char* serialize(char* buf) const
+    {
+        buf = writeBuffer(type, buf);
+        buf = writeBuffer(message_id, buf);
+        buf = writeBuffer(cell_id, buf);
+
+        return buf;
+    }
+
+    uint16_t deserialize(const char* buf)
     {
         uint16_t offset = 0;
         readBuffer(buf, offset, type);
         readBuffer(buf, offset, message_id);
         readBuffer(buf, offset, cell_id);
+        return offset;
+    }
+
+    uint16_t CalculateSize() const
+    {
+        return ::CalculateSize(type) + ::CalculateSize(message_id)
+            + ::CalculateSize(cell_id);
     }
 };
 
-struct MessageSendOK
+struct MessageFinished
 {
-    ReliableUDPType type = ReliableUDPType::MessageSendOK;
+    ReliableUDPType type = ReliableUDPType::MessageFinished;
     UUID message_id;
-    std::string serialize()
+    MessageFinished(const char* data)
     {
-        std::string context;
-        writeBuffer(type, sizeof(type), context);
-        writeBuffer(message_id, sizeof(message_id), context);
-
+        deserialize(data);
+    }
+    MessageFinished(ReliableUDPType type, const UUID& message_id)
+        : type(type)
+        , message_id(message_id)
+    { }
+    // GEN_SERIALIZE(type, message_id)
+    std::string serialize() const
+    {
+        std::string context(CalculateSize(), '\0');
+        serialize(context.data());
         return context;
     }
 
-    void deserialize(const char* buf, uint16_t size)
+    char* serialize(char* buf) const
+    {
+        buf = writeBuffer(type, buf);
+        buf = writeBuffer(message_id, buf);
+
+        return buf;
+    }
+
+    uint16_t deserialize(const char* buf)
     {
         uint16_t offset = 0;
         readBuffer(buf, offset, type);
         readBuffer(buf, offset, message_id);
+        return offset;
+    }
+
+    uint16_t CalculateSize() const
+    {
+        return ::CalculateSize(type) + ::CalculateSize(message_id);
     }
 };
 
@@ -152,22 +231,47 @@ struct CellTimeoutCheck
     ReliableUDPType type = ReliableUDPType::CellTimeoutCheck;
     UUID message_id;
     UUID cell_id;
-    std::string serialize()
+    CellTimeoutCheck(const char* data)
     {
-        std::string context;
-        writeBuffer(type, sizeof(type), context);
-        writeBuffer(message_id, sizeof(message_id), context);
-        writeBuffer(cell_id, sizeof(cell_id), context);
-
+        deserialize(data);
+    }
+    CellTimeoutCheck(ReliableUDPType type,
+        const UUID& message_id,
+        const UUID& cell_id)
+        : type(type)
+        , message_id(message_id)
+        , cell_id(cell_id)
+    { }
+    // GEN_SERIALIZE(type, message_id, cell_id)
+    std::string serialize() const
+    {
+        std::string context(CalculateSize(), '\0');
+        serialize(context.data());
         return context;
     }
 
-    void deserialize(const char* buf, uint16_t size)
+    char* serialize(char* buf) const
+    {
+        buf = writeBuffer(type, buf);
+        buf = writeBuffer(message_id, buf);
+        buf = writeBuffer(cell_id, buf);
+
+        return buf;
+    }
+
+    uint16_t deserialize(const char* buf)
     {
         uint16_t offset = 0;
         readBuffer(buf, offset, type);
         readBuffer(buf, offset, message_id);
         readBuffer(buf, offset, cell_id);
+        return offset;
+    }
+
+    uint16_t CalculateSize() const
+    {
+        return ::CalculateSize(type) + ::CalculateSize(message_id)
+            + ::CalculateSize(cell_id);
     }
 };
 
@@ -177,44 +281,49 @@ struct CellTimeoutResponse
     UUID message_id;
     UUID cell_id;
     std::vector<uint8_t> cell_loss_index;
-    std::string serialize()
+    CellTimeoutResponse(const char* data)
     {
-        std::string context;
-        writeBuffer(type, sizeof(type), context);
-        writeBuffer(message_id, sizeof(message_id), context);
-        writeBuffer(cell_id, sizeof(cell_id), context);
-        writeBuffer(cell_loss_index, cell_loss_index.size(), context);
-
+        deserialize(data);
+    }
+    CellTimeoutResponse(ReliableUDPType type,
+        const UUID& message_id,
+        const UUID& cell_id,
+        std::vector<uint8_t>&& cell_loss_index)
+        : type(type)
+        , message_id(message_id)
+        , cell_id(cell_id)
+        , cell_loss_index(std::move(cell_loss_index))
+    { }
+    // GEN_SERIALIZE(type, message_id, cell_id, cell_loss_index)
+    std::string serialize() const
+    {
+        std::string context(CalculateSize(), '\0');
+        serialize(context.data());
         return context;
     }
 
-    void deserialize(const char* buf, uint16_t size)
+    char* serialize(char* buf) const
+    {
+        buf = writeBuffer(type, buf);
+        buf = writeBuffer(message_id, buf);
+        buf = writeBuffer(cell_id, buf);
+        buf = writeBuffer(cell_loss_index, buf);
+        return buf;
+    }
+
+    uint16_t deserialize(const char* buf)
     {
         uint16_t offset = 0;
         readBuffer(buf, offset, type);
         readBuffer(buf, offset, message_id);
         readBuffer(buf, offset, cell_id);
         readBuffer(buf, offset, cell_loss_index);
-    }
-};
-
-struct Abnormal
-{
-    ReliableUDPType type = ReliableUDPType::Abnormal;
-    UUID message_id;
-    std::string serialize()
-    {
-        std::string context;
-        writeBuffer(type, sizeof(type), context);
-        writeBuffer(message_id, sizeof(message_id), context);
-
-        return context;
+        return offset;
     }
 
-    void deserialize(const char* buf, uint16_t size)
+    uint16_t CalculateSize() const
     {
-        uint16_t offset = 0;
-        readBuffer(buf, offset, type);
-        readBuffer(buf, offset, message_id);
+        return ::CalculateSize(type) + ::CalculateSize(message_id)
+            + ::CalculateSize(cell_id) + ::CalculateSize(cell_loss_index);
     }
 };

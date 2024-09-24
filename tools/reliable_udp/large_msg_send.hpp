@@ -2,7 +2,7 @@
 
 #include <cstdint>
 #include <functional>
-#include <memory>
+#include <shared_mutex>
 #include <unordered_map>
 #include <array>
 #include "tools/network/simple_epoll.hpp"
@@ -53,22 +53,23 @@ public:
         if (message.size() <= MAX_PAYLOAD_SIZE * SPLIT_COUNT * 1024)
         {
             UUID msg_id = UUID::gen();
-            typename std::unordered_map<UUID,
-                MessageSpliter<SPLIT_COUNT, MAX_PAYLOAD_SIZE>>::iterator iter;
+            typename std::unordered_map<UUID, MAP_VALUE_TYPE>::iterator iter;
+            MessageSpliter<SPLIT_COUNT, MAX_PAYLOAD_SIZE>* spliter_ptr
+                = ObjectPool<MessageSpliter<SPLIT_COUNT,
+                    MAX_PAYLOAD_SIZE>>::GetInstance()
+                      ->GetObject(message.data(), msg_id, addr);
             {
-                std::lock_guard<std::mutex> lock(__mutex);
-                iter = __message_spliters
-                           .emplace(msg_id,
-                               MessageSpliter<SPLIT_COUNT, MAX_PAYLOAD_SIZE>(
-                                   message.data(), msg_id, addr))
-                           .first;
+                std::unique_lock<std::shared_mutex> lock(__mutex);
+                iter = __message_spliters.emplace(msg_id, spliter_ptr).first;
             }
-            iter->second.DealWithSplitCell(
+            spliter_ptr->DealWithSplitCell(
                 [this, addr](MessageInfo& message_info) {
-                    auto msg = std::move(message_info.serialize());
-                    if (__endpoint->Send(message_info.serialize(), addr)
-                        == network::Result::SUCCESS)
+                    std::string msg(message_info.CalculateSize(), '\0');
+                    message_info.serialize(msg.data());
+                    if (__endpoint->Send(msg, addr) == network::Result::SUCCESS)
+                    {
                         __flow_control->Wait(msg.size());
+                    }
                 },
                 [this](UUID message_id, UUID cell_id, sockaddr_in addr) {
                     timermanager::TimerManager<UUID>::GetInstance()->AddAlarm(
@@ -86,8 +87,10 @@ public:
                         },
                         std::chrono::milliseconds(TIMEOUT));
                 });
-            if (iter->second.IsFinished())
+
+            if (spliter_ptr->IsFinished())
                 EraseSpliter(iter);
+
             return true;
         }
         else
@@ -99,151 +102,129 @@ public:  // only for test
         const sockaddr_in& addr,
         uint32_t lost_index)
     {
-        if (message.size() <= MAX_PAYLOAD_SIZE * SPLIT_COUNT * 1024)
-        {
-            UUID msg_id = UUID::gen();
-            auto iter   = __message_spliters.emplace(msg_id,
-                MessageSpliter<SPLIT_COUNT, MAX_PAYLOAD_SIZE>(
-                    message.data(), msg_id, addr));
-            iter.first->second.DealWithSplitCell(
-                [this, addr, lost_index](MessageInfo& message_info) {
-                    auto msg = std::move(message_info.serialize());
-                    if (message_info.cell_info.cell_header.cell_current_index
-                            != lost_index
-                        && __endpoint->Send(message_info.serialize(), addr)
-                            == network::Result::SUCCESS)
-                        __flow_control->Wait(msg.size());
-                },
-                [this](UUID message_id, UUID cell_id, sockaddr_in addr) {
-                    timermanager::TimerManager<UUID>::GetInstance()->AddAlarm(
-                        std::chrono::milliseconds(TIMEOUT),
-                        cell_id,
-                        std::string(),
-                        [this, message_id, cell_id, addr]() {
-                            __endpoint->Send(
-                                CellTimeoutCheck{
-                                    ReliableUDPType::CellTimeoutCheck,
-                                    message_id,
-                                    cell_id}
-                                    .serialize(),
-                                addr);
-                        },
-                        std::chrono::milliseconds(TIMEOUT));
-                });
-            return true;
-        }
-        else
-            return false;
+        // if (message.size() <= MAX_PAYLOAD_SIZE * SPLIT_COUNT * 1024)
+        // {
+        //     UUID msg_id = UUID::gen();
+        //     auto iter   = __message_spliters.emplace(msg_id,
+        //         MessageSpliter<SPLIT_COUNT, MAX_PAYLOAD_SIZE>(
+        //             message.data(), msg_id, addr));
+        //     iter.first->second.DealWithSplitCell(
+        //         [this, addr, lost_index](MessageInfo& message_info) {
+        //             auto msg = std::move(message_info.serialize());
+        //             if (message_info.cell_info.cell_header.cell_current_index
+        //                     != lost_index
+        //                 && __endpoint->Send(message_info.serialize(), addr)
+        //                     == network::Result::SUCCESS)
+        //                 __flow_control->Wait(msg.size());
+        //         },
+        //         [this](UUID message_id, UUID cell_id, sockaddr_in addr) {
+        //             timermanager::TimerManager<UUID>::GetInstance()->AddAlarm(
+        //                 std::chrono::milliseconds(TIMEOUT),
+        //                 cell_id,
+        //                 std::string(),
+        //                 [this, message_id, cell_id, addr]() {
+        //                     __endpoint->Send(
+        //                         CellTimeoutCheck{
+        //                             ReliableUDPType::CellTimeoutCheck,
+        //                             message_id,
+        //                             cell_id}
+        //                             .serialize(),
+        //                         addr);
+        //                 },
+        //                 std::chrono::milliseconds(TIMEOUT));
+        //         });
+        //     return true;
+        // }
+        // else
+        return false;
     };
 
 private:
+    using MAP_VALUE_TYPE = MessageSpliter<SPLIT_COUNT, MAX_PAYLOAD_SIZE>*;
     std::shared_ptr<network::inet_udp::UDP> __endpoint;
     std::shared_ptr<FlowControl<SPLIT_COUNT * MAX_PAYLOAD_SIZE, BAND_WIDTH>>
         __flow_control;
-    std::unordered_map<UUID, MessageSpliter<SPLIT_COUNT, MAX_PAYLOAD_SIZE>>
-        __message_spliters;
-    std::mutex __mutex;
+    std::unordered_map<UUID, MAP_VALUE_TYPE> __message_spliters;
+    std::shared_mutex __mutex;
 
-    void EraseSpliter(UUID message_id)
+    void EraseSpliter(std::unordered_map<UUID, MAP_VALUE_TYPE>::iterator iter)
     {
-        std::lock_guard<std::mutex> lock(__mutex);
-        if (auto iter = __message_spliters.find(message_id);
-            iter != __message_spliters.end() && iter->second.IsFinished())
-        {
-            __flow_control->Increase(iter->second.GetLeftMsgSize());
-            __message_spliters.erase(message_id);
-        }
-    }
 
-    void EraseSpliter(std::unordered_map<UUID,
-        MessageSpliter<SPLIT_COUNT, MAX_PAYLOAD_SIZE>>::iterator iter)
-    {
-        std::lock_guard<std::mutex> lock(__mutex);
-        __flow_control->Increase(iter->second.GetLeftMsgSize());
+        __flow_control->Increase(iter->second->GetPayloadSize());
+        ObjectPool<MessageSpliter<SPLIT_COUNT, MAX_PAYLOAD_SIZE>>::GetInstance()
+            ->PutObject(iter->second);
+        std::unique_lock<std::shared_mutex> lock(__mutex);
         __message_spliters.erase(iter);
     }
 
-    // void EraseSpliterAndDeleteAlarm(std::unordered_map<UUID,
-    //     MessageSpliter<SPLIT_COUNT, MAX_PAYLOAD_SIZE>>::iterator iter)
-    // {
-    //     iter->second.DealWithSplitCell(
-    //         [](const MessageInfo& message_info) {
-    //             timermanager::TimerManager<UUID>::GetInstance()->DeleteAlarm(
-    //                 message_info.cell_info.cell_header.cell_id);
-    //         },
-    //         nullptr);
-    //     std::lock_guard<std::mutex> lock(__mutex);
-    //     __flow_control->Increase(iter->second.GetLeftMsgSize());
-    //     __message_spliters.erase(iter);
-    // }
-
     std::string Recv(const char* data, size_t size, const sockaddr&)
     {
-        ReliableUDPType message_type = *(ReliableUDPType*)(data + 2);
+        ReliableUDPType message_type = *(ReliableUDPType*)data;
         if (message_type == ReliableUDPType::CellReceived)
         {
-            CellReceived cell_ack;
-            cell_ack.deserialize(data, size);
-            typename std::unordered_map<UUID,
-                MessageSpliter<SPLIT_COUNT, MAX_PAYLOAD_SIZE>>::iterator iter;
+            // UUID* message_id = (UUID*)(data + 1);
+            // auto amessage_id = EndianSwap<>::swap(*message_id);
+            // return MessageFinished{
+            //     ReliableUDPType::MessageFinished, amessage_id}
+            //     .serialize();
+            // UUID message_id = EndianSwap<>::swap(*(UUID*)(data + 1));
+            // UUID cell_id    = EndianSwap<>::swap(*(UUID*)(data + 17));
+            CellReceived cell_received(data);
+            typename std::unordered_map<UUID, MAP_VALUE_TYPE>::iterator iter;
             {
-                std::lock_guard<std::mutex> lock(__mutex);
-                iter = __message_spliters.find(cell_ack.message_id);
+                std::shared_lock<std::shared_mutex> lock(__mutex);
+                iter = __message_spliters.find(cell_received.message_id);
             }
             if (iter != __message_spliters.end())
             {
                 timermanager::TimerManager<UUID>::GetInstance()->DeleteAlarm(
-                    cell_ack.cell_id);
-                iter->second.Remove(cell_ack.cell_id);
-                __flow_control->Increase(
-                    iter->second.GetCellSize(cell_ack.cell_id));
-                if (!iter->second.IsAllRecved())
+                    cell_received.cell_id);
+                iter->second->Remove(cell_received.cell_id);
+                if (!iter->second->IsAllRecved())
                     return std::string();
                 else
                 {
-                    if (iter->second.IsFinished())
+                    if (iter->second->IsFinished())
                         EraseSpliter(iter);
-                    return MessageSendOK{
-                        ReliableUDPType::MessageSendOK, cell_ack.message_id}
+                    return MessageFinished{ReliableUDPType::MessageFinished,
+                        cell_received.message_id}
                         .serialize();
                 }
             }
             else
-                return Abnormal{ReliableUDPType::Abnormal, cell_ack.message_id}
+                return MessageFinished{
+                    ReliableUDPType::Abnormal, cell_received.message_id}
                     .serialize();
         }
         else if (message_type == ReliableUDPType::CellTimeoutResponse)
         {
-            CellTimeoutResponse cell_timeout_response;
-            cell_timeout_response.deserialize(data, size);
-            typename std::unordered_map<UUID,
-                MessageSpliter<SPLIT_COUNT, MAX_PAYLOAD_SIZE>>::iterator iter;
+            CellTimeoutResponse cell_timeout_response(data);
+            typename std::unordered_map<UUID, MAP_VALUE_TYPE>::iterator iter;
             {
-                std::lock_guard<std::mutex> lock(__mutex);
+                std::shared_lock<std::shared_mutex> lock(__mutex);
                 iter
                     = __message_spliters.find(cell_timeout_response.message_id);
             }
             if (iter != __message_spliters.end())
             {
-                auto& spliter = iter->second;
-                spliter.Resend(cell_timeout_response.cell_id,
+                iter->second->Resend(cell_timeout_response.cell_id,
                     cell_timeout_response.cell_loss_index,
-                    [this, addr = spliter.GetAddr()](
+                    [this, addr = iter->second->GetAddr()](
                         MessageInfo& message_info) {
-                        __endpoint->Send(message_info.serialize(), addr);
+                        std::string msg(message_info.CalculateSize(), '\0');
+                        message_info.serialize(msg.data());
+                        __endpoint->Send(msg, addr);
                     });
                 return std::string();
             }
             else
-                return Abnormal{
+                return MessageFinished{
                     ReliableUDPType::Abnormal, cell_timeout_response.message_id}
                     .serialize();
         }
         else if (message_type == ReliableUDPType::Abnormal)
         {
-            Abnormal abnormal;
-            abnormal.deserialize(data, size);
-            EraseSpliter(abnormal.message_id);
+            MessageFinished abnormal(data);
             return std::string();
         }
         else

@@ -448,9 +448,15 @@ public:
                 interval);
 
             std::lock_guard<std::mutex> lck(__mutex);
+            auto [flag, timepoint] = __timer_queue.GetTopObjIf(
+                std::function<TIMETYPE::time_point(const TimerElement*)>(
+                    [](const TimerElement* e) -> TIMETYPE::time_point {
+                        return e->alarm;
+                    }));
             element->iter = __key2element.emplace(key, element);
             __timer_queue.AddObj(element);
-            __cv.notify_one();
+            if (flag && element->alarm < timepoint)
+                __cv.notify_one();
         }
     }
 
@@ -538,6 +544,16 @@ private:
             , additional(std::move(_additional))
             , interval(_interval)
         { }
+        // TimerElement(TimerElement&& element)
+        //     : rbnode(element.rbnode)
+        //     , iter(element.iter)
+        //     , alarm(element.alarm)
+        //     , fun(std::move(element.fun))
+        //     , key(std::move(element.key))
+        //     , additional(std::move(element.additional))
+        //     , interval(element.interval)
+        // { }
+
         ~TimerElement()
         {
             SetCallBack(nullptr);

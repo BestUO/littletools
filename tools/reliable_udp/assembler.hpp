@@ -34,12 +34,11 @@ public:
     };
 
     bool DealWithCellMessage(const char* src,
-        const CellInfoHeader& cell_info_header)
+        const CellInfoHeader& cell_info_header,
+        uint16_t len)
     {
         __collect |= 1 << cell_info_header.cell_current_index;
-        memcpy(__dst + cell_info_header.cell_offset,
-            src,
-            cell_info_header.cell_payload_size);
+        memcpy(__dst + cell_info_header.cell_offset, src, len);
         return __collect == std::numeric_limits<collect_type>::max();
     }
 
@@ -115,7 +114,8 @@ public:
 
     bool DealWithCellMessage(const CellInfoHeader& cell_info_header,
         uint64_t message_offset,
-        const char* src)
+        const char* src,
+        uint16_t len)
     {
         if (__message_map.find(cell_info_header.cell_id) == __message_map.end())
         {
@@ -127,7 +127,7 @@ public:
         if (auto iter = __message_map.find(cell_info_header.cell_id);
             iter != __message_map.end())
         {
-            if (iter->second.DealWithCellMessage(src, cell_info_header))
+            if (iter->second.DealWithCellMessage(src, cell_info_header, len))
                 return true;
         }
         return false;

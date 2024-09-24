@@ -29,7 +29,7 @@ public:
 
     bool getLogFlag()
     {
-        auto env = getenv("ACFW_CM_CONSOLE_LOG");
+        auto env = getenv("CONSOLE_LOG");
         if (env && std::string(env) == "true")
         {
             return true;

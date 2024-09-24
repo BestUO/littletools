@@ -36,7 +36,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/examples/doctooltest",
             "args": [
-                "--test-case=simple_serialize_new"
+                "--test-case=ReliableUDP_Assembler"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

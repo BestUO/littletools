@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <functional>
 #include <unordered_map>
@@ -57,11 +58,6 @@ private:
     std::unordered_map<UUID, MessageAssembler<SPLIT_COUNT>>
         __message_assemblers;
 
-    std::string AbnormalMsg(UUID message_id)
-    {
-        return Abnormal{ReliableUDPType::Abnormal, message_id}.serialize();
-    }
-
     void EraseAssembler(UUID message_id)
     {
         __message_assemblers.erase(message_id);
@@ -69,11 +65,20 @@ private:
 
     std::string Recv(const char* data, size_t size, const sockaddr&)
     {
-        ReliableUDPType message_type = *(ReliableUDPType*)(data + 2);
+        ReliableUDPType message_type = *(ReliableUDPType*)data;
         if (message_type == ReliableUDPType::CellSend)
         {
+            // auto message_id = EndianSwap<>::swap(*(UUID*)(data + 1));
+            // auto cell_id    = EndianSwap<>::swap(*(UUID*)(data + 33));
+            // auto aaa        = CellReceived(
+            //     ReliableUDPType::CellReceived, message_id, cell_id)
+            //                .serialize();
+            // CellReceived cell_received(aaa.data());
+            // return CellReceived{
+            //     ReliableUDPType::CellReceived, message_id, cell_id}
+            //     .serialize();
             MessageInfo message_info;
-            auto cell_payload_ptr = message_info.deserialize(data, size);
+            auto offset = message_info.deserialize(data);
             if (__message_assemblers.find(message_info.message_id)
                 == __message_assemblers.end())
             {
@@ -84,22 +89,26 @@ private:
             auto& message_assembler
                 = __message_assemblers.find(message_info.message_id)->second;
 
+            auto len = EndianSwap<>::swap(*(uint16_t*)(data + offset));
             auto is_cell_finish = message_assembler.DealWithCellMessage(
                 message_info.cell_info.cell_header,
                 message_info.message_offset,
-                cell_payload_ptr);
+                data + offset + sizeof(uint16_t),
+                len);
             if (is_cell_finish)
+            {
                 return CellReceived{ReliableUDPType::CellReceived,
                     message_info.message_id,
                     message_info.cell_info.cell_header.cell_id}
                     .serialize();
+            }
             else
                 return std::string();
         }
-        else if (message_type == ReliableUDPType::MessageSendOK)
+        else if (message_type == ReliableUDPType::MessageFinished)
         {
-            MessageSendOK send_ok;
-            send_ok.deserialize(data, size);
+            // __cb(nullptr);
+            MessageFinished send_ok(data);
             auto iter = __message_assemblers.find(send_ok.message_id);
             if (iter != __message_assemblers.end())
             {
@@ -111,16 +120,15 @@ private:
         }
         else if (message_type == ReliableUDPType::CellTimeoutCheck)
         {
-            CellTimeoutCheck cell_timeout_check;
-            cell_timeout_check.deserialize(data, size);
+            CellTimeoutCheck cell_timeout_check(data);
             auto iter
                 = __message_assemblers.find(cell_timeout_check.message_id);
             if (iter != __message_assemblers.end())
                 return CellTimeoutResponse{ReliableUDPType::CellTimeoutResponse,
                     cell_timeout_check.message_id,
                     cell_timeout_check.cell_id,
-                    ArrayToVector(iter->second.DealWithTimeout(
-                        cell_timeout_check.cell_id))}
+                    std::move(ArrayToVector(iter->second.DealWithTimeout(
+                        cell_timeout_check.cell_id)))}
                     .serialize();
             else
             {
@@ -133,9 +141,7 @@ private:
         }
         else if (message_type == ReliableUDPType::Abnormal)
         {
-            Abnormal abnormal;
-            abnormal.deserialize(data, size);
-            EraseAssembler(abnormal.message_id);
+            MessageFinished abnormal(data);
             return std::string();
         }
         else

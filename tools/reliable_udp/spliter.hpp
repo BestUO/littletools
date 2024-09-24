@@ -6,6 +6,7 @@
 #include <set>
 #include <algorithm>
 #include "tools/uuid.hpp"
+#include "tools/objectpool.hpp"
 #include "rudp_struct.hpp"
 
 template <uint8_t MAX_SPLIT_COUNT = 8, uint16_t MAX_PAYLOAD_SIZE = 1024>
@@ -21,17 +22,11 @@ public:
         , __cell_id(cell_id)
     {
         auto cell_size            = __payload_view.size();
-        uint32_t cell_total_count = cell_size / MAX_PAYLOAD_SIZE
+        uint16_t cell_total_count = cell_size / MAX_PAYLOAD_SIZE
             + (cell_size % MAX_PAYLOAD_SIZE == 0 ? 0 : 1);
 
         Split(message_id, message_size, offset_in_message, cell_total_count);
     }
-
-    SplitCell(SplitCell&& split_cell)
-        : __payload_view(split_cell.__payload_view)
-        , __cell_id(split_cell.__cell_id)
-        , __messages(std::move(split_cell.__messages))
-    { }
 
     void DealWithMessage(std::function<void(MessageInfo&)> f)
     {
@@ -75,9 +70,9 @@ private:
     void Split(UUID message_id,
         uint64_t message_size,
         uint64_t offset_in_message,
-        uint32_t cell_total_count)
+        uint16_t cell_total_count)
     {
-        for (uint32_t i = 0; i < cell_total_count && i < MAX_SPLIT_COUNT; i++)
+        for (uint8_t i = 0; i < cell_total_count && i < MAX_SPLIT_COUNT; i++)
         {
             auto payload_view
                 = __payload_view.substr(i * MAX_PAYLOAD_SIZE, MAX_PAYLOAD_SIZE);
@@ -85,11 +80,12 @@ private:
                 message_id,
                 message_size,
                 offset_in_message,
-                CellInfo{CellInfoHeader{__cell_id,
+                CellInfo{CellInfoHeader{
+                             __cell_id,
                              i,
-                             i * MAX_PAYLOAD_SIZE,
+                             (uint16_t)(i * MAX_PAYLOAD_SIZE),
                              cell_total_count,
-                             (uint32_t)payload_view.size()},
+                         },
                     payload_view}});
         }
     }
@@ -110,18 +106,12 @@ public:
             + (__payload.size() % (MAX_PAYLOAD_SIZE * MAX_SPLIT_COUNT) == 0
                     ? 0
                     : 1);
-        // Split();
-    }
-
-    MessageSpliter(MessageSpliter&& message_split)
-        : __payload(std::move(message_split.__payload))
-        , __total_count(message_split.__total_count)
-        , __message_id(message_split.__message_id)
-        , __addr(message_split.__addr)
-    {
-        message_split.__cells.clear();
-        message_split.__loss_cells.clear();
         Split();
+    }
+    ~MessageSpliter()
+    {
+        for (auto& cell : __cell_ptrs)
+            ObjectPool<SplitCellType>::GetInstance()->PutObject(cell.second);
     }
 
     void Remove(UUID cell_id)
@@ -132,11 +122,11 @@ public:
     void DealWithSplitCell(std::function<void(MessageInfo&)> f,
         std::function<void(UUID, UUID, sockaddr_in)> timeout_fun)
     {
-        for (auto& [cell_id, cell] : __cells)
+        for (auto& [cell_id, cell_ptr] : __cell_ptrs)
         {
-            cell.DealWithMessage(f);
             if (timeout_fun)
                 timeout_fun(__message_id, cell_id, __addr);
+            cell_ptr->DealWithMessage(f);
         }
     }
 
@@ -144,9 +134,9 @@ public:
         const std::vector<uint8_t>& loss_index,
         std::function<void(MessageInfo&)> f)
     {
-        auto iter = __cells.find(cell_id);
-        if (iter != __cells.end())
-            iter->second.Resend(loss_index, f);
+        auto iter = __cell_ptrs.find(cell_id);
+        if (iter != __cell_ptrs.end())
+            iter->second->Resend(loss_index, f);
     }
 
     bool IsAllRecved()
@@ -161,14 +151,14 @@ public:
 
     uint32_t GetCellSize(UUID cell_id)
     {
-        auto iter = __cells.find(cell_id);
-        if (iter != __cells.end())
-            return iter->second.GetCellSize();
+        auto iter = __cell_ptrs.find(cell_id);
+        if (iter != __cell_ptrs.end())
+            return iter->second->GetCellSize();
         else
             return 0;
     }
 
-    uint32_t GetLeftMsgSize()
+    uint32_t GetPayloadSize()
     {
         return __payload.size();
     }
@@ -180,22 +170,27 @@ public:
 
     ////////// only for test //////////
 public:
-    void AddForTest(SplitCellType&& split_cell)
+    void AddForTest(SplitCellType* split_cell)
     {
         auto emplace_result
-            = __cells.emplace(split_cell.GetMessageID(), std::move(split_cell));
-        __loss_cells.emplace(split_cell.GetMessageID());
+            = __cell_ptrs.emplace(split_cell->GetMessageID(), split_cell);
+        __loss_cells.emplace(split_cell->GetMessageID());
     }
     size_t GetSplitCellSizeForTest()
     {
         return __loss_cells.size();
+    }
+
+    UUID GetMessageID()
+    {
+        return __message_id;
     }
     ///////////////////////////////////
 
 private:
     std::string __payload;
     uint32_t __total_count;
-    std::unordered_map<UUID, SplitCellType> __cells;
+    std::unordered_map<UUID, SplitCellType*> __cell_ptrs;
     std::set<UUID> __loss_cells;
     UUID __message_id;
     sockaddr_in __addr;
@@ -210,9 +205,10 @@ private:
                     (uint32_t)(__payload.size()
                         - i * (MAX_PAYLOAD_SIZE * MAX_SPLIT_COUNT)));
             auto cell_id = UUID::gen();
-            __cells.emplace(cell_id,
-                SplitCellType(
-                    {__payload.c_str()
+
+            __cell_ptrs.emplace(cell_id,
+                ObjectPool<SplitCellType>::GetInstance()->GetObject(
+                    std::string_view{__payload.c_str()
                             + i * (MAX_PAYLOAD_SIZE * MAX_SPLIT_COUNT),
                         seg_size},
                     __message_id,
