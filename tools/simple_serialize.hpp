@@ -174,14 +174,14 @@ inline void readBuffer(const char* buf, uint16_t& offset, T& data)
 }
 
 template <typename T, std::enable_if_t<has_serialize<T>::value, int> = 0>
-inline void writeBuffer(T& data, std::string& buf)
+inline void writeBuffer(const T& data, std::string& buf)
 {
     auto s = data.serialize();
     buf.append(s);
 }
 
 template <typename T, std::enable_if_t<has_serialize<T>::value, int> = 0>
-inline char* writeBuffer(T& data, char* buf)
+inline char* writeBuffer(const T& data, char* buf)
 {
     return data.serialize(buf);
 }
@@ -277,3 +277,56 @@ inline uint16_t CalculateSize(const std::vector<T>& data)
         size += CalculateSize(item);
     return size + sizeof(uint16_t);
 }
+
+template <typename T>
+char* SerializeImpl(char* buf, const T& arg)
+{
+    return writeBuffer(arg, buf);
+}
+
+template <typename First, typename... Rest>
+char* SerializeImpl(char* buf, const First& first, const Rest&... rest)
+{
+    buf = SerializeImpl(buf, first);
+    return SerializeImpl(buf, rest...);
+}
+
+template <typename T>
+uint16_t DeserializeImpl(const char* buf, uint16_t& offset, T& arg)
+{
+    readBuffer(buf, offset, arg);
+    return offset;
+}
+
+template <typename First, typename... Rest>
+uint16_t DeserializeImpl(const char* buf,
+    uint16_t& offset,
+    First& first,
+    Rest&... rest)
+{
+    DeserializeImpl(buf, offset, first);
+    DeserializeImpl(buf, offset, rest...);
+    return offset;
+}
+
+template <typename... Rest>
+uint16_t CalculateSizeImpl(Rest&... rest)
+{
+    return (::CalculateSize(rest) + ...);
+}
+
+#define GEN_SERIALIZE(...)                         \
+    char* serialize(char* buf) const               \
+    {                                              \
+        return SerializeImpl(buf, __VA_ARGS__);    \
+    }                                              \
+    uint16_t deserialize(const char* buf)          \
+    {                                              \
+        uint16_t offset;                           \
+        DeserializeImpl(buf, offset, __VA_ARGS__); \
+        return offset;                             \
+    }                                              \
+    uint16_t CalculateSize()                       \
+    {                                              \
+        return CalculateSizeImpl(__VA_ARGS__);     \
+    }

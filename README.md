@@ -32,6 +32,9 @@ cmake --build build -j 1
 ## reliable udp func_test & bench
 ./build/examples/doctooltest --test-case=*ReliableUDP_*
 
+## serialize tool func_test & bench
+./build/examples/doctooltest --test-case=*serialize_*
+
 ## timemanager func_test
 ./build/examples/doctooltest --test-case=*TimerManager_*
 

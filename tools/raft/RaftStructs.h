@@ -63,7 +63,7 @@ struct RaftCommandType
         CommonInfo() = default;
         CommonInfo(MessageType m);
         CommonInfo(const char* buf, uint16_t size);
-        std::string serialize();
+        std::string serialize() const;
         uint16_t deserialize(const char* buf);
 
         constexpr static uint16_t size()
@@ -78,7 +78,7 @@ struct RaftCommandType
 
         HeartBeat() = default;
         HeartBeat(const char* buf, uint16_t size);
-        std::string serialize();
+        std::string serialize() const;
     };
 
     struct Vote
@@ -87,7 +87,7 @@ struct RaftCommandType
 
         Vote() = default;
         Vote(const char* buf, uint16_t size);
-        std::string serialize();
+        std::string serialize() const;
     };
 
     struct VoteResponse
@@ -97,7 +97,7 @@ struct RaftCommandType
 
         VoteResponse() = default;
         VoteResponse(const char* buf, uint16_t size);
-        std::string serialize();
+        std::string serialize() const;
     };
 
     struct VoteResult
@@ -106,6 +106,6 @@ struct RaftCommandType
 
         VoteResult() = default;
         VoteResult(const char* buf, uint16_t size);
-        std::string serialize();
+        std::string serialize() const;
     };
 };

@@ -12,7 +12,7 @@ RaftCommandType::CommonInfo::CommonInfo(const char* buf, uint16_t size)
     deserialize(buf);
 }
 
-std::string RaftCommandType::CommonInfo::serialize()
+std::string RaftCommandType::CommonInfo::serialize() const
 {
     std::string context;
     writeBuffer(messageType, context);
@@ -41,7 +41,7 @@ RaftCommandType::Vote::Vote(const char* buf, uint16_t size)
     readBuffer(buf, offset, commonInfo);
 }
 
-std::string RaftCommandType::Vote::serialize()
+std::string RaftCommandType::Vote::serialize() const
 {
     std::string context;
     writeBuffer(commonInfo, context);
@@ -55,7 +55,7 @@ RaftCommandType::VoteResponse::VoteResponse(const char* buf, uint16_t size)
     readBuffer(buf, offset, voteGranted);
 }
 
-std::string RaftCommandType::VoteResponse::serialize()
+std::string RaftCommandType::VoteResponse::serialize() const
 {
     std::string context;
     writeBuffer(commonInfo, context);
@@ -69,7 +69,7 @@ RaftCommandType::HeartBeat::HeartBeat(const char* buf, uint16_t size)
     readBuffer(buf, offset, commonInfo);
 }
 
-std::string RaftCommandType::HeartBeat::serialize()
+std::string RaftCommandType::HeartBeat::serialize() const
 {
     std::string context;
     writeBuffer(commonInfo, context);
@@ -82,7 +82,7 @@ RaftCommandType::VoteResult::VoteResult(const char* buf, uint16_t size)
     readBuffer(buf, offset, commonInfo);
 }
 
-std::string RaftCommandType::VoteResult::serialize()
+std::string RaftCommandType::VoteResult::serialize() const
 {
     std::string context;
     writeBuffer(commonInfo, context);

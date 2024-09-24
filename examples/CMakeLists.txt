@@ -23,7 +23,6 @@ ${CMAKE_SOURCE_DIR}/tools/rbtree/rbtree.cpp
 shm_queue.cpp
 network.cpp
 # reliable_udp.cpp
-simple_serialize.cpp
 )
 
 target_link_libraries(${PROJ_NAME} pthread)
