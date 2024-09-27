@@ -11,6 +11,7 @@
 #include "tools/network/udp.hpp"
 #include "tools/reliable_udp/assembler.hpp"
 #include "tools/timermanager.hpp"
+#include "tools/threadpool.hpp"
 #include "rudp_struct.hpp"
 #include "spliter.hpp"
 #include "assembler.hpp"

@@ -269,3 +269,63 @@ TEST_CASE("TimerManager_v3_recursive")
     }
     timerManager->StopTimerManager();
 }
+
+TEST_CASE("TimerManager_v4_base")
+{
+    auto timerManager = timermanager::v4::TimerManager<int>::GetInstance();
+    timerManager->StartTimerManager();
+
+    int count = 0;
+    auto func = [&count]() {
+        count++;
+    };
+    std::random_device rd;
+    std::mt19937 gen(rd());
+
+    std::uniform_int_distribution<> distrib_int(1, 10000);
+    uint32_t total = 1024 * 1024;
+    for (int i = 0; i < total; i++)
+        timerManager->AddAlarm(std::chrono::milliseconds(1), i, "", func);
+    while (timerManager->GetSize())
+        sleep(1);
+
+    CHECK_EQ(count, total);
+    timerManager->StopTimerManager();
+}
+
+TEST_CASE("TimerManager_v4_recursive")
+{
+    auto timerManager = timermanager::v4::TimerManager<int>::GetInstance();
+    timerManager->StartTimerManager();
+    struct A
+    {
+        ~A()
+        {
+            timermanager::v4::TimerManager<int>::GetInstance()->DeleteAlarm(0);
+        }
+        void callback()
+        {
+            std::cout << "callback" << std::endl;
+        }
+        void fun()
+        {
+            timermanager::v4::TimerManager<int>::GetInstance()->AddAlarm(
+                std::chrono::milliseconds(200), 0, "1-1", [this]() {
+                    callback();
+                });
+        }
+    };
+    {
+        auto a = std::make_shared<A>();
+        timermanager::v4::TimerManager<int>::GetInstance()->AddAlarm(
+            std::chrono::milliseconds(0),
+            0,
+            "",
+            [a]() {
+                a->fun();
+            },
+            std::chrono::milliseconds(100));
+        sleep(1);
+    }
+    timerManager->StopTimerManager();
+}

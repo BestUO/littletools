@@ -36,15 +36,15 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/examples/doctooltest",
             "args": [
-                "--test-case=ReliableUDP_Assembler"
+                "--test-case=ReliableUDP_large_msg_send_1cell_7package"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [
-                // {
-                //     "name": "ACFW_CM_CONSOLE_LOG",
-                //     "value": "true"
-                // }
+                {
+                    "name": "CONSOLE_LOG",
+                    "value": "true"
+                }
             ],
             "externalConsole": false,
             "MIMode": "gdb",

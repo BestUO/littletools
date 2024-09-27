@@ -13,8 +13,8 @@
 #include <functional>
 #include <stdexcept>
 #include <atomic>
-#include "../queue/threadsafecontainer.hpp"
-#include "../queue/ringqueue.hpp"
+#include "queue/threadsafecontainer.hpp"
+#include "queue/ringqueue.hpp"
 #include "function_traits.hpp"
 
 namespace threadpool
@@ -394,7 +394,7 @@ public:
         __workers[hash % __workers.size()]->Put(std::move(t));
     }
 
-    void Start(uint8_t threadnum, std::function<void(T&&)> func)
+    void Start(uint8_t threadnum, const std::function<void(T&&)> func)
     {
         __stop = false;
         for (uint8_t i = 0; i < threadnum; ++i)
