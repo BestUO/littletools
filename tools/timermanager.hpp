@@ -684,10 +684,11 @@ public:
     {
         if (!__stop)
         {
-            auto now = TIMETYPE::now();
             TimerElement* element
                 = ObjectPool<TimerElement>::GetInstance()->GetObject(
-                    now + alarm,
+                    std::chrono::duration_cast<std::chrono::milliseconds>(
+                        TIMETYPE::now().time_since_epoch())
+                        + alarm,
                     std::move(fun),
                     std::move(key),
                     std::move(additional),
@@ -717,7 +718,7 @@ public:
                           Key{std::move(key), std::move(additional)}, node_ptr)
                       .first;
 
-            if (element->alarm <= now)
+            if (alarm == std::chrono::milliseconds(0))
                 __cv.notify_one();
         }
     }
@@ -764,7 +765,7 @@ public:
         if (__timerThread.joinable())
             __timerThread.join();
 
-        std::map<TIMETYPE::time_point,
+        std::map<std::chrono::milliseconds,
             std::shared_ptr<SimpleList<TimerElement>>>
             timer_map;
         {
@@ -813,7 +814,7 @@ private:
     };
     struct TimerElement
     {
-        TIMETYPE::time_point alarm;
+        std::chrono::milliseconds alarm;
         std::function<void()> fun;
         std::chrono::milliseconds interval = std::chrono::milliseconds(0);
         std::map<Key, typename SimpleList<TimerElement>::Node*>::iterator iter;
@@ -822,7 +823,7 @@ private:
         {
             return alarm < t.alarm;
         }
-        TimerElement(TIMETYPE::time_point _alarm,
+        TimerElement(std::chrono::milliseconds _alarm,
             std::function<void()>&& _fun,
             const T& _key,
             const std::string& _additional,
@@ -853,7 +854,8 @@ private:
         }
     };
     std::atomic<bool> __stop = {true};
-    std::map<TIMETYPE::time_point, std::shared_ptr<SimpleList<TimerElement>>>
+    std::map<std::chrono::milliseconds,
+        std::shared_ptr<SimpleList<TimerElement>>>
         __timer_map;
     std::map<Key, typename SimpleList<TimerElement>::Node*> __key_node_map;
     std::thread __timerThread;
@@ -888,7 +890,8 @@ private:
         TIMETYPE::time_point timepoint;
         std::unique_lock<std::mutex> lck(__mutex);
         if (auto element = __timer_map.begin(); element != __timer_map.end())
-            __cv.wait_until(lck, element->first);
+            __cv.wait_for(
+                lck, element->first - TIMETYPE::now().time_since_epoch());
         else
             __cv.wait_until(lck, TIMETYPE::now() + std::chrono::seconds(1));
     }
@@ -898,7 +901,7 @@ private:
         std::lock_guard<std::mutex> lck(__mutex);
         if (auto iter = __timer_map.begin(); iter != __timer_map.end())
         {
-            if (TIMETYPE::now() >= iter->first)
+            if (TIMETYPE::now().time_since_epoch() > iter->first)
             {
                 auto simple_list = iter->second;
                 __timer_map.erase(iter);
@@ -921,7 +924,9 @@ private:
                 && node_ptr->data->interval > std::chrono::milliseconds(0))
             {
                 node_ptr->data->alarm
-                    = TIMETYPE::now() + node_ptr->data->interval;
+                    = std::chrono::duration_cast<std::chrono::milliseconds>(
+                          TIMETYPE::now().time_since_epoch())
+                    + node_ptr->data->interval;
                 std::lock_guard<std::mutex> lck(__mutex);
                 if (auto simple_list_new
                     = __timer_map.find(node_ptr->data->alarm);

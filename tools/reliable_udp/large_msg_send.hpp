@@ -178,7 +178,7 @@ private:
             if (iter != __message_spliters.end())
             {
                 timermanager::TimerManager<UUID>::GetInstance()->DeleteAlarm(
-                    cell_received.cell_id);
+                    cell_received.cell_id, std::string());
                 iter->second->Remove(cell_received.cell_id);
                 if (!iter->second->IsAllRecved())
                     return std::string();

@@ -36,7 +36,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/examples/doctooltest",
             "args": [
-                "--test-case=ReliableUDP_large_msg_send_1cell_7package"
+                "--test-case=TimerManager_benchmark"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

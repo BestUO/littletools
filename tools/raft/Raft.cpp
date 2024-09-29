@@ -59,7 +59,9 @@ void Raft::Start()
 void Raft::Stop()
 {
     timermanager::TimerManager<UUID>::GetInstance()->DeleteAlarm(
-        __infos.self_uuid);
+        __infos.self_uuid, "SendHeartBeat");
+    timermanager::TimerManager<UUID>::GetInstance()->DeleteAlarm(
+        __infos.self_uuid, "CheckHeartBeat");
 }
 
 std::string Raft::HandleData(const char* buf, uint16_t len)

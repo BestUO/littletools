@@ -60,37 +60,6 @@ TEST_CASE("TimerManager_v1_interval")
         ->StopTimerManager();
 }
 
-TEST_CASE("TimerManager_v1_AddAlarm_DeleteAlarm")
-{
-    struct Key
-    {
-        std::string name;
-        int id;
-    };
-
-    auto fun2 = [](int a, int b) {
-        std::cout << a << '\t' << b << std::endl;
-    };
-    auto tm = timermanager::v1::TimerManager<Key>::GetInstance();
-    for (int i = 5; i < 10; i++)
-        tm->AddAlarm(std::chrono::seconds(2),
-            Key{"123", i},
-            std::bind(fun2, i, i + 1),
-            std::chrono::seconds(1));
-    ankerl::nanobench::Bench().run("DeleteAlarm cost time", [&]() {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    });
-    sleep(5);
-    tm->DeleteAlarmCondition(std::bind(
-        [](const Key& t, int id) {
-            return t.id == id;
-        },
-        std::placeholders::_1,
-        7));
-    sleep(2);
-    tm->StopTimerManager();
-}
-
 TEST_CASE("TimerManager_v1_two_same_key")
 {
     struct Key
@@ -328,4 +297,42 @@ TEST_CASE("TimerManager_v4_recursive")
         sleep(1);
     }
     timerManager->StopTimerManager();
+}
+
+TEST_CASE("TimerManager_benchmark")
+{
+    int totalnum      = 1024 * 1024;
+    uint32_t epochnum = 1;
+
+    auto timerManager_v3 = timermanager::v3::TimerManager<int>::GetInstance();
+    timerManager_v3->StartTimerManager();
+
+    ankerl::nanobench::Bench().epochs(epochnum).run(
+        "timerManager_v3", [&totalnum, &timerManager_v3]() {
+            int count = 0;
+            for (int i = 0; i < totalnum; i++)
+                timerManager_v3->AddAlarm(
+                    std::chrono::milliseconds(1), i, "", [&count]() {
+                        count++;
+                    });
+            while (count != totalnum)
+                usleep(1000);
+        });
+    timerManager_v3->StopTimerManager();
+
+    auto timerManager_v4 = timermanager::v4::TimerManager<int>::GetInstance();
+    timerManager_v4->StartTimerManager();
+
+    ankerl::nanobench::Bench().epochs(epochnum).run(
+        "timerManager_v4", [&totalnum, &timerManager_v4]() {
+            int count = 0;
+            for (int i = 0; i < totalnum; i++)
+                timerManager_v4->AddAlarm(
+                    std::chrono::milliseconds(1), i, "", [&count]() {
+                        count++;
+                    });
+            while (count != totalnum)
+                usleep(1000);
+        });
+    timerManager_v4->StopTimerManager();
 }
