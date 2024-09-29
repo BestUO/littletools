@@ -199,9 +199,9 @@ TEST_CASE("ReliableUDP_large_msg_send_1cell_1package")
     std::string message = "12345678";
     rudp_large_msg_send.Send(
         message, network::SocketBase::CreateAddr("127.0.0.1", 9988));
-    usleep(1000);
+    while (recv_clone == nullptr)
+        usleep(1000);
     CHECK(memcmp(recv_clone.get(), message.c_str(), message.size()) == 0);
-    usleep(5000);
 
     network::NetWorkManager<network::SimpleEpoll>::GetInstance()->Stop();
     timermanager::TimerManager<UUID>::GetInstance()->StopTimerManager();
@@ -228,9 +228,9 @@ TEST_CASE("ReliableUDP_large_msg_send_1cell_7package")
     std::string message = "1234567";
     rudp_large_msg_send.Send(
         message, network::SocketBase::CreateAddr("127.0.0.1", 9988));
-    usleep(1000);
+    while (recv_clone == nullptr)
+        usleep(1000);
     CHECK(memcmp(recv_clone.get(), message.c_str(), message.size()) == 0);
-    usleep(5000);
 
     network::NetWorkManager<network::SimpleEpoll>::GetInstance()->Stop();
     timermanager::TimerManager<UUID>::GetInstance()->StopTimerManager();
@@ -257,9 +257,9 @@ TEST_CASE("ReliableUDP_large_msg_send_1cell_8package")
     std::string message = "12345678";
     rudp_large_msg_send.Send(
         message, network::SocketBase::CreateAddr("127.0.0.1", 9988));
-    usleep(1000);
+    while (recv_clone == nullptr)
+        usleep(1000);
     CHECK(memcmp(recv_clone.get(), message.c_str(), message.size()) == 0);
-    usleep(5000);
 
     network::NetWorkManager<network::SimpleEpoll>::GetInstance()->Stop();
     timermanager::TimerManager<UUID>::GetInstance()->StopTimerManager();
@@ -286,15 +286,10 @@ TEST_CASE("ReliableUDP_large_msg_send_2cell_9package")
     std::string message = "123456789";
     rudp_large_msg_send.Send(
         message, network::SocketBase::CreateAddr("127.0.0.1", 9988));
-    usleep(1000);
+    while (recv_clone == nullptr)
+        usleep(1000);
     CHECK(memcmp(recv_clone.get(), message.c_str(), message.size()) == 0);
-    usleep(5000);
 
-    // std::string message = "12345678";
-    // rudp_large_msg_send.SendLost(
-    //     message, network::SocketBase::CreateAddr("127.0.0.1", 9988), 0);
-    // sleep(2);
-    // CHECK(memcmp(recv_clone.get(), message.c_str(), message.size()) == 0);
     network::NetWorkManager<network::SimpleEpoll>::GetInstance()->Stop();
     timermanager::TimerManager<UUID>::GetInstance()->StopTimerManager();
 }
@@ -319,7 +314,8 @@ TEST_CASE("ReliableUDP_large_msg_send_lost_all")
             "127.0.0.1", 9988, [&recv_clone](std::unique_ptr<char[]> recv) {
                 recv_clone = std::move(recv);
             });
-    sleep(2);
+    while (recv_clone == nullptr)
+        usleep(1000);
     CHECK(memcmp(recv_clone.get(), message.c_str(), message.size()) == 0);
     network::NetWorkManager<network::SimpleEpoll>::GetInstance()->Stop();
     timermanager::TimerManager<UUID>::GetInstance()->StopTimerManager();
