@@ -356,6 +356,7 @@ TEST_CASE("ReliableUDP_large_msg_send_bench")
     constexpr int MAX_PAYLOAD_SIZE = 1024;
     constexpr int BAND_WIDTH       = 1024 * 1024 * 300;
     int recv_count                 = 0;
+    int total_second               = 10;
     RUDPLargeMsgRecv<MAX_SPLIT_COUNT, MAX_PAYLOAD_SIZE, BAND_WIDTH>
         rudp_large_msg_recv(
             "127.0.0.1", 9988, [&recv_count](std::unique_ptr<char[]> recv) {
@@ -377,14 +378,15 @@ TEST_CASE("ReliableUDP_large_msg_send_bench")
     while (std::chrono::duration_cast<std::chrono::seconds>(
                std::chrono::high_resolution_clock::now() - now)
                .count()
-        < 10)
+        < total_second)
     {
         rudp_large_msg_send.Send(message, dst);
         send_count++;
     }
     sleep(1);
-    std::cout << "send 8M msg for 10s, send_num/ps: " << send_count / 10
-              << " recv_num/ps: " << recv_count / 10 << std::endl;
+    std::cout << "send 8M msg for " << total_second
+              << "s, send_num/ps: " << send_count / total_second
+              << " recv_num/ps: " << recv_count / total_second << std::endl;
     network::NetWorkManager<network::SimpleEpoll>::GetInstance()->Stop();
     timermanager::TimerManager<UUID>::GetInstance()->StopTimerManager();
 }

@@ -369,8 +369,13 @@ public:
     std::vector<T> Get()
     {
         std::unique_lock<std::mutex> lock(__mutex);
-        __cond.wait(lock);
-        return std::move(__vector);
+        if (__vector.empty())
+        {
+            __cond.wait(lock);
+            return {};
+        }
+        else
+            return std::move(__vector);
     }
 
     void Stop()
@@ -394,10 +399,10 @@ public:
         __workers[hash % __workers.size()]->Put(std::move(t));
     }
 
-    void Start(uint8_t threadnum, const std::function<void(T&&)> func)
+    void Start(uint8_t thread_num, const std::function<void(const T&)> func)
     {
         __stop = false;
-        for (uint8_t i = 0; i < threadnum; ++i)
+        for (uint8_t i = 0; i < LargestPowerTwo(thread_num); ++i)
         {
             auto worker = std::make_shared<Worker<T>>();
             __workers.emplace_back(worker);
@@ -406,7 +411,7 @@ public:
                 {
                     auto elements = worker->Get();
                     for (auto& element : elements)
-                        func(std::move(element));
+                        func(element);
                 }
             });
         }
@@ -425,6 +430,16 @@ private:
     bool __stop = true;
     std::vector<std::thread> __threads;
     std::vector<std::shared_ptr<Worker<T>>> __workers;
+
+    uint8_t LargestPowerTwo(uint8_t num)
+    {
+        if (num == 0)
+            return 0;
+        uint8_t power = 1;
+        while (num >>= 1)
+            power <<= 1;
+        return power;
+    }
 };
 
 };  // namespace v3

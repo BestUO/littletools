@@ -3,6 +3,8 @@
 #include <chrono>
 #include <cstdint>
 #include <functional>
+#include <mutex>
+#include <shared_mutex>
 #include <unordered_map>
 #include <array>
 #include "tools/network/simple_epoll.hpp"
@@ -12,6 +14,7 @@
 #include "tools/reliable_udp/assembler.hpp"
 #include "tools/timermanager.hpp"
 #include "tools/threadpool.hpp"
+#include "rudp_allocate.hpp"
 #include "rudp_struct.hpp"
 #include "spliter.hpp"
 #include "assembler.hpp"
@@ -30,17 +33,18 @@ struct RUDPLargeMsgRecv
             16>{0, 1, 2, 3, 4, 5, 6, 7, 255, 255, 255, 255, 255, 255, 255, 255}
         : std::array<uint8_t,
             16>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+    using RUDPAllocate = RudpAllocate<1440>;
 
 public:
     RUDPLargeMsgRecv(const std::string& ip,
         uint16_t port,
         std::function<void(std::unique_ptr<char[]>)> cb)
-        : __endpoint(std::make_shared<network::inet_udp::UDP>())
+        : __endpoint(std::make_shared<network::inet_udp::UDP<>>())
         , __cb(cb)
     {
-        // __thread_pool.Start(1, [this](Msg&& msg) {
-        //     Working(std::move(msg));
-        // });
+        __thread_pool.Start(2, [this](const Msg& msg) {
+            Working(std::move(msg));
+        });
         __endpoint->SetAddr(ip.c_str(), port);
         __endpoint->SetCallBack(std::bind(&RUDPLargeMsgRecv::Recv,
             this,
@@ -60,11 +64,17 @@ public:
 private:
     struct Msg
     {
-        std::string data;
+        const char* data;
         sockaddr addr;
+
+        Msg(const char* data, sockaddr addr)
+            : data(data)
+            , addr(addr)
+        { }
     };
-    std::shared_ptr<network::inet_udp::UDP> __endpoint;
+    std::shared_ptr<network::inet_udp::UDP<>> __endpoint;
     std::function<void(std::unique_ptr<char[]>)> __cb;
+    std::shared_mutex __rw_mutex;
     std::unordered_map<UUID, MessageAssembler<SPLIT_COUNT>>
         __message_assemblers;
     threadpool::v3::ThreadPoll<Msg> __thread_pool;
@@ -75,9 +85,9 @@ private:
         __message_assemblers.erase(message_id);
     }
 
-    void Working(Msg&& msg)
+    void Working(const Msg& msg)
     {
-        auto data                    = msg.data.c_str();
+        auto data                    = msg.data;
         ReliableUDPType message_type = *(ReliableUDPType*)data;
         if (message_type == ReliableUDPType::CellSend)
         {
@@ -95,18 +105,26 @@ private:
 
             MessageInfo message_info;
             auto offset = message_info.deserialize(data);
-            if (__message_assemblers.find(message_info.message_id)
-                == __message_assemblers.end())
+            typename std::unordered_map<UUID,
+                MessageAssembler<SPLIT_COUNT>>::iterator iter;
             {
-                __message_assemblers.emplace(message_info.message_id,
-                    MessageAssembler<SPLIT_COUNT>(
-                        message_info.message_size, message_info.message_id));
+                std::shared_lock<std::shared_mutex> lock(__rw_mutex);
+                iter = __message_assemblers.find(message_info.message_id);
             }
-            auto& message_assembler
-                = __message_assemblers.find(message_info.message_id)->second;
+
+            if (iter == __message_assemblers.end())
+            {
+                std::unique_lock<std::shared_mutex> lock(__rw_mutex);
+                iter = __message_assemblers
+                           .emplace(message_info.message_id,
+                               MessageAssembler<SPLIT_COUNT>(
+                                   message_info.message_size,
+                                   message_info.message_id))
+                           .first;
+            }
 
             auto len = EndianSwap<>::swap(*(uint16_t*)(data + offset));
-            auto is_cell_finish = message_assembler.DealWithCellMessage(
+            auto is_cell_finish = iter->second.DealWithCellMessage(
                 message_info.cell_info.cell_header,
                 message_info.message_offset,
                 data + offset + sizeof(uint16_t),
@@ -117,26 +135,35 @@ private:
                                      message_info.message_id,
                                      message_info.cell_info.cell_header.cell_id}
                                      .serialize(),
-                    *reinterpret_cast<sockaddr_in*>(&msg.addr));
+                    *reinterpret_cast<sockaddr_in*>(
+                        const_cast<sockaddr*>(&msg.addr)));
             }
         }
         else if (message_type == ReliableUDPType::MessageFinished)
         {
-            // __cb(nullptr);
+            std::unique_ptr<char[]> payload = nullptr;
             MessageFinished send_ok(data);
-            auto iter = __message_assemblers.find(send_ok.message_id);
-            if (iter != __message_assemblers.end())
             {
-                auto payload = iter->second.GetPalyload();
-                __message_assemblers.erase(iter);
-                __cb(std::move(payload));
+                std::unique_lock<std::shared_mutex> lock(__rw_mutex);
+                auto iter = __message_assemblers.find(send_ok.message_id);
+                if (iter != __message_assemblers.end())
+                {
+                    payload = iter->second.GetPalyload();
+                    __message_assemblers.erase(iter);
+                }
             }
+            if (payload)
+                __cb(std::move(payload));
         }
         else if (message_type == ReliableUDPType::CellTimeoutCheck)
         {
             CellTimeoutCheck cell_timeout_check(data);
-            auto iter
-                = __message_assemblers.find(cell_timeout_check.message_id);
+            typename std::unordered_map<UUID,
+                MessageAssembler<SPLIT_COUNT>>::iterator iter;
+            {
+                std::shared_lock<std::shared_mutex> lock(__rw_mutex);
+                iter = __message_assemblers.find(cell_timeout_check.message_id);
+            }
             if (iter != __message_assemblers.end())
                 __endpoint->Send(
                     CellTimeoutResponse{ReliableUDPType::CellTimeoutResponse,
@@ -145,7 +172,8 @@ private:
                         std::move(ArrayToVector(iter->second.DealWithTimeout(
                             cell_timeout_check.cell_id)))}
                         .serialize(),
-                    *reinterpret_cast<sockaddr_in*>(&msg.addr));
+                    *reinterpret_cast<sockaddr_in*>(
+                        const_cast<sockaddr*>(&msg.addr)));
             else
             {
                 __endpoint->Send(
@@ -154,18 +182,112 @@ private:
                         cell_timeout_check.cell_id,
                         ArrayToVector(All_Loss_index)}
                         .serialize(),
-                    *reinterpret_cast<sockaddr_in*>(&msg.addr));
+                    *reinterpret_cast<sockaddr_in*>(
+                        const_cast<sockaddr*>(&msg.addr)));
             }
         }
         else if (message_type == ReliableUDPType::Abnormal)
         { }
+        RUDPAllocate().FreeBuf(const_cast<char*>(msg.data));
+    }
+
+    std::string Working_old(char* data)
+    {
+        ReliableUDPType message_type = *(ReliableUDPType*)data;
+        if (message_type == ReliableUDPType::CellSend)
+        {
+            MessageInfo message_info;
+            auto offset = message_info.deserialize(data);
+            typename std::unordered_map<UUID,
+                MessageAssembler<SPLIT_COUNT>>::iterator iter;
+            {
+                std::shared_lock<std::shared_mutex> lock(__rw_mutex);
+                iter = __message_assemblers.find(message_info.message_id);
+            }
+
+            if (iter == __message_assemblers.end())
+            {
+                std::unique_lock<std::shared_mutex> lock(__rw_mutex);
+                iter = __message_assemblers
+                           .emplace(message_info.message_id,
+                               MessageAssembler<SPLIT_COUNT>(
+                                   message_info.message_size,
+                                   message_info.message_id))
+                           .first;
+            }
+
+            auto len = EndianSwap<>::swap(*(uint16_t*)(data + offset));
+            auto is_cell_finish = iter->second.DealWithCellMessage(
+                message_info.cell_info.cell_header,
+                message_info.message_offset,
+                data + offset + sizeof(uint16_t),
+                len);
+            if (is_cell_finish)
+            {
+                return CellReceived{ReliableUDPType::CellReceived,
+                    message_info.message_id,
+                    message_info.cell_info.cell_header.cell_id}
+                    .serialize();
+            }
+            else
+                return std::string();
+        }
+        else if (message_type == ReliableUDPType::MessageFinished)
+        {
+            std::unique_ptr<char[]> payload = nullptr;
+            MessageFinished send_ok(data);
+            {
+                std::unique_lock<std::shared_mutex> lock(__rw_mutex);
+                auto iter = __message_assemblers.find(send_ok.message_id);
+                if (iter != __message_assemblers.end())
+                {
+                    payload = iter->second.GetPalyload();
+                    __message_assemblers.erase(iter);
+                }
+            }
+            if (payload)
+                __cb(std::move(payload));
+        }
+        else if (message_type == ReliableUDPType::CellTimeoutCheck)
+        {
+            CellTimeoutCheck cell_timeout_check(data);
+            typename std::unordered_map<UUID,
+                MessageAssembler<SPLIT_COUNT>>::iterator iter;
+            {
+                std::shared_lock<std::shared_mutex> lock(__rw_mutex);
+                iter = __message_assemblers.find(cell_timeout_check.message_id);
+            }
+            if (iter != __message_assemblers.end())
+                return CellTimeoutResponse{ReliableUDPType::CellTimeoutResponse,
+                    cell_timeout_check.message_id,
+                    cell_timeout_check.cell_id,
+                    std::move(ArrayToVector(iter->second.DealWithTimeout(
+                        cell_timeout_check.cell_id)))}
+                    .serialize();
+            else
+            {
+                return CellTimeoutResponse{ReliableUDPType::CellTimeoutResponse,
+                    cell_timeout_check.message_id,
+                    cell_timeout_check.cell_id,
+                    ArrayToVector(All_Loss_index)}
+                    .serialize();
+            }
+        }
+        else if (message_type == ReliableUDPType::Abnormal)
+        { }
+        return std::string();
     }
 
     std::string Recv(const char* data, size_t size, const sockaddr& addr)
     {
-        // __thread_pool.Put(++__index, Msg{std::string(data, size), addr});
-        Working(Msg{std::string(data, size), addr});
-        return std::string();
+        // auto message_id = EndianSwap<>::swap(*(UUID*)(data + 1));
+        // __thread_pool.Put(message_id.hash(), Msg{data, addr});
+        // return std::string();
+
+        // Working(Msg{std::string(data, size), addr});
+        // return std::string();
+
+        return Working_old(const_cast<char*>(data));
     }
 
     template <size_t num>

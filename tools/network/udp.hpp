@@ -16,7 +16,6 @@
 #include <functional>
 #include "network_global.hpp"
 #include "socket.hpp"
-#include "tools/objectpool.hpp"
 #include "simple_allocate.hpp"
 
 namespace network
@@ -71,6 +70,11 @@ public:
         }
     };
 
+    void FreeBuf(char* buf)
+    {
+        __allocate.FreeBuf(buf);
+    }
+
     Result Send(std::string_view message, const sockaddr_type& sender_addr)
     {
         if (sendto(this->__sockfd,
@@ -97,10 +101,6 @@ private:
     std::mutex __mutex4cb;
     std::string __response;
     T __allocate;
-    struct Testbuf
-    {
-        char buf[MAX_BUF_SIZE];
-    };
 
     void HandleData(const char* buf,
         size_t size,
@@ -136,7 +136,7 @@ private:
         else if (received == 0)
             return false;
         else
-            HandleData(__allocate.GetBuf(), received, addr);
+            HandleData(buf, received, addr);
         return true;
     }
 };

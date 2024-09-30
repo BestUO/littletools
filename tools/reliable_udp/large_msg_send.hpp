@@ -30,7 +30,7 @@ public:
         uint16_t port,
         std::shared_ptr<FlowControl<SPLIT_COUNT * MAX_PAYLOAD_SIZE, BAND_WIDTH>>
             flow_control)
-        : __endpoint(std::make_shared<network::inet_udp::UDP>())
+        : __endpoint(std::make_shared<network::inet_udp::UDP<>>())
         , __flow_control(flow_control)
     {
         __endpoint->SetAddr(ip.c_str(), port);
@@ -68,7 +68,7 @@ public:
                     message_info.serialize(msg.data());
                     if (__endpoint->Send(msg, addr) == network::Result::SUCCESS)
                     {
-                        __flow_control->Wait(msg.size());
+                        // __flow_control->Wait(msg.size());
                     }
                 },
                 [this](UUID message_id, UUID cell_id, sockaddr_in addr) {
@@ -141,7 +141,7 @@ public:  // only for test
 
 private:
     using MAP_VALUE_TYPE = MessageSpliter<SPLIT_COUNT, MAX_PAYLOAD_SIZE>*;
-    std::shared_ptr<network::inet_udp::UDP> __endpoint;
+    std::shared_ptr<network::inet_udp::UDP<>> __endpoint;
     std::shared_ptr<FlowControl<SPLIT_COUNT * MAX_PAYLOAD_SIZE, BAND_WIDTH>>
         __flow_control;
     std::unordered_map<UUID, MAP_VALUE_TYPE> __message_spliters;
@@ -150,7 +150,7 @@ private:
     void EraseSpliter(std::unordered_map<UUID, MAP_VALUE_TYPE>::iterator iter)
     {
 
-        __flow_control->Increase(iter->second->GetPayloadSize());
+        // __flow_control->Increase(iter->second->GetPayloadSize());
         ObjectPool<MessageSpliter<SPLIT_COUNT, MAX_PAYLOAD_SIZE>>::GetInstance()
             ->PutObject(iter->second);
         std::unique_lock<std::shared_mutex> lock(__mutex);

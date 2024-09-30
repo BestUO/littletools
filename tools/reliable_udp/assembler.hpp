@@ -117,20 +117,21 @@ public:
         const char* src,
         uint16_t len)
     {
-        if (__message_map.find(cell_info_header.cell_id) == __message_map.end())
+        auto iter = __message_map.find(cell_info_header.cell_id);
+        if (iter == __message_map.end())
         {
-            __message_map.emplace(cell_info_header.cell_id,
-                AssemblerCell<MAX_SPLIT_COUNT>(
-                    cell_info_header.cell_total_count,
-                    __payload.get() + message_offset));
+            iter = __message_map
+                       .emplace(cell_info_header.cell_id,
+                           AssemblerCell<MAX_SPLIT_COUNT>(
+                               cell_info_header.cell_total_count,
+                               __payload.get() + message_offset))
+                       .first;
         }
-        if (auto iter = __message_map.find(cell_info_header.cell_id);
-            iter != __message_map.end())
-        {
-            if (iter->second.DealWithCellMessage(src, cell_info_header, len))
-                return true;
-        }
-        return false;
+
+        if (iter->second.DealWithCellMessage(src, cell_info_header, len))
+            return true;
+        else
+            return false;
     }
 
     std::unique_ptr<char[]> GetPalyload()
