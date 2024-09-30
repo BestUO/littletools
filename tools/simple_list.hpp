@@ -23,8 +23,8 @@ public:
     Node* AddNode(T&& data)
     {
         Node* node = ObjectPool<Node>::GetInstance()->GetObject(
-            nullptr, nullptr, nullptr);
-        node->data = std::move(data);
+            nullptr, nullptr, std::move(data));
+        // node->data = std::move(data);
 
         return AddNode(node);
     }
@@ -92,6 +92,11 @@ public:
                 __head->prev = nullptr;
         }
         return node_ptr;
+    }
+
+    bool Empty()
+    {
+        return __head == nullptr;
     }
 
 private:

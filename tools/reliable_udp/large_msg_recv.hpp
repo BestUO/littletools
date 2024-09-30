@@ -42,9 +42,9 @@ public:
         : __endpoint(std::make_shared<network::inet_udp::UDP<>>())
         , __cb(cb)
     {
-        __thread_pool.Start(2, [this](const Msg& msg) {
-            Working(std::move(msg));
-        });
+        // __thread_pool.Start(2, [this](const Msg& msg) {
+        //     Working(msg);
+        // });
         __endpoint->SetAddr(ip.c_str(), port);
         __endpoint->SetCallBack(std::bind(&RUDPLargeMsgRecv::Recv,
             this,
@@ -56,7 +56,7 @@ public:
     };
     ~RUDPLargeMsgRecv()
     {
-        __thread_pool.Stop();
+        // __thread_pool.Stop();
         network::NetWorkManager<network::SimpleEpoll>::GetInstance()
             ->RemoveListenSocket(__endpoint);
     }
@@ -64,11 +64,18 @@ public:
 private:
     struct Msg
     {
-        const char* data;
+        // const char* data;
+        // sockaddr addr;
+
+        // Msg(const char* data, sockaddr addr)
+        //     : data(data)
+        //     , addr(addr)
+        // { }
+        std::string data;
         sockaddr addr;
 
-        Msg(const char* data, sockaddr addr)
-            : data(data)
+        Msg(std::string&& data, sockaddr addr)
+            : data(std::move(data))
             , addr(addr)
         { }
     };
@@ -77,7 +84,7 @@ private:
     std::shared_mutex __rw_mutex;
     std::unordered_map<UUID, MessageAssembler<SPLIT_COUNT>>
         __message_assemblers;
-    threadpool::v3::ThreadPoll<Msg> __thread_pool;
+    // threadpool::v3::ThreadPoll<Msg> __thread_pool;
     int __index = 0;
 
     void EraseAssembler(UUID message_id)
@@ -87,7 +94,8 @@ private:
 
     void Working(const Msg& msg)
     {
-        auto data                    = msg.data;
+        auto data = msg.data.c_str();
+        // auto data                    = msg.data;
         ReliableUDPType message_type = *(ReliableUDPType*)data;
         if (message_type == ReliableUDPType::CellSend)
         {
@@ -188,7 +196,7 @@ private:
         }
         else if (message_type == ReliableUDPType::Abnormal)
         { }
-        RUDPAllocate().FreeBuf(const_cast<char*>(msg.data));
+        __endpoint->FreeBuf(const_cast<char*>(data));
     }
 
     std::string Working_old(char* data)
@@ -280,6 +288,10 @@ private:
 
     std::string Recv(const char* data, size_t size, const sockaddr& addr)
     {
+        // auto message_id = EndianSwap<>::swap(*(UUID*)(data + 1));
+        // __thread_pool.Put(message_id.hash(), Msg{{data, size}, addr});
+        // return std::string();
+
         // auto message_id = EndianSwap<>::swap(*(UUID*)(data + 1));
         // __thread_pool.Put(message_id.hash(), Msg{data, addr});
         // return std::string();

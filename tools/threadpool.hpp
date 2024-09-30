@@ -16,6 +16,7 @@
 #include "queue/threadsafecontainer.hpp"
 #include "queue/ringqueue.hpp"
 #include "function_traits.hpp"
+#include "simple_list.hpp"
 
 namespace threadpool
 {
@@ -355,6 +356,40 @@ private:
 
 namespace v3
 {
+// template <typename T>
+// class Worker
+// {
+// public:
+//     void Put(T&& t)
+//     {
+//         std::lock_guard<std::mutex> lock(__mutex);
+//         __list.AddNode(std::move(t));
+//         __cond.notify_one();
+//     }
+
+//     SimpleList<T> Get()
+//     {
+//         std::unique_lock<std::mutex> lock(__mutex);
+//         if (__list.Empty())
+//         {
+//             __cond.wait(lock);
+//             return {};
+//         }
+//         else
+//             return std::move(__list);
+//     }
+
+//     void Stop()
+//     {
+//         std::lock_guard<std::mutex> lock(__mutex);
+//         __cond.notify_one();
+//     }
+
+// private:
+//     std::mutex __mutex;
+//     std::condition_variable __cond;
+//     SimpleList<T> __list;
+// };
 template <typename T>
 class Worker
 {
@@ -410,6 +445,9 @@ public:
                 while (!__stop)
                 {
                     auto elements = worker->Get();
+                    // elements.RemoveNode([](const T& t) {
+                    //     return true;
+                    // });
                     for (auto& element : elements)
                         func(element);
                 }

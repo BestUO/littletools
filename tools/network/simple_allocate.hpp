@@ -16,7 +16,8 @@ public:
     {
         return __buf;
     }
-
+    void FreeBuf(char* buf)
+    { }
     int GetBufSize()
     {
         return BUF_SIZE;
