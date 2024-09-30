@@ -54,17 +54,17 @@ public:
         return Socket<USEUNIX, true>::GetSocket();
     };
 
-    void Recv(char* buf, size_t size)
+    void Recv()
     {
         bool nonblock = SocketBase::IsNonBlocking(this->__sockfd);
         if (nonblock)
         {
-            while (RecvOnce(this->__sockfd, buf, size))
+            while (RecvOnce(this->__sockfd, __buf, MAX_BUF_SIZE))
             { }
         }
         else
         {
-            RecvOnce(this->__sockfd, buf, size);
+            RecvOnce(this->__sockfd, __buf, MAX_BUF_SIZE);
         }
     };
 
@@ -93,6 +93,7 @@ private:
         __cb;
     std::mutex __mutex4cb;
     std::string __response;
+    char __buf[MAX_BUF_SIZE] = {0};
 
     void HandleData(const char* buf,
         size_t size,
@@ -128,7 +129,7 @@ private:
         else if (received == 0)
             return false;
         else
-            HandleData(buf, received, addr);
+            HandleData(__buf, received, addr);
         return true;
     }
 };

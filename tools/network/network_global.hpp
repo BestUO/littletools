@@ -45,8 +45,8 @@ public:
     virtual void SetCallBack(std::function<
         std::string(const char*, size_t size, const sockaddr& addr)> cb)
         = 0;
-    virtual void Recv(char* buf, size_t size) = 0;
-    virtual int GetSocket() const             = 0;
+    virtual void Recv()           = 0;
+    virtual int GetSocket() const = 0;
 };
 
 template <typename T>

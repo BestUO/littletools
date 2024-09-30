@@ -60,7 +60,7 @@ protected:
                         tmp = __fd2T[__recv_events[i].data.fd];
                 }
                 if (tmp)
-                    tmp->Recv(__buf, MAX_BUF_SIZE);
+                    tmp->Recv();
             }
             else if (__recv_events[i].events & EPOLLOUT)
             {
@@ -80,7 +80,6 @@ protected:
 private:
     // struct pollfd __pollfds[MAX_SOCK_SIZE] = {};
     std::mutex __mutex;
-    char __buf[MAX_BUF_SIZE] = {0};
     std::map<int, std::shared_ptr<ProtocolBase>> __fd2T;
     int __epoll_fd;
     epoll_event __recv_events[MAX_SOCK_SIZE];

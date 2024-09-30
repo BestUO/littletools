@@ -79,7 +79,6 @@ private:
     struct pollfd __pollfds[MAX_SOCK_SIZE] = {};
     uint32_t __fds_count                   = 0;
     std::mutex __mutex;
-    char __buf[MAX_BUF_SIZE] = {0};
     std::map<int, std::shared_ptr<ProtocolBase>> __fd2T;
 
     void HandleData(const pollfd& pfd)
@@ -94,7 +93,7 @@ private:
                     tmp = __fd2T[pfd.fd];
             }
             if (tmp)
-                tmp->Recv(__buf, MAX_BUF_SIZE);
+                tmp->Recv();
         }
         else if (pfd.revents & POLLOUT)
         {

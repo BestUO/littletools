@@ -34,8 +34,8 @@ TEST_CASE("network_UDP_inet_base")
     udp1.Send("from udp1", udp2.GetAddr());
 
     char buf[100] = {0};
-    udp2.Recv(buf, sizeof(buf));
-    udp1.Recv(buf, sizeof(buf));
+    udp2.Recv();
+    udp1.Recv();
 }
 
 TEST_CASE("network_UDP_inet_multicast")
@@ -63,8 +63,8 @@ TEST_CASE("network_UDP_inet_multicast")
         "from udp1", network::SocketBase::CreateAddr("234.56.78.90", 23456));
 
     char buf[100] = {0};
-    udp2.Recv(buf, sizeof(buf));
-    udp1.Recv(buf, sizeof(buf));
+    udp2.Recv();
+    udp1.Recv();
 }
 
 TEST_CASE("network_UDP_unix_base")
@@ -91,8 +91,8 @@ TEST_CASE("network_UDP_unix_base")
     udp1.Send("from udp1", udp2.GetAddr());
 
     char buf[100] = {0};
-    udp2.Recv(buf, sizeof(buf));
-    udp1.Recv(buf, sizeof(buf));
+    udp2.Recv();
+    udp1.Recv();
 }
 
 TEST_CASE("network_SimplePoll")
