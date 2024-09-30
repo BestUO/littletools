@@ -299,7 +299,7 @@ TEST_CASE("TimerManager_v4_recursive")
     timerManager->StopTimerManager();
 }
 
-TEST_CASE("TimerManager_benchmark")
+TEST_CASE("TimerManager_v4_benchmark")
 {
     int totalnum      = 1024 * 1024;
     uint32_t epochnum = 1;

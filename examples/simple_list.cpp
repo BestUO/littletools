@@ -15,7 +15,7 @@ TEST_CASE("simple_list_1")
     for (uint32_t i = 0; i < total; i++)
         v[i] = i;
 
-    SimpleList<int> simple_list;
+    SimpleList<int*> simple_list;
     for (uint32_t i = 0; i < total / 2; i++)
         simple_list.AddNode(&v[i]);
     int count = 0;
@@ -36,8 +36,8 @@ TEST_CASE("simple_list_2")
 {
     int* v = new int;
 
-    SimpleList<int> simple_list;
-    auto node_ptr = simple_list.AddNode(v);
+    SimpleList<int*> simple_list;
+    auto node_ptr = simple_list.AddNode(std::move(v));
     simple_list.RemoveNode(node_ptr);
     delete v;
 }
@@ -50,7 +50,7 @@ TEST_CASE("simple_list_bench")
     for (uint32_t i = 0; i < total; i++)
         v[i] = i;
 
-    SimpleList<int> simple_list;
+    SimpleList<int*> simple_list;
     ankerl::nanobench::Bench().epochs(epochnum).run("simple_list", [&]() {
         for (uint32_t i = 0; i < total / 2; i++)
             simple_list.AddNode(&v[i]);
@@ -63,17 +63,17 @@ TEST_CASE("simple_list_bench")
         }
     });
 
-    std::list<int*> l;
-    ankerl::nanobench::Bench().epochs(epochnum).run("std::list", [&]() {
-        for (uint32_t i = 0; i < total / 2; i++)
-            l.emplace_back(&v[i]);
-        for (uint32_t i = 0; i < total / 2; i++)
-            l.remove(&v[i]);
-        for (uint32_t i = total / 2; i < total; i++)
-        {
-            l.emplace_back(&v[i]);
-            l.remove(&v[i]);
-        }
-    });
+    // std::list<int*> l;
+    // ankerl::nanobench::Bench().epochs(epochnum).run("std::list", [&]() {
+    //     for (uint32_t i = 0; i < total / 2; i++)
+    //         l.emplace_back(&v[i]);
+    //     for (uint32_t i = 0; i < total / 2; i++)
+    //         l.remove(&v[i]);
+    //     for (uint32_t i = total / 2; i < total; i++)
+    //     {
+    //         l.emplace_back(&v[i]);
+    //         l.remove(&v[i]);
+    //     }
+    // });
     delete[] v;
 }

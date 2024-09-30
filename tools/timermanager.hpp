@@ -701,16 +701,17 @@ public:
                 return;
             }
 
-            typename SimpleList<TimerElement>::Node* node_ptr;
+            typename SimpleList<TimerElement*>::Node* node_ptr;
 
             if (auto simple_list = __timer_map.find(element->alarm);
                 simple_list != __timer_map.end())
-                node_ptr = simple_list->second->AddNode(element);
+                node_ptr = simple_list->second->AddNode(std::move(element));
             else
-                node_ptr = __timer_map
-                               .emplace(element->alarm,
-                                   std::make_shared<SimpleList<TimerElement>>())
-                               .first->second->AddNode(element);
+                node_ptr
+                    = __timer_map
+                          .emplace(element->alarm,
+                              std::make_shared<SimpleList<TimerElement*>>())
+                          .first->second->AddNode(std::move(element));
 
             element->iter
                 = __key_node_map
@@ -766,7 +767,7 @@ public:
             __timerThread.join();
 
         std::map<std::chrono::milliseconds,
-            std::shared_ptr<SimpleList<TimerElement>>>
+            std::shared_ptr<SimpleList<TimerElement*>>>
             timer_map;
         {
             std::lock_guard<std::mutex> lck(__mutex);
@@ -817,7 +818,7 @@ private:
         std::chrono::milliseconds alarm;
         std::function<void()> fun;
         std::chrono::milliseconds interval = std::chrono::milliseconds(0);
-        std::map<Key, typename SimpleList<TimerElement>::Node*>::iterator iter;
+        std::map<Key, typename SimpleList<TimerElement*>::Node*>::iterator iter;
         std::mutex cb_mutex;
         bool operator<(const TimerElement& t) const
         {
@@ -855,9 +856,9 @@ private:
     };
     std::atomic<bool> __stop = {true};
     std::map<std::chrono::milliseconds,
-        std::shared_ptr<SimpleList<TimerElement>>>
+        std::shared_ptr<SimpleList<TimerElement*>>>
         __timer_map;
-    std::map<Key, typename SimpleList<TimerElement>::Node*> __key_node_map;
+    std::map<Key, typename SimpleList<TimerElement*>::Node*> __key_node_map;
     std::thread __timerThread;
     std::condition_variable __cv;
     std::mutex __mutex;
@@ -896,7 +897,7 @@ private:
             __cv.wait_until(lck, TIMETYPE::now() + std::chrono::seconds(1));
     }
 
-    std::shared_ptr<SimpleList<TimerElement>> GetTimerElement()
+    std::shared_ptr<SimpleList<TimerElement*>> GetTimerElement()
     {
         std::lock_guard<std::mutex> lck(__mutex);
         if (auto iter = __timer_map.begin(); iter != __timer_map.end())
@@ -915,9 +916,9 @@ private:
     }
 
     void DealWithTimerElement(
-        std::shared_ptr<SimpleList<TimerElement>> simple_list)
+        std::shared_ptr<SimpleList<TimerElement*>> simple_list)
     {
-        while (typename SimpleList<TimerElement>::Node* node_ptr
+        while (typename SimpleList<TimerElement*>::Node* node_ptr
             = simple_list->PopHead())
         {
             if (node_ptr->data->Callback()
@@ -935,7 +936,7 @@ private:
                 else
                     __timer_map
                         .emplace(node_ptr->data->alarm,
-                            std::make_shared<SimpleList<TimerElement>>())
+                            std::make_shared<SimpleList<TimerElement*>>())
                         .first->second->AddNode(node_ptr);
             }
             else
@@ -947,7 +948,7 @@ private:
                 ObjectPool<TimerElement>::GetInstance()->PutObject(
                     node_ptr->data);
                 ObjectPool<
-                    typename SimpleList<TimerElement>::Node>::GetInstance()
+                    typename SimpleList<TimerElement*>::Node>::GetInstance()
                     ->PutObject(node_ptr);
             }
         }

@@ -17,14 +17,14 @@ public:
     {
         Node* next = nullptr;
         Node* prev = nullptr;
-        T* data    = nullptr;
+        T data;
     };
 
-    Node* AddNode(T* data)
+    Node* AddNode(T&& data)
     {
         Node* node = ObjectPool<Node>::GetInstance()->GetObject(
             nullptr, nullptr, nullptr);
-        node->data = data;
+        node->data = std::move(data);
 
         return AddNode(node);
     }
@@ -55,7 +55,7 @@ public:
         ObjectPool<Node>::GetInstance()->PutObject(node);
     }
 
-    void RemoveNode(T* data)
+    void RemoveNode(const T& data)
     {
         Node* node = __head;
         while (node)
@@ -69,7 +69,7 @@ public:
         }
     }
 
-    void RemoveNode(std::function<bool(T* data)> find_and_clear_fun)
+    void RemoveNode(std::function<bool(const T& data)> find_and_clear_fun)
     {
         Node* node_next = __head;
         Node* node;
