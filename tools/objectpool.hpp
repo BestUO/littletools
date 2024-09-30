@@ -240,22 +240,26 @@ public:
     template <typename... Args>
     T* GetObject(Args&&... args)
     {
-        if (unlikely(!__local_pool))
+        if (unlikely(!__local_pool_ptr))
         {
-            __local_pool = new LocalPool(this);
-            __local_pool_ptr_wrap.setptr(__local_pool);
+            // __local_pool_ptr = std::make_unique<LocalPool>(this);
+            __local_pool_ptr = new LocalPool(this);
+            __local_pools.push_back(__local_pool_ptr);
+            // __local_pool_ptr_wrap.setptr(__local_pool_ptr);
         }
-        return __local_pool->GetObject(std::forward<Args>(args)...);
+        return __local_pool_ptr->GetObject(std::forward<Args>(args)...);
     }
 
     void PutObject(T* ptr)
     {
-        if (unlikely(!__local_pool))
+        if (unlikely(!__local_pool_ptr))
         {
-            __local_pool = new LocalPool(this);
-            __local_pool_ptr_wrap.setptr(__local_pool);
+            // __local_pool_ptr = std::make_unique<LocalPool>(this);
+            __local_pool_ptr = new LocalPool(this);
+            __local_pools.push_back(__local_pool_ptr);
+            // __local_pool_ptr_wrap.setptr(__local_pool_ptr);
         }
-        __local_pool->PutObject(ptr);
+        __local_pool_ptr->PutObject(ptr);
     }
 
 private:
@@ -266,6 +270,8 @@ private:
             free(block);
         for (auto& freechunk : __free_chunks)
             free(freechunk);
+        for (auto& localpool : __local_pools)
+            delete localpool;
     }
 
     struct FreeChunk
@@ -388,35 +394,38 @@ private:
     public:
         ~ThreadLocalPtrWrap()
         {
-            delete __ptr;
+            // delete __ptr;
         }
-        void setptr(PTRTYPE* ptr)
-        {
-            __ptr = ptr;
-        }
+        // void setptr(PTRTYPE* ptr)
+        // {
+        //     // __ptr = ptr;
+        // }
 
-    private:
-        PTRTYPE* __ptr;
+        // PTRTYPE* __ptr = nullptr;
     };
-    static thread_local LocalPool* __local_pool;
-    // static thread_local std::unique_ptr<LocalPool> __local_pool;
+    static inline thread_local LocalPool* __local_pool_ptr = nullptr;
+    // static inline thread_local std::unique_ptr<ObjectPool<T>::LocalPool>
+    //     __local_pool_ptr;
+    // static inline thread_local ThreadLocalPtrWrap<LocalPool>
+    //     __local_pool_ptr_wrap = {};
     std::vector<FreeChunk*> __free_chunks;
     std::vector<Block*> __blocks;
+    std::vector<LocalPool*> __local_pools;
     SpinLock __spine_chunk_lock;
     SpinLock __spine_block_lock;
-    static thread_local ThreadLocalPtrWrap<LocalPool> __local_pool_ptr_wrap;
 };
 
-template <typename T>
-thread_local typename ObjectPool<T>::LocalPool* ObjectPool<T>::__local_pool
-    = nullptr;
+// template <typename T>
+// thread_local typename ObjectPool<T>::LocalPool*
+// ObjectPool<T>::__local_pool_ptr
+//     = nullptr;
 
 // template <typename T>
 // thread_local std::unique_ptr<typename ObjectPool<T>::LocalPool>
-//     ObjectPool<T>::__local_pool;
+//     ObjectPool<T>::__local_pool_ptr;
 
-template <typename T>
-thread_local typename ObjectPool<T>::template ThreadLocalPtrWrap<
-    typename ObjectPool<T>::LocalPool>
-    ObjectPool<T>::__local_pool_ptr_wrap;
+// template <typename T>
+// thread_local typename ObjectPool<T>::template ThreadLocalPtrWrap<
+//     typename ObjectPool<T>::LocalPool>
+//     ObjectPool<T>::__local_pool_ptr_wrap;
 }  // namespace v2

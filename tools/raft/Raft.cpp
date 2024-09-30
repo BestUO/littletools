@@ -6,8 +6,8 @@
 
 Raft::Raft(const RaftInfos::RaftBaseInfo& baseinfo)
     : __infos(baseinfo)
-    , __normal_udp(std::make_shared<network::inet_udp::UDP>())
-    , __multicast_udp(std::make_shared<network::inet_udp::UDP>())
+    , __normal_udp(std::make_shared<network::inet_udp::UDP<>>())
+    , __multicast_udp(std::make_shared<network::inet_udp::UDP<>>())
 {
     InitRaft();
 }
@@ -23,7 +23,7 @@ void Raft::InitRaft()
         __infos.base_info.control_multicast_ip.c_str(),
         __infos.base_info.control_multicast_port);
 
-    __normal_udp = std::make_shared<network::inet_udp::UDP>();
+    __normal_udp = std::make_shared<network::inet_udp::UDP<>>();
     __normal_udp->SetAddr("0.0.0.0", 0);
     __normal_udp->SetCallBack(
         [this](
@@ -33,7 +33,7 @@ void Raft::InitRaft()
     __normal_udp->SetMultiCastSendIf(
         __infos.base_info.control_multicast_send_if.c_str());
 
-    __multicast_udp = std::make_shared<network::inet_udp::UDP>();
+    __multicast_udp = std::make_shared<network::inet_udp::UDP<>>();
     __multicast_udp->SetReuseAddrAndPort();
     __multicast_udp->SetAddr(
         "0.0.0.0", __infos.base_info.control_multicast_port);
@@ -308,12 +308,12 @@ std::string Raft::HandlerHeartBeat(const RaftCommandType::HeartBeat& cmd)
     return "";
 }
 
-std::shared_ptr<network::inet_udp::UDP> Raft::GetNormalUdp() const
+std::shared_ptr<network::inet_udp::UDP<>> Raft::GetNormalUdp() const
 {
     return __normal_udp;
 }
 
-std::shared_ptr<network::inet_udp::UDP> Raft::GetMulticastUdp() const
+std::shared_ptr<network::inet_udp::UDP<>> Raft::GetMulticastUdp() const
 {
     return __multicast_udp;
 }

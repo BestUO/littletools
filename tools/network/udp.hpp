@@ -16,12 +16,13 @@
 #include <functional>
 #include "network_global.hpp"
 #include "socket.hpp"
-#include <iostream>
+#include "tools/objectpool.hpp"
+#include "simple_allocate.hpp"
 
 namespace network
 {
 
-template <bool USEUNIX>
+template <bool USEUNIX, typename T>
 class UDPBase
     : public virtual ProtocolBase
     , public Socket<USEUNIX, true>
@@ -59,12 +60,14 @@ public:
         bool nonblock = SocketBase::IsNonBlocking(this->__sockfd);
         if (nonblock)
         {
-            while (RecvOnce(this->__sockfd, __buf, MAX_BUF_SIZE))
+            while (RecvOnce(
+                this->__sockfd, __allocate.GetBuf(), __allocate.GetBufSize()))
             { }
         }
         else
         {
-            RecvOnce(this->__sockfd, __buf, MAX_BUF_SIZE);
+            RecvOnce(
+                this->__sockfd, __allocate.GetBuf(), __allocate.GetBufSize());
         }
     };
 
@@ -93,7 +96,11 @@ private:
         __cb;
     std::mutex __mutex4cb;
     std::string __response;
-    char __buf[MAX_BUF_SIZE] = {0};
+    T __allocate;
+    struct Testbuf
+    {
+        char buf[MAX_BUF_SIZE];
+    };
 
     void HandleData(const char* buf,
         size_t size,
@@ -129,14 +136,15 @@ private:
         else if (received == 0)
             return false;
         else
-            HandleData(__buf, received, addr);
+            HandleData(__allocate.GetBuf(), received, addr);
         return true;
     }
 };
 
 namespace inet_udp
 {
-class UDP : public UDPBase<false>
+template <typename T = SimpleAllocate<>>
+class UDP : public UDPBase<false, T>
 {
 public:
     Result SetMultiCastSendIf()
@@ -237,7 +245,8 @@ public:
 
 namespace unix_udp
 {
-class UDP : public UDPBase<true>
+template <typename T = SimpleAllocate<>>
+class UDP : public UDPBase<true, T>
 { };
 }  // namespace unix_udp
 }  // namespace network

@@ -9,7 +9,7 @@ class ControlFd
 {
 public:
     ControlFd()
-        : __control_socket(std::make_shared<network::inet_udp::UDP>())
+        : __control_socket(std::make_shared<network::inet_udp::UDP<>>())
     {
         __control_socket->SetAddr("127.0.0.1", 0);
         __control_socket->SetCallBack(
@@ -24,6 +24,6 @@ public:
     }
 
 protected:
-    std::shared_ptr<network::inet_udp::UDP> __control_socket;
+    std::shared_ptr<network::inet_udp::UDP<>> __control_socket;
 };
 }  // namespace network

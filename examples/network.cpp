@@ -108,8 +108,8 @@ TEST_CASE("network_SimplePoll_UDP_inet_base_add_poll")
     network::NetWorkManager<network::SimplePoll> network_manager;
     network_manager.Start();
 
-    auto udp1 = std::make_shared<network::inet_udp::UDP>();
-    auto udp2 = std::make_shared<network::inet_udp::UDP>();
+    auto udp1 = std::make_shared<network::inet_udp::UDP<>>();
+    auto udp2 = std::make_shared<network::inet_udp::UDP<>>();
     udp1->SetReuseAddrAndPort();
     udp1->SetAddr("127.0.0.1", 0);
     udp1->SetCallBack(
@@ -142,8 +142,8 @@ TEST_CASE("network_SimplePoll_UDP_inet_multicast_add_poll")
     network::NetWorkManager<network::SimplePoll> network_manager;
     network_manager.Start();
 
-    auto udp1 = std::make_shared<network::inet_udp::UDP>();
-    auto udp2 = std::make_shared<network::inet_udp::UDP>();
+    auto udp1 = std::make_shared<network::inet_udp::UDP<>>();
+    auto udp2 = std::make_shared<network::inet_udp::UDP<>>();
 
     udp1->SetAddr("0.0.0.0", 12345);
     udp1->SetCallBack(
@@ -177,8 +177,8 @@ TEST_CASE("network_SimplePoll_UDP_unix_base_add_poll")
     network::NetWorkManager<network::SimplePoll> network_manager;
     network_manager.Start();
 
-    auto udp1 = std::make_shared<network::unix_udp::UDP>();
-    auto udp2 = std::make_shared<network::unix_udp::UDP>();
+    auto udp1 = std::make_shared<network::unix_udp::UDP<>>();
+    auto udp2 = std::make_shared<network::unix_udp::UDP<>>();
     udp1->SetReuseAddrAndPort();
     udp1->SetAddr("/tmp/unix_socket_test1");
     udp1->SetCallBack(
@@ -211,8 +211,8 @@ TEST_CASE("network_SimplePoll_UDP_merge_inet_unix")
     network::NetWorkManager<network::SimplePoll> network_manager;
     network_manager.Start();
 
-    auto udp1 = std::make_shared<network::unix_udp::UDP>();
-    auto udp2 = std::make_shared<network::unix_udp::UDP>();
+    auto udp1 = std::make_shared<network::unix_udp::UDP<>>();
+    auto udp2 = std::make_shared<network::unix_udp::UDP<>>();
     udp1->SetReuseAddrAndPort();
     udp1->SetAddr("/tmp/unix_socket_test1");
     udp1->SetCallBack(
@@ -230,8 +230,8 @@ TEST_CASE("network_SimplePoll_UDP_merge_inet_unix")
             return "from udp2";
         });
 
-    auto udp3 = std::make_shared<network::inet_udp::UDP>();
-    auto udp4 = std::make_shared<network::inet_udp::UDP>();
+    auto udp3 = std::make_shared<network::inet_udp::UDP<>>();
+    auto udp4 = std::make_shared<network::inet_udp::UDP<>>();
     udp3->SetReuseAddrAndPort();
     udp3->SetAddr("127.0.0.1", 0);
     udp3->SetCallBack(
@@ -269,7 +269,7 @@ TEST_CASE("network_SimplePoll_UDP_inet_performance")
     network::NetWorkManager<network::SimplePoll> network_manager;
     network_manager.Start();
 
-    auto recvudp = std::make_shared<network::inet_udp::UDP>();
+    auto recvudp = std::make_shared<network::inet_udp::UDP<>>();
     recvudp->SetAddr("127.0.0.1", 23456);
     int i = 0;
     recvudp->SetCallBack([&]<typename... Args>(Args... args) -> std::string {
@@ -308,7 +308,7 @@ TEST_CASE("network_SimplePoll_UDP_unix_performance")
     network::NetWorkManager<network::SimplePoll> network_manager;
     network_manager.Start();
 
-    auto recvudp = std::make_shared<network::unix_udp::UDP>();
+    auto recvudp = std::make_shared<network::unix_udp::UDP<>>();
     recvudp->SetAddr("/tmp/123");
     int i = 0;
     recvudp->SetCallBack([&]<typename... Args>(Args... args) -> std::string {
@@ -347,7 +347,7 @@ TEST_CASE("network_SimplePoll_nonblock_UDP_inet_performance")
     network::NetWorkManager<network::SimplePoll> network_manager;
     network_manager.Start();
 
-    auto recvudp = std::make_shared<network::inet_udp::UDP>();
+    auto recvudp = std::make_shared<network::inet_udp::UDP<>>();
     recvudp->SetAddr("127.0.0.1", 23456);
     int i = 0;
     recvudp->SetCallBack([&]<typename... Args>(Args... args) -> std::string {
@@ -387,7 +387,7 @@ TEST_CASE("network_SimplePoll_nonblock_UDP_unix_performance")
     network::NetWorkManager<network::SimplePoll> network_manager;
     network_manager.Start();
 
-    auto recvudp = std::make_shared<network::unix_udp::UDP>();
+    auto recvudp = std::make_shared<network::unix_udp::UDP<>>();
     recvudp->SetAddr("/tmp/123");
     int i = 0;
     recvudp->SetCallBack([&]<typename... Args>(Args... args) -> std::string {
@@ -435,8 +435,8 @@ TEST_CASE("network_SimpleEpoll_UDP_inet_base_add_poll")
     network::NetWorkManager<network::SimpleEpoll> network_manager;
     network_manager.Start();
 
-    auto udp1 = std::make_shared<network::inet_udp::UDP>();
-    auto udp2 = std::make_shared<network::inet_udp::UDP>();
+    auto udp1 = std::make_shared<network::inet_udp::UDP<>>();
+    auto udp2 = std::make_shared<network::inet_udp::UDP<>>();
     udp1->SetReuseAddrAndPort();
     udp1->SetAddr("127.0.0.1", 0);
     udp1->SetCallBack(
@@ -469,8 +469,8 @@ TEST_CASE("network_SimpleEpoll_UDP_inet_multicast_add_poll")
     network::NetWorkManager<network::SimpleEpoll> network_manager;
     network_manager.Start();
 
-    auto udp1 = std::make_shared<network::inet_udp::UDP>();
-    auto udp2 = std::make_shared<network::inet_udp::UDP>();
+    auto udp1 = std::make_shared<network::inet_udp::UDP<>>();
+    auto udp2 = std::make_shared<network::inet_udp::UDP<>>();
 
     udp1->SetAddr("0.0.0.0", 12345);
     udp1->SetCallBack(
@@ -504,8 +504,8 @@ TEST_CASE("network_SimpleEpoll_UDP_unix_base_add_poll")
     network::NetWorkManager<network::SimpleEpoll> network_manager;
     network_manager.Start();
 
-    auto udp1 = std::make_shared<network::unix_udp::UDP>();
-    auto udp2 = std::make_shared<network::unix_udp::UDP>();
+    auto udp1 = std::make_shared<network::unix_udp::UDP<>>();
+    auto udp2 = std::make_shared<network::unix_udp::UDP<>>();
     udp1->SetReuseAddrAndPort();
     udp1->SetAddr("/tmp/unix_socket_test1");
     udp1->SetCallBack(
@@ -538,8 +538,8 @@ TEST_CASE("network_SimpleEpoll_UDP_merge_inet_unix")
     network::NetWorkManager<network::SimpleEpoll> network_manager;
     network_manager.Start();
 
-    auto udp1 = std::make_shared<network::unix_udp::UDP>();
-    auto udp2 = std::make_shared<network::unix_udp::UDP>();
+    auto udp1 = std::make_shared<network::unix_udp::UDP<>>();
+    auto udp2 = std::make_shared<network::unix_udp::UDP<>>();
     udp1->SetReuseAddrAndPort();
     udp1->SetAddr("/tmp/unix_socket_test1");
     udp1->SetCallBack(
@@ -557,8 +557,8 @@ TEST_CASE("network_SimpleEpoll_UDP_merge_inet_unix")
             return "from udp2";
         });
 
-    auto udp3 = std::make_shared<network::inet_udp::UDP>();
-    auto udp4 = std::make_shared<network::inet_udp::UDP>();
+    auto udp3 = std::make_shared<network::inet_udp::UDP<>>();
+    auto udp4 = std::make_shared<network::inet_udp::UDP<>>();
     udp3->SetReuseAddrAndPort();
     udp3->SetAddr("127.0.0.1", 0);
     udp3->SetCallBack(
@@ -596,7 +596,7 @@ TEST_CASE("network_SimpleEpoll_level_UDP_inet_performance")
     network::NetWorkManager<network::SimpleEpoll> network_manager;
     network_manager.Start();
 
-    auto recvudp = std::make_shared<network::inet_udp::UDP>();
+    auto recvudp = std::make_shared<network::inet_udp::UDP<>>();
     recvudp->SetAddr("127.0.0.1", 23456);
     int i = 0;
     recvudp->SetCallBack([&]<typename... Args>(Args... args) -> std::string {
@@ -635,7 +635,7 @@ TEST_CASE("network_SimpleEpoll_level_UDP_unix_performance")
     network::NetWorkManager<network::SimpleEpoll> network_manager;
     network_manager.Start();
 
-    auto recvudp = std::make_shared<network::unix_udp::UDP>();
+    auto recvudp = std::make_shared<network::unix_udp::UDP<>>();
     recvudp->SetAddr("/tmp/123");
     int i = 0;
     recvudp->SetCallBack([&]<typename... Args>(Args... args) -> std::string {
@@ -674,7 +674,7 @@ TEST_CASE("network_SimpleEpoll_edge_UDP_inet_performance")
     network::NetWorkManager<network::SimpleEpoll> network_manager;
     network_manager.Start();
 
-    auto recvudp = std::make_shared<network::inet_udp::UDP>();
+    auto recvudp = std::make_shared<network::inet_udp::UDP<>>();
     recvudp->SetAddr("127.0.0.1", 23456);
     int i = 0;
     recvudp->SetCallBack([&]<typename... Args>(Args... args) -> std::string {
@@ -714,7 +714,7 @@ TEST_CASE("network_SimpleEpoll_edge_UDP_unix_performance")
     network::NetWorkManager<network::SimpleEpoll> network_manager;
     network_manager.Start();
 
-    auto recvudp = std::make_shared<network::unix_udp::UDP>();
+    auto recvudp = std::make_shared<network::unix_udp::UDP<>>();
     recvudp->SetAddr("/tmp/123");
     int i = 0;
     recvudp->SetCallBack([&]<typename... Args>(Args... args) -> std::string {
