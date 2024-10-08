@@ -1,12 +1,12 @@
-set (PROJ_NAME "doctooltest")
-project(${PROJ_NAME})
+set (PROJ_NAME_TEST "doctooltest")
+project(${PROJ_NAME_TEST})
 
 include_directories(${CMAKE_SOURCE_DIR})
 include_directories(${THIRD_PARTY_PATH}/include/doctest)
 include_directories(${THIRD_PARTY_PATH}/include/nanobench/src/include)
 
-add_executable(${PROJ_NAME})
-target_sources(${PROJ_NAME} 
+add_executable(${PROJ_NAME_TEST})
+target_sources(${PROJ_NAME_TEST} 
 PRIVATE lockqueue.cpp 
 timermanager.cpp
 rbtreewrap.cpp 
@@ -25,5 +25,18 @@ network.cpp
 reliable_udp.cpp
 simple_list.cpp
 )
+target_link_libraries(${PROJ_NAME_TEST} pthread)
 
-target_link_libraries(${PROJ_NAME} pthread)
+############################################################################################################
+set (PROJ_NAME_RUDP_SERVER "RUDP_large_msg_server")
+project(${PROJ_NAME_RUDP_SERVER})
+
+add_executable(${PROJ_NAME_RUDP_SERVER} RUDP_large_msg_server.cpp)
+############################################################################################################
+set (PROJ_NAME_RUDP_CLIENT "RUDP_large_msg_client")
+project(${PROJ_NAME_RUDP_CLIENT})
+
+add_executable(${PROJ_NAME_RUDP_CLIENT} RUDP_large_msg_client.cpp)
+target_sources(${PROJ_NAME_RUDP_CLIENT} 
+PRIVATE ${CMAKE_SOURCE_DIR}/tools/rbtree/rbtree.cpp
+)

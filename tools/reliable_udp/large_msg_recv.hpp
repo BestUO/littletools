@@ -296,9 +296,6 @@ private:
         // __thread_pool.Put(message_id.hash(), Msg{data, addr});
         // return std::string();
 
-        // Working(Msg{std::string(data, size), addr});
-        // return std::string();
-
         return Working_old(const_cast<char*>(data));
     }
 
