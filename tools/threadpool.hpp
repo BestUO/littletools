@@ -18,6 +18,7 @@
 #include "function_traits.hpp"
 #include "simple_list.hpp"
 #include "tools/concurrentqueue/concurrentqueue.h"
+#include "tools/cpu_bind.hpp"
 
 namespace threadpool
 {
@@ -357,40 +358,6 @@ private:
 
 namespace v3
 {
-// template <typename T>
-// class Worker
-// {
-// public:
-//     void Put(T&& t)
-//     {
-//         std::lock_guard<std::mutex> lock(__mutex);
-//         __list.AddNode(std::move(t));
-//         __cond.notify_one();
-//     }
-
-//     SimpleList<T> Get()
-//     {
-//         std::unique_lock<std::mutex> lock(__mutex);
-//         if (__list.Empty())
-//         {
-//             __cond.wait(lock);
-//             return {};
-//         }
-//         else
-//             return std::move(__list);
-//     }
-
-//     void Stop()
-//     {
-//         std::lock_guard<std::mutex> lock(__mutex);
-//         __cond.notify_one();
-//     }
-
-// private:
-//     std::mutex __mutex;
-//     std::condition_variable __cond;
-//     SimpleList<T> __list;
-// };
 template <typename T>
 class Worker
 {
@@ -426,7 +393,7 @@ private:
     std::vector<T> __vector;
 };
 
-template <typename T>
+template <typename T, uint8_t THREADCOUNT = 2>
 class ThreadPoll
 {
 public:
@@ -435,10 +402,10 @@ public:
         __workers[hash % __workers.size()]->Put(std::move(t));
     }
 
-    void Start(uint8_t thread_num, const std::function<void(const T&)> func)
+    void Start(std::function<void(T&)> func)
     {
         __stop = false;
-        for (uint8_t i = 0; i < LargestPowerTwo(thread_num); ++i)
+        for (uint8_t i = 0; i < __thread_count; ++i)
         {
             auto worker = std::make_shared<Worker<T>>();
             __workers.emplace_back(worker);
@@ -446,9 +413,6 @@ public:
                 while (!__stop)
                 {
                     auto elements = worker->Get();
-                    // elements.RemoveNode([](const T& t) {
-                    //     return true;
-                    // });
                     for (auto& element : elements)
                         func(element);
                 }
@@ -466,11 +430,7 @@ public:
     }
 
 private:
-    bool __stop = true;
-    std::vector<std::thread> __threads;
-    std::vector<std::shared_ptr<Worker<T>>> __workers;
-
-    uint8_t LargestPowerTwo(uint8_t num)
+    constexpr static uint8_t LargestPowerTwo(uint8_t num)
     {
         if (num == 0)
             return 0;
@@ -479,6 +439,10 @@ private:
             power <<= 1;
         return power;
     }
+    bool __stop = true;
+    std::vector<std::thread> __threads;
+    std::vector<std::shared_ptr<Worker<T>>> __workers;
+    constexpr static uint8_t __thread_count = LargestPowerTwo(THREADCOUNT);
 };
 
 };  // namespace v3
@@ -505,7 +469,7 @@ public:
         return flag;
     }
 
-    void RunOnce(std::function<void(const T&)> fun)
+    void RunOnce(std::function<void(T&)> fun)
     {
         auto len = __queue.try_dequeue_bulk_from_producer(__ptkn, __t, 32);
         if (len > 0)
@@ -542,7 +506,7 @@ public:
         __workers[hash & (__thread_count - 1)]->Put(std::move(t));
     }
 
-    void Start(std::function<void(const T&)> func)
+    void Start(std::function<void(T&)> func)
     {
         __stop = false;
         for (uint8_t i = 0; i < __thread_count; ++i)
@@ -550,6 +514,7 @@ public:
             auto worker = std::make_shared<Worker<T>>();
             __workers.emplace_back(worker);
             __threads.emplace_back([this, worker, func] {
+                CPUBind::BindCPU();
                 while (!__stop)
                 {
                     worker->RunOnce(func);

@@ -38,9 +38,9 @@ TEST_CASE("threadpool_v2")
 
 TEST_CASE("threadpool_v3")
 {
-    threadpool::v3::ThreadPoll<int> thread_pool;
+    threadpool::v3::ThreadPoll<int, 1> thread_pool;
     std::vector<int> result;
-    thread_pool.Start(1, [&result](const int& i) {
+    thread_pool.Start([&result](const int& i) {
         result.push_back(i);
     });
     usleep(1000);
@@ -74,7 +74,7 @@ TEST_CASE("threadpool_bench")
     {
         threadpool::v3::ThreadPoll<int> thread_pool;
         std::atomic<int> recv_count = 0;
-        thread_pool.Start(2, [&recv_count](const int& i) {
+        thread_pool.Start([&recv_count](const int& i) {
             ++recv_count;
         });
         usleep(1000);

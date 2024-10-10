@@ -1,10 +1,17 @@
 #pragma once
+#include <netinet/in.h>
 #include "tools/objectpool.hpp"
 
 template <int BUF_SIZE>
 class RudpAllocate
 {
 public:
+    struct RudpAllocateTag
+    {
+        char __buf[BUF_SIZE];
+        sockaddr addr;
+    };
+
     RudpAllocate()                               = default;
     RudpAllocate(const RudpAllocate&)            = delete;
     RudpAllocate& operator=(const RudpAllocate&) = delete;
@@ -28,10 +35,4 @@ public:
     {
         return BUF_SIZE;
     }
-
-private:
-    struct RudpAllocateTag
-    {
-        char __buf[BUF_SIZE];
-    };
 };

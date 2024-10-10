@@ -22,7 +22,8 @@ int main()
     std::string message("12345");
     auto now = std::chrono::high_resolution_clock::now();
     auto dst = network::SocketBase::CreateAddr("127.0.0.1", 9988);
-    while (true)
+    while (now + std::chrono::seconds(10)
+        > std::chrono::high_resolution_clock::now())
     {
         rudp_large_msg_send.Send(message, dst);
     }

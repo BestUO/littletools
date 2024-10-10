@@ -24,6 +24,7 @@ public:
         {
             printf("Could not set CPU affinity\n");
         }
+        CheckBindCPU();
     }
 
     static void CheckBindCPU()
