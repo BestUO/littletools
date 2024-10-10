@@ -7,6 +7,7 @@
 #include "doctest/doctest.h"
 #include "nanobench.h"
 #include "tools/timermanager.hpp"
+#include "tools/uuid.hpp"
 
 TEST_CASE("TimerManager_v1_base")
 {
@@ -248,10 +249,7 @@ TEST_CASE("TimerManager_v4_base")
     auto func = [&count]() {
         count++;
     };
-    std::random_device rd;
-    std::mt19937 gen(rd());
 
-    std::uniform_int_distribution<> distrib_int(1, 10000);
     uint32_t total = 1024 * 1024;
     for (int i = 0; i < total; i++)
         timerManager->AddAlarm(std::chrono::milliseconds(1), i, "", func);
@@ -270,7 +268,8 @@ TEST_CASE("TimerManager_v4_recursive")
     {
         ~A()
         {
-            timermanager::v4::TimerManager<int>::GetInstance()->DeleteAlarm(0);
+            timermanager::v4::TimerManager<int>::GetInstance()->DeleteAlarm(
+                0, "1-1");
         }
         void callback()
         {
@@ -279,7 +278,7 @@ TEST_CASE("TimerManager_v4_recursive")
         void fun()
         {
             timermanager::v4::TimerManager<int>::GetInstance()->AddAlarm(
-                std::chrono::milliseconds(200), 0, "1-1", [this]() {
+                std::chrono::milliseconds(200), 1, "1-1", [this]() {
                     callback();
                 });
         }
@@ -288,7 +287,7 @@ TEST_CASE("TimerManager_v4_recursive")
         auto a = std::make_shared<A>();
         timermanager::v4::TimerManager<int>::GetInstance()->AddAlarm(
             std::chrono::milliseconds(0),
-            0,
+            1,
             "",
             [a]() {
                 a->fun();
@@ -336,3 +335,51 @@ TEST_CASE("TimerManager_v4_benchmark")
         });
     timerManager_v4->StopTimerManager();
 }
+
+// #include "tools/concurrentqueue/concurrentqueue.h"
+// #include "tools/concurrentqueue/blockingconcurrentqueue.h"
+// TEST_CASE("TimerManager_ttt_v3")
+// {
+//     uint32_t epochnum = 1;
+//     moodycamel::BlockingConcurrentQueue<UUID> q;
+//     auto timerManager = timermanager::v3::TimerManager<int>::GetInstance();
+//     // timerManager->StartTimerManager();
+
+//     for (int i = 0; i < 1000000; i++)
+//         timerManager->AddAlarm(
+//             std::chrono::milliseconds(0), i, std::string(), [i]() {});
+
+//     ankerl::nanobench::Bench().epochs(epochnum).run(
+//         "v3", [&q, &timerManager]() {
+//             for (int i = 0; i < 1000000; i++)
+//                 timerManager->DeleteAlarm(i, std::string());
+//             // for (int i = 0; i < 1000000; i++)
+//             //     timerManager->AddAlarm(
+//             //         std::chrono::milliseconds(0), i, std::string(), [i]()
+//             //         {});
+//         });
+//     timerManager->StopTimerManager();
+// }
+
+// TEST_CASE("TimerManager_ttt_v4")
+// {
+//     uint32_t epochnum = 1;
+//     moodycamel::BlockingConcurrentQueue<UUID> q;
+//     auto timerManager = timermanager::v4::TimerManager<int>::GetInstance();
+//     // timerManager->StartTimerManager();
+
+//     for (int i = 0; i < 1000000; i++)
+//         timerManager->AddAlarm(
+//             std::chrono::milliseconds(0), i, std::string(), [i]() {});
+
+//     ankerl::nanobench::Bench().epochs(epochnum).run(
+//         "v4", [&q, &timerManager]() {
+//             for (int i = 0; i < 1000000; i++)
+//                 timerManager->DeleteAlarm(i, std::string());
+//             // for (int i = 0; i < 1000000; i++)
+//             //     timerManager->AddAlarm(
+//             //         std::chrono::milliseconds(0), i, std::string(), [i]()
+//             //         {});
+//         });
+//     timerManager->StopTimerManager();
+// }
