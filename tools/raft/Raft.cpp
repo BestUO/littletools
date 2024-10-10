@@ -2,7 +2,7 @@
 #include <chrono>
 #include <mutex>
 #include "tools/timermanager.hpp"
-#include "tools/template.hpp"
+#include "tools/global.hpp"
 
 Raft::Raft(const RaftInfos::RaftBaseInfo& baseinfo)
     : __infos(baseinfo)

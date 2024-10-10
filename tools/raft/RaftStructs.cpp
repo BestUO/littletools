@@ -1,6 +1,5 @@
 #include <string.h>
 #include "RaftStructs.h"
-#include "tools/template.hpp"
 #include "tools/simple_serialize.hpp"
 
 RaftCommandType::CommonInfo::CommonInfo(MessageType m)

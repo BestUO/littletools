@@ -7,7 +7,7 @@
 #include <vector>
 #include <list>
 #include <set>
-#include "template.hpp"
+#include "global.hpp"
 #include "uuid.hpp"
 
 // inline void readBuffer(const char* buf, uint16_t& offset, UUID& data)
