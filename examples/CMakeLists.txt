@@ -22,7 +22,7 @@ ${CMAKE_SOURCE_DIR}/tools/raft/RaftStructs.cpp
 ${CMAKE_SOURCE_DIR}/tools/rbtree/rbtree.cpp
 shm_queue.cpp
 network.cpp
-reliable_udp.cpp
+# reliable_udp.cpp
 simple_list.cpp
 concurrentqueue.cpp
 )

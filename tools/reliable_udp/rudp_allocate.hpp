@@ -14,7 +14,6 @@ public:
 
     char* GetBuf()
     {
-        auto aaaq = v2::ObjectPool<RudpAllocateTag>::GetInstance()->GetObject();
         return (char*)v2::ObjectPool<RudpAllocateTag>::GetInstance()
             ->GetObject();
     }

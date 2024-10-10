@@ -17,6 +17,7 @@
 #include "queue/ringqueue.hpp"
 #include "function_traits.hpp"
 #include "simple_list.hpp"
+#include "tools/concurrentqueue/concurrentqueue.h"
 
 namespace threadpool
 {
@@ -481,4 +482,107 @@ private:
 };
 
 };  // namespace v3
+
+namespace v4
+{
+struct MyTraits : public moodycamel::ConcurrentQueueDefaultTraits
+{
+    static const size_t BLOCK_SIZE = 1024;
+};
+
+template <typename T>
+class Worker
+{
+public:
+    Worker()
+        : __ptkn(__queue)
+    { }
+
+    bool Put(T&& t)
+    {
+        auto flag = __queue.try_enqueue(__ptkn, std::move(t));
+        __cond.notify_one();
+        return flag;
+    }
+
+    void RunOnce(std::function<void(const T&)> fun)
+    {
+        auto len = __queue.try_dequeue_bulk_from_producer(__ptkn, __t, 32);
+        if (len > 0)
+        {
+            for (size_t i = 0; i < len; ++i)
+                fun(__t[i]);
+        }
+        else
+        {
+            std::unique_lock<std::mutex> lock(__mutex);
+            __cond.wait(lock);
+        }
+    }
+
+    void Stop()
+    {
+        __cond.notify_one();
+    }
+
+private:
+    std::mutex __mutex;
+    std::condition_variable __cond;
+    moodycamel::ConcurrentQueue<T, MyTraits> __queue;
+    moodycamel::ProducerToken __ptkn;
+    T __t[32];
+};
+
+template <typename T, uint8_t THREADCOUNT = 2>
+class ThreadPoll
+{
+public:
+    void Put(uint64_t hash, T&& t)
+    {
+        __workers[hash & (__thread_count - 1)]->Put(std::move(t));
+    }
+
+    void Start(std::function<void(const T&)> func)
+    {
+        __stop = false;
+        for (uint8_t i = 0; i < __thread_count; ++i)
+        {
+            auto worker = std::make_shared<Worker<T>>();
+            __workers.emplace_back(worker);
+            __threads.emplace_back([this, worker, func] {
+                while (!__stop)
+                {
+                    worker->RunOnce(func);
+                }
+            });
+        }
+    }
+
+    void Stop()
+    {
+        __stop = true;
+        for (auto& worker : __workers)
+            worker->Stop();
+        for (auto& thread : __threads)
+            thread.join();
+    }
+
+private:
+    constexpr static uint8_t LargestPowerTwo(uint8_t num)
+    {
+        if (num == 0)
+            return 0;
+        uint8_t power = 1;
+        while (num >>= 1)
+            power <<= 1;
+        return power;
+    }
+
+    bool __stop = true;
+    std::vector<std::thread> __threads;
+    std::vector<std::shared_ptr<Worker<T>>> __workers;
+    constexpr static uint8_t __thread_count = LargestPowerTwo(THREADCOUNT);
+};
+
+};  // namespace v4
 }  // namespace threadpool

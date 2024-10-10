@@ -36,7 +36,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/examples/doctooltest",
             "args": [
-                "--test-case=ReliableUDP_large_msg_send_bench"
+                "--test-case=threadpool_v3_bench"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
