@@ -46,7 +46,15 @@ public:
     {
         network::NetWorkManager<network::SimpleEpoll>::GetInstance()
             ->RemoveListenSocket(__endpoint);
+        std::cout << "send module send count: " << count << std::endl;
+        std::cout << "send module recv CellReceived_count: "
+                  << CellReceived_count << std::endl;
+        std::cout << "send module send MessageFinished_count: "
+                  << MessageFinished_count << std::endl;
     }
+    int count                 = 0;
+    int CellReceived_count    = 0;
+    int MessageFinished_count = 0;
 
     bool Send(std::string_view message, const sockaddr_in& addr)
     {
@@ -69,24 +77,10 @@ public:
                     if (__endpoint->Send(msg, addr) == network::Result::SUCCESS)
                     {
                         // __flow_control->Wait(msg.size());
+                        count++;
                     }
                 },
-                [this](UUID message_id, UUID cell_id, sockaddr_in addr) {
-                    timermanager::TimerManager<UUID>::GetInstance()->AddAlarm(
-                        std::chrono::milliseconds(TIMEOUT),
-                        cell_id,
-                        std::string(),
-                        [this, message_id, cell_id, addr]() {
-                            __endpoint->Send(
-                                CellTimeoutCheck{
-                                    ReliableUDPType::CellTimeoutCheck,
-                                    message_id,
-                                    cell_id}
-                                    .serialize(),
-                                addr);
-                        },
-                        std::chrono::milliseconds(TIMEOUT));
-                });
+                nullptr);
 
             if (spliter_ptr->IsFinished())
                 EraseSpliter(iter);
@@ -169,6 +163,7 @@ private:
             //     .serialize();
             // UUID message_id = EndianSwap<>::swap(*(UUID*)(data + 1));
             // UUID cell_id    = EndianSwap<>::swap(*(UUID*)(data + 17));
+            CellReceived_count++;
             CellReceived cell_received(data);
             typename std::unordered_map<UUID, MAP_VALUE_TYPE>::iterator iter;
             {
@@ -186,6 +181,7 @@ private:
                 {
                     if (iter->second->IsFinished())
                         EraseSpliter(iter);
+                    MessageFinished_count++;
                     return MessageFinished{ReliableUDPType::MessageFinished,
                         cell_received.message_id}
                         .serialize();

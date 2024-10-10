@@ -33,7 +33,7 @@ int main()
                     first_timepoint = now_timepoint;
                 }
             });
-    sleep(100);
+    sleep(12);
     network::NetWorkManager<network::SimpleEpoll>::GetInstance()->Stop();
     return 0;
 }

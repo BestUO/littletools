@@ -59,7 +59,21 @@ public:
         // __thread_pool.Stop();
         network::NetWorkManager<network::SimpleEpoll>::GetInstance()
             ->RemoveListenSocket(__endpoint);
+        std::cout << "recv module recv count: " << count << std::endl;
+        std::cout << "recv module recv Working_count: " << Working_count
+                  << std::endl;
+        std::cout << "recv module recv CellSend_count: " << CellSend_count
+                  << std::endl;
+        std::cout << "recv module send CellReceived_count: "
+                  << CellReceived_count << std::endl;
+        std::cout << "recv module recv MessageFinished_count: "
+                  << MessageFinished_count << std::endl;
     }
+    int count                                   = 0;
+    std::atomic<uint32_t> Working_count         = 0;
+    std::atomic<uint32_t> CellSend_count        = 0;
+    std::atomic<uint32_t> CellReceived_count    = 0;
+    std::atomic<uint32_t> MessageFinished_count = 0;
 
 private:
     struct Msg
@@ -199,11 +213,24 @@ private:
         __endpoint->FreeBuf(const_cast<char*>(data));
     }
 
+    int non_fibonacci(int n)
+    {
+        if (n == 0)
+            return 0;  // 基础情况
+        if (n == 1)
+            return 1;  // 基础情况
+        return non_fibonacci(n - 1) + 2 * non_fibonacci(n - 2);  // 递归关系
+    }
+
     std::string Working_old(char* data)
     {
+        Working_count++;
+        int result = non_fibonacci(20);
+        return std::string();
         ReliableUDPType message_type = *(ReliableUDPType*)data;
         if (message_type == ReliableUDPType::CellSend)
         {
+            CellSend_count++;
             MessageInfo message_info;
             auto offset = message_info.deserialize(data);
             typename std::unordered_map<UUID,
@@ -232,6 +259,7 @@ private:
                 len);
             if (is_cell_finish)
             {
+                CellReceived_count++;
                 return CellReceived{ReliableUDPType::CellReceived,
                     message_info.message_id,
                     message_info.cell_info.cell_header.cell_id}
@@ -242,6 +270,7 @@ private:
         }
         else if (message_type == ReliableUDPType::MessageFinished)
         {
+            MessageFinished_count++;
             std::unique_ptr<char[]> payload = nullptr;
             MessageFinished send_ok(data);
             {
@@ -288,6 +317,7 @@ private:
 
     std::string Recv(const char* data, size_t size, const sockaddr& addr)
     {
+        count++;
         // auto message_id = EndianSwap<>::swap(*(UUID*)(data + 1));
         // __thread_pool.Put(message_id.hash(), Msg{{data, size}, addr});
         // return std::string();
