@@ -18,12 +18,12 @@
 
 #define TIMEOUT 1000
 
-template <uint8_t MAX_SPLIT_COUNT = 8,
-    uint16_t MAX_PAYLOAD_SIZE     = 1024,
-    uint32_t BAND_WIDTH           = 1024 * 1024 * 50>
+template <uint8_t MAX_SEGMENT_COUNT   = 8,
+    uint16_t MAX_SEGMENT_PAYLOAD_SIZE = 1024,
+    uint32_t BAND_WIDTH               = 1024 * 1024 * 50>
 struct RUDPLargeMsgSend
 {
-    constexpr static uint8_t SPLIT_COUNT = MAX_SPLIT_COUNT > 8 ? 16 : 8;
+    constexpr static uint8_t SPLIT_COUNT = MAX_SEGMENT_COUNT > 8 ? 16 : 8;
 
 public:
     RUDPLargeMsgSend(const std::string& ip,
@@ -49,13 +49,13 @@ public:
 
     bool Send(std::string_view message, const sockaddr_in& addr)
     {
-        if (message.size() <= MAX_PAYLOAD_SIZE * SPLIT_COUNT * 1024)
+        if (message.size() <= MAX_SEGMENT_PAYLOAD_SIZE * SPLIT_COUNT * 1024)
         {
             UUID msg_id = UUID::gen();
             typename std::unordered_map<UUID, MAP_VALUE_TYPE>::iterator iter;
-            MessageSpliter<SPLIT_COUNT, MAX_PAYLOAD_SIZE>* spliter_ptr
+            MessageSpliter<SPLIT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE>* spliter_ptr
                 = ObjectPool<MessageSpliter<SPLIT_COUNT,
-                    MAX_PAYLOAD_SIZE>>::GetInstance()
+                    MAX_SEGMENT_PAYLOAD_SIZE>>::GetInstance()
                       ->GetObject(message.data(), msg_id, addr);
             {
                 std::unique_lock<std::shared_mutex> lock(__mutex);
@@ -99,11 +99,11 @@ public:  // only for test
         const sockaddr_in& addr,
         uint32_t lost_index)
     {
-        // if (message.size() <= MAX_PAYLOAD_SIZE * SPLIT_COUNT * 1024)
+        // if (message.size() <= MAX_SEGMENT_PAYLOAD_SIZE * SPLIT_COUNT * 1024)
         // {
         //     UUID msg_id = UUID::gen();
         //     auto iter   = __message_spliters.emplace(msg_id,
-        //         MessageSpliter<SPLIT_COUNT, MAX_PAYLOAD_SIZE>(
+        //         MessageSpliter<SPLIT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE>(
         //             message.data(), msg_id, addr));
         //     iter.first->second.DealWithSplitCell(
         //         [this, addr, lost_index](MessageInfo& message_info) {
@@ -137,7 +137,8 @@ public:  // only for test
     };
 
 private:
-    using MAP_VALUE_TYPE = MessageSpliter<SPLIT_COUNT, MAX_PAYLOAD_SIZE>*;
+    using MAP_VALUE_TYPE
+        = MessageSpliter<SPLIT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE>*;
     std::shared_ptr<network::inet_udp::UDP<>> __endpoint;
     std::shared_ptr<FlowControl> __flow_control;
     std::unordered_map<UUID, MAP_VALUE_TYPE> __message_spliters;
@@ -147,7 +148,8 @@ private:
     {
 
         // __flow_control->Increase(iter->second->GetPayloadSize());
-        ObjectPool<MessageSpliter<SPLIT_COUNT, MAX_PAYLOAD_SIZE>>::GetInstance()
+        ObjectPool<MessageSpliter<SPLIT_COUNT,
+            MAX_SEGMENT_PAYLOAD_SIZE>>::GetInstance()
             ->PutObject(iter->second);
         std::unique_lock<std::shared_mutex> lock(__mutex);
         __message_spliters.erase(iter);

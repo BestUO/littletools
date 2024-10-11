@@ -21,7 +21,7 @@ struct CellInfoHeader
     UUID cell_id;
     uint8_t cell_current_index;
     uint16_t cell_offset;
-    uint16_t cell_total_count;
+    uint16_t cell_segment_count;
 
     std::string serialize() const
     {
@@ -35,7 +35,7 @@ struct CellInfoHeader
         buf = writeBuffer(cell_id, buf);
         buf = writeBuffer(cell_current_index, buf);
         buf = writeBuffer(cell_offset, buf);
-        buf = writeBuffer(cell_total_count, buf);
+        buf = writeBuffer(cell_segment_count, buf);
 
         return buf;
     }
@@ -46,14 +46,15 @@ struct CellInfoHeader
         readBuffer(buf, offset, cell_id);
         readBuffer(buf, offset, cell_current_index);
         readBuffer(buf, offset, cell_offset);
-        readBuffer(buf, offset, cell_total_count);
+        readBuffer(buf, offset, cell_segment_count);
         return offset;
     }
 
     uint16_t CalculateSize() const
     {
         return ::CalculateSize(cell_id) + ::CalculateSize(cell_current_index)
-            + ::CalculateSize(cell_offset) + ::CalculateSize(cell_total_count);
+            + ::CalculateSize(cell_offset)
+            + ::CalculateSize(cell_segment_count);
     }
 };
 

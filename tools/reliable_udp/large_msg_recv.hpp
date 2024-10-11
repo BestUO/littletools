@@ -21,14 +21,14 @@
 
 #define TIMEOUT 1000
 
-template <uint8_t MAX_SPLIT_COUNT = 8,
-    uint16_t MAX_PAYLOAD_SIZE     = 1024,
-    uint32_t BAND_WIDTH           = 1024 * 1024 * 50>
+template <uint8_t MAX_SEGMENT_COUNT   = 8,
+    uint16_t MAX_SEGMENT_PAYLOAD_SIZE = 1024,
+    uint32_t BAND_WIDTH               = 1024 * 1024 * 50>
 struct RUDPLargeMsgRecv
 {
-    constexpr static uint8_t SPLIT_COUNT = MAX_SPLIT_COUNT > 8 ? 16 : 8;
+    constexpr static uint8_t SPLIT_COUNT = MAX_SEGMENT_COUNT > 8 ? 16 : 8;
     constexpr static std::array<uint8_t, 16> All_Loss_index
-        = MAX_SPLIT_COUNT > 8
+        = MAX_SEGMENT_COUNT > 8
         ? std::array<uint8_t,
             16>{0, 1, 2, 3, 4, 5, 6, 7, 255, 255, 255, 255, 255, 255, 255, 255}
         : std::array<uint8_t,

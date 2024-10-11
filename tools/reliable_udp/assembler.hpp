@@ -17,34 +17,34 @@
 #include "tools/uuid.hpp"
 #include "rudp_struct.hpp"
 
-template <uint8_t MAX_SPLIT_COUNT = 8>
+template <uint8_t MAX_SEGMENT_COUNT = 8>
 class AssemblerCell
 {
 public:
     using collect_type
-        = std::conditional<(MAX_SPLIT_COUNT > 8), uint16_t, uint8_t>::type;
+        = std::conditional<(MAX_SEGMENT_COUNT > 8), uint16_t, uint8_t>::type;
 
-    static constexpr uint16_t row = MAX_SPLIT_COUNT > 8 ? 65536 : 256;
-    static constexpr uint8_t co   = MAX_SPLIT_COUNT > 8 ? 16 : 8;
+    static constexpr uint16_t row = MAX_SEGMENT_COUNT > 8 ? 65536 : 256;
+    static constexpr uint8_t co   = MAX_SEGMENT_COUNT > 8 ? 16 : 8;
 
-    AssemblerCell(uint32_t cell_total_count, char* dst)
+    AssemblerCell(uint32_t cell_segment_count, char* dst)
         : __dst(dst)
     {
-        __collect |= __table_total_count[cell_total_count - 1];
+        __segment_collect |= __table_total_count[cell_segment_count - 1];
     };
 
     bool DealWithCellMessage(const char* src,
         const CellInfoHeader& cell_info_header,
         uint16_t len)
     {
-        __collect |= 1 << cell_info_header.cell_current_index;
+        __segment_collect |= 1 << cell_info_header.cell_current_index;
         memcpy(__dst + cell_info_header.cell_offset, src, len);
-        return __collect == std::numeric_limits<collect_type>::max();
+        return __segment_collect == std::numeric_limits<collect_type>::max();
     }
 
     std::array<uint8_t, co> GetLossTable() const
     {
-        return __table_loss[__collect];
+        return __table_loss[__segment_collect];
     }
 
     std::array<uint8_t, co> GetLossTable(collect_type collect_num) const
@@ -74,7 +74,7 @@ public:
     ///////////////////////////////////
 
 private:
-    collect_type __collect = 0;
+    collect_type __segment_collect = 0;
     char* __dst;
     static constexpr std::array<std::array<uint8_t, co>, row> __table_loss
         = [] {
@@ -104,7 +104,7 @@ private:
     }();
 };
 
-template <uint8_t MAX_SPLIT_COUNT = 8>
+template <uint8_t MAX_SEGMENT_COUNT = 8>
 class MessageAssembler
 {
 public:
@@ -122,8 +122,8 @@ public:
         {
             iter = __message_map
                        .emplace(cell_info_header.cell_id,
-                           AssemblerCell<MAX_SPLIT_COUNT>(
-                               cell_info_header.cell_total_count,
+                           AssemblerCell<MAX_SEGMENT_COUNT>(
+                               cell_info_header.cell_segment_count,
                                __payload.get() + message_offset))
                        .first;
         }
@@ -139,7 +139,7 @@ public:
         return std::move(__payload);
     }
 
-    std::array<uint8_t, MAX_SPLIT_COUNT> DealWithTimeout(UUID cell_id)
+    std::array<uint8_t, MAX_SEGMENT_COUNT> DealWithTimeout(UUID cell_id)
     {
         if (auto iter = __message_map.find(cell_id);
             iter != __message_map.end())
@@ -149,7 +149,7 @@ public:
     }
 
 private:
-    std::unordered_map<UUID, AssemblerCell<MAX_SPLIT_COUNT>> __message_map;
+    std::unordered_map<UUID, AssemblerCell<MAX_SEGMENT_COUNT>> __message_map;
     std::unique_ptr<char[]> __payload;
     UUID __message_id;
 };

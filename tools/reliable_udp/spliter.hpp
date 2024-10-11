@@ -9,7 +9,8 @@
 #include "tools/objectpool.hpp"
 #include "rudp_struct.hpp"
 
-template <uint8_t MAX_SPLIT_COUNT = 8, uint16_t MAX_PAYLOAD_SIZE = 1024>
+template <uint8_t MAX_SEGMENT_COUNT   = 8,
+    uint16_t MAX_SEGMENT_PAYLOAD_SIZE = 1024>
 class SplitCell
 {
 public:
@@ -21,11 +22,12 @@ public:
         : __payload_view(payload_view)
         , __cell_id(cell_id)
     {
-        auto cell_size            = __payload_view.size();
-        uint16_t cell_total_count = cell_size / MAX_PAYLOAD_SIZE
-            + (cell_size % MAX_PAYLOAD_SIZE == 0 ? 0 : 1);
+        auto cell_payload_size = __payload_view.size();
+        uint16_t cell_segment_count
+            = cell_payload_size / MAX_SEGMENT_PAYLOAD_SIZE
+            + (cell_payload_size % MAX_SEGMENT_PAYLOAD_SIZE == 0 ? 0 : 1);
 
-        Split(message_id, message_size, offset_in_message, cell_total_count);
+        Split(message_id, message_size, offset_in_message, cell_segment_count);
     }
 
     void DealWithMessage(std::function<void(MessageInfo&)> f)
@@ -70,12 +72,13 @@ private:
     void Split(UUID message_id,
         uint64_t message_size,
         uint64_t offset_in_message,
-        uint16_t cell_total_count)
+        uint16_t cell_segment_count)
     {
-        for (uint8_t i = 0; i < cell_total_count && i < MAX_SPLIT_COUNT; i++)
+        for (uint8_t i = 0; i < cell_segment_count && i < MAX_SEGMENT_COUNT;
+             i++)
         {
-            auto payload_view
-                = __payload_view.substr(i * MAX_PAYLOAD_SIZE, MAX_PAYLOAD_SIZE);
+            auto payload_view = __payload_view.substr(
+                i * MAX_SEGMENT_PAYLOAD_SIZE, MAX_SEGMENT_PAYLOAD_SIZE);
             __messages.emplace_back(MessageInfo{ReliableUDPType::CellSend,
                 message_id,
                 message_size,
@@ -83,18 +86,20 @@ private:
                 CellInfo{CellInfoHeader{
                              __cell_id,
                              i,
-                             (uint16_t)(i * MAX_PAYLOAD_SIZE),
-                             cell_total_count,
+                             (uint16_t)(i * MAX_SEGMENT_PAYLOAD_SIZE),
+                             cell_segment_count,
                          },
                     payload_view}});
         }
     }
 };
 
-template <uint8_t MAX_SPLIT_COUNT = 8, uint16_t MAX_PAYLOAD_SIZE = 1024>
+template <uint8_t MAX_SEGMENT_COUNT   = 8,
+    uint16_t MAX_SEGMENT_PAYLOAD_SIZE = 1024>
 class MessageSpliter
 {
-    using SplitCellType = SplitCell<MAX_SPLIT_COUNT, MAX_PAYLOAD_SIZE>;
+    using SplitCellType
+        = SplitCell<MAX_SEGMENT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE>;
 
 public:
     MessageSpliter(std::string&& payload, UUID message_id, sockaddr_in addr)
@@ -102,10 +107,9 @@ public:
         , __message_id(message_id)
         , __addr(addr)
     {
-        __total_count = __payload.size() / (MAX_PAYLOAD_SIZE * MAX_SPLIT_COUNT)
-            + (__payload.size() % (MAX_PAYLOAD_SIZE * MAX_SPLIT_COUNT) == 0
-                    ? 0
-                    : 1);
+        __cell_count = (__payload.size()
+                           + MAX_SEGMENT_PAYLOAD_SIZE * MAX_SEGMENT_COUNT - 1)
+            / (MAX_SEGMENT_PAYLOAD_SIZE * MAX_SEGMENT_COUNT);
         Split();
     }
     ~MessageSpliter()
@@ -189,7 +193,7 @@ public:
 
 private:
     std::string __payload;
-    uint32_t __total_count;
+    uint32_t __cell_count;
     std::unordered_map<UUID, SplitCellType*> __cell_ptrs;
     std::set<UUID> __loss_cells;
     UUID __message_id;
@@ -198,22 +202,24 @@ private:
 
     void Split()
     {
-        for (uint32_t i = 0; i < __total_count; i++)
+        for (uint32_t i = 0; i < __cell_count; i++)
         {
-            auto seg_size
-                = std::min((uint32_t)(MAX_PAYLOAD_SIZE * MAX_SPLIT_COUNT),
-                    (uint32_t)(__payload.size()
-                        - i * (MAX_PAYLOAD_SIZE * MAX_SPLIT_COUNT)));
+            auto seg_size = std::min(
+                (uint32_t)(MAX_SEGMENT_PAYLOAD_SIZE * MAX_SEGMENT_COUNT),
+                (uint32_t)(__payload.size()
+                    - i * (MAX_SEGMENT_PAYLOAD_SIZE * MAX_SEGMENT_COUNT)));
             auto cell_id = UUID::gen();
 
             __cell_ptrs.emplace(cell_id,
                 ObjectPool<SplitCellType>::GetInstance()->GetObject(
                     std::string_view{__payload.c_str()
-                            + i * (MAX_PAYLOAD_SIZE * MAX_SPLIT_COUNT),
+                            + i
+                                * (MAX_SEGMENT_PAYLOAD_SIZE
+                                    * MAX_SEGMENT_COUNT),
                         seg_size},
                     __message_id,
                     __payload.size(),
-                    i * (MAX_PAYLOAD_SIZE * MAX_SPLIT_COUNT),
+                    i * (MAX_SEGMENT_PAYLOAD_SIZE * MAX_SEGMENT_COUNT),
                     cell_id));
             __loss_cells.emplace(cell_id);
         }
