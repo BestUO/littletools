@@ -684,7 +684,7 @@ public:
     {
         if (!__stop)
         {
-            size_t hash_value = CalculateHashValue(key, additional);
+            auto map_key = Key{key, additional};
             TimerElement* element
                 = ObjectPool<TimerElement>::GetInstance()->GetObject(
                     std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -696,7 +696,7 @@ public:
                     interval);
 
             std::lock_guard<std::mutex> lck(__mutex);
-            if (__key_node_map.find(hash_value) != __key_node_map.end())
+            if (__key_node_map.find(map_key) != __key_node_map.end())
             {
                 std::cerr << "key conflict" << std::endl;
                 ObjectPool<TimerElement>::GetInstance()->PutObject(element);
@@ -714,7 +714,7 @@ public:
                           .emplace(element->alarm,
                               std::make_shared<SimpleList<TimerElement*>>())
                           .first->second->AddNode(std::move(element));
-            element->iter = __key_node_map.emplace(hash_value, node_ptr).first;
+            element->iter = __key_node_map.emplace(map_key, node_ptr).first;
 
             if (alarm == std::chrono::milliseconds(0))
                 __cv.notify_one();
@@ -725,9 +725,8 @@ public:
     {
         if (!__stop)
         {
-            size_t hash_value = CalculateHashValue(key, additional);
             std::lock_guard<std::mutex> lck(__mutex);
-            if (auto iter = __key_node_map.find(hash_value);
+            if (auto iter = __key_node_map.find(Key{key, additional});
                 iter != __key_node_map.end())
             {
                 iter->second->data->SetCallBack(nullptr);
@@ -794,8 +793,7 @@ private:
         std::chrono::milliseconds alarm;
         std::function<void()> fun;
         std::chrono::milliseconds interval = std::chrono::milliseconds(0);
-        std::unordered_map<size_t,
-            typename SimpleList<TimerElement*>::Node*>::iterator iter;
+        std::map<Key, typename SimpleList<TimerElement*>::Node*>::iterator iter;
         std::mutex cb_mutex;
         bool operator<(const TimerElement& t) const
         {
@@ -835,8 +833,7 @@ private:
     std::map<std::chrono::milliseconds,
         std::shared_ptr<SimpleList<TimerElement*>>>
         __timer_map;
-    std::unordered_map<size_t, typename SimpleList<TimerElement*>::Node*>
-        __key_node_map;
+    std::map<Key, typename SimpleList<TimerElement*>::Node*> __key_node_map;
     std::thread __timerThread;
     std::condition_variable __cv;
     std::mutex __mutex;
@@ -923,16 +920,6 @@ private:
                     ->PutObject(node_ptr);
             }
         }
-    }
-
-    size_t CalculateHashValue(const T& key, const std::string& additional)
-    {
-
-        auto hash_t = std::hash<T>{}(key);
-        if (hash_t == 0)
-            return std::hash<std::string>{}(additional);
-        else
-            return HashCombine(hash_t, std::hash<std::string>{}(additional));
     }
 };
 }  // namespace v4

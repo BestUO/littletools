@@ -36,7 +36,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/examples/doctooltest",
             "args": [
-                "--test-case=threadpool_v3_bench"
+                "--test-case=TimerManager_v4_benchmark"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

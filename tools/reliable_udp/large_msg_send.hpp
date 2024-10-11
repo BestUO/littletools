@@ -238,8 +238,9 @@ private:
         }
         else if (message_type == ReliableUDPType::MessageFinishedACK)
         {
+            MessageFinished message_finish(data);
             timermanager::TimerManager<UUID>::GetInstance()->DeleteAlarm(
-                UUID::gen(), "MessageFinished");
+                message_finish.message_id, "MessageFinished");
             return std::string();
         }
         else if (message_type == ReliableUDPType::Abnormal)

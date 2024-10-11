@@ -99,6 +99,55 @@ public:
         BindSocket(SocketBase::CreateAddr(path));
     }
 
+    static void SetSocketBufSize(int sock, bool ifsend, int buffersize)
+    {
+        if (sock > 0)
+        {
+            if (buffersize > 0)
+
+            {
+                if (-1
+                    == setsockopt(sock,
+                        SOL_SOCKET,
+                        ifsend ? SO_SNDBUF : SO_RCVBUF,
+                        reinterpret_cast<char*>(&buffersize),
+                        sizeof(buffersize)))
+                {
+                    printf("set %s failed: %s\n",
+                        ifsend ? "SO_SNDBUF" : "SO_RCVBUF",
+                        strerror(errno));
+                }
+            }
+            GetSocketBufSize(sock, ifsend);
+        }
+    }
+
+    static void GetSocketBufSize(int sock, bool ifsend)
+    {
+        int buffer_size;
+        socklen_t buffer_size_len = sizeof(buffer_size);
+        if (sock > 0)
+        {
+            if (-1
+                == getsockopt(sock,
+                    SOL_SOCKET,
+                    ifsend ? SO_SNDBUF : SO_RCVBUF,
+                    reinterpret_cast<char*>(&buffer_size),
+                    &buffer_size_len))
+            {
+                printf("get %s failed: %s\n",
+                    ifsend ? "SO_SNDBUF" : "SO_RCVBUF",
+                    strerror(errno));
+            }
+            else
+            {
+                printf(" get %s size: %d\n",
+                    ifsend ? "SO_SNDBUF" : "SO_RCVBUF",
+                    buffer_size);
+            }
+        }
+    }
+
     sockaddr_type GetAddr() const
     {
         return __send_addr;
