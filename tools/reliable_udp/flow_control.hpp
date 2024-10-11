@@ -2,13 +2,31 @@
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
+#include "tools/uuid.hpp"
+#include "tools/timermanager.hpp"
 
-template <int MIN_SIZE, int BAND_WIDTH>
 struct FlowControl
 {
 public:
-    FlowControl()
-        : __flow_size(BAND_WIDTH){};
+    FlowControl(uint32_t band_width)
+        : __flow_size(band_width)
+    {
+        timermanager::TimerManager<UUID>::GetInstance()->AddAlarm(
+            std::chrono::milliseconds(1000),
+            __id,
+            "FlowControl",
+            [this, band_width]() {
+                __flow_size = band_width;
+                __cv.notify_one();
+            },
+            std::chrono::milliseconds(1000));
+    }
+
+    ~FlowControl()
+    {
+        timermanager::TimerManager<UUID>::GetInstance()->DeleteAlarm(
+            __id, "FlowControl");
+    }
 
     void Wait(uint32_t wait_size)
     {
@@ -19,24 +37,8 @@ public:
         __flow_size -= wait_size;
     }
 
-public:  // only for test
-    void Increase(uint32_t flow_size)
-    {
-        __flow_size += flow_size;
-        __cv.notify_one();
-    }
-
-    void Decrease(uint32_t flow_size)
-    {
-        __flow_size -= flow_size;
-    }
-
-    bool Pass()
-    {
-        return __flow_size >= MIN_SIZE;
-    }
-
 private:
+    UUID __id = UUID::gen();
     std::atomic<uint32_t> __flow_size;
     std::condition_variable __cv;
     std::mutex __mutex;

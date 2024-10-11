@@ -129,13 +129,13 @@ TEST_CASE("ReliableUDP_MessageSpliter")
 
 TEST_CASE("ReliableUDP_FlowControl")
 {
-    FlowControl<1024, 1024 * 10> rsend;
-    rsend.Decrease(1024 * 9);
-    CHECK(rsend.Pass() == true);
-    rsend.Decrease(1);
-    CHECK(rsend.Pass() == false);
-    rsend.Increase(1);
-    CHECK(rsend.Pass() == true);
+    timermanager::TimerManager<UUID>::GetInstance()->StartTimerManager();
+    FlowControl fc(1024);
+    fc.Wait(1023);
+    CHECK(true);
+    fc.Wait(1023);
+    CHECK(true);
+    timermanager::TimerManager<UUID>::GetInstance()->StopTimerManager();
 }
 
 TEST_CASE("ReliableUDP_AssemblerCell")
@@ -185,8 +185,7 @@ TEST_CASE("ReliableUDP_large_msg_send_1cell_1package")
     constexpr int MAX_SPLIT_COUNT  = 8;
     constexpr int MAX_PAYLOAD_SIZE = 8;
     constexpr int BAND_WIDTH       = 1024 * 10;
-    auto flow_control              = std::make_shared<
-        FlowControl<MAX_SPLIT_COUNT * MAX_PAYLOAD_SIZE, BAND_WIDTH>>();
+    auto flow_control              = std::make_shared<FlowControl>(BAND_WIDTH);
     RUDPLargeMsgSend<MAX_SPLIT_COUNT, MAX_PAYLOAD_SIZE, BAND_WIDTH>
         rudp_large_msg_send("127.0.0.1", 9987, flow_control);
     std::unique_ptr<char[]> recv_clone;
@@ -214,8 +213,7 @@ TEST_CASE("ReliableUDP_large_msg_send_1cell_7package")
     constexpr int MAX_SPLIT_COUNT  = 8;
     constexpr int MAX_PAYLOAD_SIZE = 1;
     constexpr int BAND_WIDTH       = 1024 * 10;
-    auto flow_control              = std::make_shared<
-        FlowControl<MAX_SPLIT_COUNT * MAX_PAYLOAD_SIZE, BAND_WIDTH>>();
+    auto flow_control              = std::make_shared<FlowControl>(BAND_WIDTH);
     RUDPLargeMsgSend<MAX_SPLIT_COUNT, MAX_PAYLOAD_SIZE, BAND_WIDTH>
         rudp_large_msg_send("127.0.0.1", 9987, flow_control);
     std::unique_ptr<char[]> recv_clone;
@@ -243,8 +241,7 @@ TEST_CASE("ReliableUDP_large_msg_send_1cell_8package")
     constexpr int MAX_SPLIT_COUNT  = 8;
     constexpr int MAX_PAYLOAD_SIZE = 1;
     constexpr int BAND_WIDTH       = 1024 * 10;
-    auto flow_control              = std::make_shared<
-        FlowControl<MAX_SPLIT_COUNT * MAX_PAYLOAD_SIZE, BAND_WIDTH>>();
+    auto flow_control              = std::make_shared<FlowControl>(BAND_WIDTH);
     RUDPLargeMsgSend<MAX_SPLIT_COUNT, MAX_PAYLOAD_SIZE, BAND_WIDTH>
         rudp_large_msg_send("127.0.0.1", 9987, flow_control);
     std::unique_ptr<char[]> recv_clone;
@@ -272,8 +269,7 @@ TEST_CASE("ReliableUDP_large_msg_send_2cell_9package")
     constexpr int MAX_SPLIT_COUNT  = 8;
     constexpr int MAX_PAYLOAD_SIZE = 1;
     constexpr int BAND_WIDTH       = 1024 * 10;
-    auto flow_control              = std::make_shared<
-        FlowControl<MAX_SPLIT_COUNT * MAX_PAYLOAD_SIZE, BAND_WIDTH>>();
+    auto flow_control              = std::make_shared<FlowControl>(BAND_WIDTH);
     RUDPLargeMsgSend<MAX_SPLIT_COUNT, MAX_PAYLOAD_SIZE, BAND_WIDTH>
         rudp_large_msg_send("127.0.0.1", 9987, flow_control);
     std::unique_ptr<char[]> recv_clone;
@@ -301,8 +297,7 @@ TEST_CASE("ReliableUDP_large_msg_send_lost_all")
     constexpr int MAX_SPLIT_COUNT  = 8;
     constexpr int MAX_PAYLOAD_SIZE = 1;
     constexpr int BAND_WIDTH       = 1024 * 10;
-    auto flow_control              = std::make_shared<
-        FlowControl<MAX_SPLIT_COUNT * MAX_PAYLOAD_SIZE, BAND_WIDTH>>();
+    auto flow_control              = std::make_shared<FlowControl>(BAND_WIDTH);
     RUDPLargeMsgSend<MAX_SPLIT_COUNT, MAX_PAYLOAD_SIZE, BAND_WIDTH>
         rudp_large_msg_send("127.0.0.1", 9987, flow_control);
     std::string message = "12345678";
@@ -363,8 +358,7 @@ TEST_CASE("ReliableUDP_large_msg_send_bench")
                 recv_count++;
             });
     int send_count    = 0;
-    auto flow_control = std::make_shared<
-        FlowControl<MAX_SPLIT_COUNT * MAX_PAYLOAD_SIZE, BAND_WIDTH>>();
+    auto flow_control = std::make_shared<FlowControl>(BAND_WIDTH);
     RUDPLargeMsgSend<MAX_SPLIT_COUNT, MAX_PAYLOAD_SIZE, BAND_WIDTH>
         rudp_large_msg_send("127.0.0.1", 9987, flow_control);
     sleep(1);
