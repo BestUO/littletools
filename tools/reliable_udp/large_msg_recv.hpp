@@ -134,16 +134,23 @@ private:
         else if (message_type == ReliableUDPType::MessageFinished)
         {
             std::unique_ptr<char[]> payload = nullptr;
-            MessageFinished send_ok(data);
+            MessageFinished message_finish(data);
             {
                 std::unique_lock<std::shared_mutex> lock(__rw_mutex);
-                auto iter = __message_assemblers.find(send_ok.message_id);
+                auto iter
+                    = __message_assemblers.find(message_finish.message_id);
                 if (iter != __message_assemblers.end())
                 {
                     payload = iter->second.GetPalyload();
                     __message_assemblers.erase(iter);
                 }
             }
+            __endpoint->Send(
+                MessageFinished{ReliableUDPType::MessageFinishedACK,
+                    message_finish.message_id}
+                    .serialize(),
+                *reinterpret_cast<sockaddr_in*>(
+                    const_cast<sockaddr*>(&msg->addr)));
             if (payload)
                 __cb(std::move(payload));
         }

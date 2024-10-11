@@ -155,7 +155,7 @@ private:
         __message_spliters.erase(iter);
     }
 
-    std::string Recv(const char* data, size_t size, const sockaddr&)
+    std::string Recv(const char* data, size_t size, const sockaddr& addr)
     {
         ReliableUDPType message_type = *(ReliableUDPType*)data;
         if (message_type == ReliableUDPType::CellReceived)
@@ -184,6 +184,22 @@ private:
                 {
                     if (iter->second->IsFinished())
                         EraseSpliter(iter);
+                    timermanager::TimerManager<UUID>::GetInstance()->AddAlarm(
+                        std::chrono::milliseconds(TIMEOUT),
+                        cell_received.message_id,
+                        "MessageFinished",
+                        [this,
+                            message_id = cell_received.message_id,
+                            addr       = addr]() {
+                            __endpoint->Send(
+                                MessageFinished{
+                                    ReliableUDPType::MessageFinished,
+                                    message_id}
+                                    .serialize(),
+                                *reinterpret_cast<sockaddr_in*>(
+                                    const_cast<sockaddr*>(&addr)));
+                        },
+                        std::chrono::milliseconds(TIMEOUT));
                     return MessageFinished{ReliableUDPType::MessageFinished,
                         cell_received.message_id}
                         .serialize();
@@ -219,6 +235,12 @@ private:
                 return MessageFinished{
                     ReliableUDPType::Abnormal, cell_timeout_response.message_id}
                     .serialize();
+        }
+        else if (message_type == ReliableUDPType::MessageFinishedACK)
+        {
+            timermanager::TimerManager<UUID>::GetInstance()->DeleteAlarm(
+                UUID::gen(), "MessageFinished");
+            return std::string();
         }
         else if (message_type == ReliableUDPType::Abnormal)
         {

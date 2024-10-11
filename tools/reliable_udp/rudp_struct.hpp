@@ -11,6 +11,7 @@ enum class ReliableUDPType : uint8_t
     CellSend,
     CellReceived,
     MessageFinished,
+    MessageFinishedACK,
     CellTimeoutCheck,
     CellTimeoutResponse,
     Abnormal,
