@@ -83,18 +83,6 @@ private:
         ReliableUDPType message_type = *(ReliableUDPType*)data;
         if (message_type == ReliableUDPType::CellSend)
         {
-            // auto message_id = EndianSwap<>::swap(*(UUID*)(data + 1));
-            // auto cell_id    = EndianSwap<>::swap(*(UUID*)(data + 33));
-            // auto aaa        = CellReceived(
-            //     ReliableUDPType::CellReceived, message_id, cell_id)
-            //                .serialize();
-            // CellReceived cell_received(aaa.data());
-            // __endpoint->Send(
-            //     CellReceived{ReliableUDPType::CellReceived, message_id,
-            //     cell_id}
-            //         .serialize(),
-            //     *reinterpret_cast<sockaddr_in*>(&msg.addr));
-
             MessageInfo message_info;
             auto offset = message_info.deserialize(data);
             typename std::unordered_map<UUID,
@@ -207,7 +195,7 @@ private:
         {
             if (arr[i] == 255)
                 break;
-            vec.push_back(i);
+            vec.push_back(arr[i]);
         }
         return vec;
     }

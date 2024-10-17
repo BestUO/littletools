@@ -18,13 +18,13 @@ int main()
     RUDPLargeMsgSend<MAX_SEGMENT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE, BAND_WIDTH>
         rudp_large_msg_send("127.0.0.1", 9987, flow_control);
 
-    std::string message("12345");
+    std::string message(1024 * 100, '\100');
     auto now = std::chrono::high_resolution_clock::now();
     auto dst = network::SocketBase::CreateAddr("127.0.0.1", 9988);
     while (now + std::chrono::seconds(10)
         > std::chrono::high_resolution_clock::now())
     {
-        rudp_large_msg_send.Send(message, dst);
+        rudp_large_msg_send.Send(std::move(message), dst);
     }
 
     network::NetWorkManager<network::SimpleEpoll>::GetInstance()->Stop();

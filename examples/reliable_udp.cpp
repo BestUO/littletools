@@ -1,3 +1,4 @@
+#include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <iostream>
@@ -196,8 +197,9 @@ TEST_CASE("ReliableUDP_large_msg_send_1cell_1package")
             });
 
     std::string message = "12345678";
-    rudp_large_msg_send.Send(
-        message, network::SocketBase::CreateAddr("127.0.0.1", 9988));
+    auto message_clone  = message;
+    rudp_large_msg_send.Send(std::move(message_clone),
+        network::SocketBase::CreateAddr("127.0.0.1", 9988));
     while (recv_clone == nullptr)
         usleep(1000);
     CHECK(memcmp(recv_clone.get(), message.c_str(), message.size()) == 0);
@@ -224,8 +226,9 @@ TEST_CASE("ReliableUDP_large_msg_send_1cell_7package")
             });
 
     std::string message = "1234567";
-    rudp_large_msg_send.Send(
-        message, network::SocketBase::CreateAddr("127.0.0.1", 9988));
+    auto message_clone  = message;
+    rudp_large_msg_send.Send(std::move(message_clone),
+        network::SocketBase::CreateAddr("127.0.0.1", 9988));
     while (recv_clone == nullptr)
         usleep(1000);
     CHECK(memcmp(recv_clone.get(), message.c_str(), message.size()) == 0);
@@ -252,8 +255,9 @@ TEST_CASE("ReliableUDP_large_msg_send_1cell_8package")
             });
 
     std::string message = "12345678";
-    rudp_large_msg_send.Send(
-        message, network::SocketBase::CreateAddr("127.0.0.1", 9988));
+    auto message_clone  = message;
+    rudp_large_msg_send.Send(std::move(message_clone),
+        network::SocketBase::CreateAddr("127.0.0.1", 9988));
     while (recv_clone == nullptr)
         usleep(1000);
     CHECK(memcmp(recv_clone.get(), message.c_str(), message.size()) == 0);
@@ -280,8 +284,9 @@ TEST_CASE("ReliableUDP_large_msg_send_2cell_9package")
             });
 
     std::string message = "123456789";
-    rudp_large_msg_send.Send(
-        message, network::SocketBase::CreateAddr("127.0.0.1", 9988));
+    auto message_clone  = message;
+    rudp_large_msg_send.Send(std::move(message_clone),
+        network::SocketBase::CreateAddr("127.0.0.1", 9988));
     while (recv_clone == nullptr)
         usleep(1000);
     CHECK(memcmp(recv_clone.get(), message.c_str(), message.size()) == 0);
@@ -301,8 +306,9 @@ TEST_CASE("ReliableUDP_large_msg_send_lost_all")
     RUDPLargeMsgSend<MAX_SEGMENT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE, BAND_WIDTH>
         rudp_large_msg_send("127.0.0.1", 9987, flow_control);
     std::string message = "12345678";
-    rudp_large_msg_send.Send(
-        message, network::SocketBase::CreateAddr("127.0.0.1", 9988));
+    auto message_clone  = message;
+    rudp_large_msg_send.Send(std::move(message_clone),
+        network::SocketBase::CreateAddr("127.0.0.1", 9988));
     std::unique_ptr<char[]> recv_clone;
     RUDPLargeMsgRecv<MAX_SEGMENT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE, BAND_WIDTH>
         rudp_large_msg_recv(
@@ -320,9 +326,9 @@ TEST_CASE("ReliableUDP_large_msg_send_lost_all")
 // {
 //     timermanager::TimerManager<UUID>::GetInstance()->StartTimerManager();
 //     network::NetWorkManager<network::SimpleEpoll>::GetInstance()->Start();
-//     constexpr int MAX_SEGMENT_COUNT  = 8;
+//     constexpr int MAX_SEGMENT_COUNT        = 8;
 //     constexpr int MAX_SEGMENT_PAYLOAD_SIZE = 1;
-//     constexpr int BAND_WIDTH       = 1024 * 10;
+//     constexpr int BAND_WIDTH               = 1024 * 10;
 //     std::unique_ptr<char[]> recv_clone;
 //     RUDPLargeMsgRecv<MAX_SEGMENT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE, BAND_WIDTH>
 //         rudp_large_msg_recv(
@@ -331,7 +337,7 @@ TEST_CASE("ReliableUDP_large_msg_send_lost_all")
 //             });
 //     auto flow_control = std::make_shared<
 //         FlowControl<MAX_SEGMENT_COUNT * MAX_SEGMENT_PAYLOAD_SIZE,
-//         BAND_WIDTH>>();
+//             BAND_WIDTH>>();
 //     RUDPLargeMsgSend<MAX_SEGMENT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE, BAND_WIDTH>
 //         rudp_large_msg_send("127.0.0.1", 9987, flow_control);
 
@@ -344,44 +350,39 @@ TEST_CASE("ReliableUDP_large_msg_send_lost_all")
 //     timermanager::TimerManager<UUID>::GetInstance()->StopTimerManager();
 // }
 
-TEST_CASE("ReliableUDP_large_msg_send_bench")
+TEST_CASE("ReliableUDP_large_msg_send_100k")
 {
     timermanager::TimerManager<UUID>::GetInstance()->StartTimerManager();
     network::NetWorkManager<network::SimpleEpoll>::GetInstance()->Start();
     constexpr int MAX_SEGMENT_COUNT        = 8;
     constexpr int MAX_SEGMENT_PAYLOAD_SIZE = 1024;
-    constexpr int BAND_WIDTH               = 1024 * 1024 * 300;
-    int recv_count                         = 0;
-    int total_second                       = 10;
+    constexpr int BAND_WIDTH               = 1024 * 1024;
+    std::unique_ptr<char[]> recv_clone;
     RUDPLargeMsgRecv<MAX_SEGMENT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE, BAND_WIDTH>
         rudp_large_msg_recv(
-            "127.0.0.1", 9988, [&recv_count](std::unique_ptr<char[]> recv) {
-                recv_count++;
+            "127.0.0.1", 9988, [&recv_clone](std::unique_ptr<char[]> recv) {
+                recv_clone = std::move(recv);
             });
     int send_count    = 0;
     auto flow_control = std::make_shared<FlowControl>(BAND_WIDTH);
     RUDPLargeMsgSend<MAX_SEGMENT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE, BAND_WIDTH>
         rudp_large_msg_send("127.0.0.1", 9987, flow_control);
     sleep(1);
-    // std::string message(1024 * 1024 * 8, '\0');
-    std::string message("12345");
-    auto now = std::chrono::high_resolution_clock::now();
+    std::string message(1024 * 100, '\100');
+
     auto dst = network::SocketBase::CreateAddr("127.0.0.1", 9988);
-    std::cout << "first send message: "
-              << std::chrono::steady_clock::now().time_since_epoch().count()
-              << std::endl;
-    while (std::chrono::duration_cast<std::chrono::seconds>(
-               std::chrono::high_resolution_clock::now() - now)
-               .count()
-        < total_second)
-    {
-        rudp_large_msg_send.Send(message, dst);
-        send_count++;
-    }
-    sleep(1);
-    std::cout << "send 8M msg for " << total_second
-              << "s, send_num/ps: " << send_count / total_second
-              << " recv_num/ps: " << recv_count / total_second << std::endl;
+
+    auto now = std::chrono::high_resolution_clock::now();
+    rudp_large_msg_send.Send(std::move(message), dst);
+    while (recv_clone == nullptr)
+        usleep(1000);
+    std::cout << "100k msg use: "
+              << std::chrono::duration_cast<std::chrono::microseconds>(
+                     std::chrono::high_resolution_clock::now() - now)
+                     .count()
+              << "us" << std::endl;
+
+    CHECK(memcmp(recv_clone.get(), message.c_str(), message.size()) == 0);
     network::NetWorkManager<network::SimpleEpoll>::GetInstance()->Stop();
     timermanager::TimerManager<UUID>::GetInstance()->StopTimerManager();
 }

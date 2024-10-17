@@ -47,7 +47,7 @@ public:
             ->RemoveListenSocket(__endpoint);
     }
 
-    bool Send(std::string_view message, const sockaddr_in& addr)
+    bool Send(std::string&& message, const sockaddr_in& addr)
     {
         if (message.size() <= MAX_SEGMENT_PAYLOAD_SIZE * SPLIT_COUNT * 1024)
         {
@@ -56,7 +56,7 @@ public:
             MessageSpliter<SPLIT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE>* spliter_ptr
                 = ObjectPool<MessageSpliter<SPLIT_COUNT,
                     MAX_SEGMENT_PAYLOAD_SIZE>>::GetInstance()
-                      ->GetObject(message.data(), msg_id, addr);
+                      ->GetObject(std::move(message), msg_id, addr);
             {
                 std::unique_lock<std::shared_mutex> lock(__mutex);
                 iter = __message_spliters.emplace(msg_id, spliter_ptr).first;
@@ -160,13 +160,6 @@ private:
         ReliableUDPType message_type = *(ReliableUDPType*)data;
         if (message_type == ReliableUDPType::CellReceived)
         {
-            // UUID* message_id = (UUID*)(data + 1);
-            // auto amessage_id = EndianSwap<>::swap(*message_id);
-            // return MessageFinished{
-            //     ReliableUDPType::MessageFinished, amessage_id}
-            //     .serialize();
-            // UUID message_id = EndianSwap<>::swap(*(UUID*)(data + 1));
-            // UUID cell_id    = EndianSwap<>::swap(*(UUID*)(data + 17));
             CellReceived cell_received(data);
             typename std::unordered_map<UUID, MAP_VALUE_TYPE>::iterator iter;
             {
