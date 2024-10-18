@@ -32,7 +32,7 @@ cmake --build build -j 1
 ## reliable udp func_test & bench
 ./build/examples/doctooltest --test-case=*ReliableUDP_*
 todo:
-flowcontrol/send with separate thread
+flowcontrol
 
 ## serialize tool func_test & bench
 ./build/examples/doctooltest --test-case=*serialize_*

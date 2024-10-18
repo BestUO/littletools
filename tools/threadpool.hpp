@@ -449,10 +449,6 @@ private:
 
 namespace v4
 {
-struct MyTraits : public moodycamel::ConcurrentQueueDefaultTraits
-{
-    static const size_t BLOCK_SIZE = 1024;
-};
 
 template <typename T>
 class Worker
@@ -490,6 +486,10 @@ public:
     }
 
 private:
+    struct MyTraits : public moodycamel::ConcurrentQueueDefaultTraits
+    {
+        static const size_t BLOCK_SIZE = 1024;
+    };
     std::mutex __mutex;
     std::condition_variable __cond;
     moodycamel::ConcurrentQueue<T, MyTraits> __queue;

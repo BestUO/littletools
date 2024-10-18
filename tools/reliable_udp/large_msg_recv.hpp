@@ -43,6 +43,9 @@ public:
             std::make_shared<network::inet_udp::UDP<RudpAllocate<1440>>>())
         , __cb(cb)
     {
+        __send_thread = std::thread([this]() {
+            FinalSend();
+        });
         __thread_pool.Start([this](RudpAllocate<1440>::RudpAllocateTag*& msg) {
             Working(msg);
         });
@@ -60,6 +63,9 @@ public:
         __thread_pool.Stop();
         network::NetWorkManager<network::SimpleEpoll>::GetInstance()
             ->RemoveListenSocket(__endpoint);
+        __stop = true;
+        __work.Stop();
+        __send_thread.join();
     }
 
 private:
@@ -71,6 +77,36 @@ private:
     threadpool::v4::ThreadPoll<RudpAllocate<1440>::RudpAllocateTag*>
         __thread_pool;
     int __index = 0;
+    std::thread __send_thread;
+    bool __stop = false;
+    struct SendMsgInfo
+    {
+        std::string s;
+        sockaddr addr;
+        SendMsgInfo()                              = default;
+        SendMsgInfo& operator=(const SendMsgInfo&) = default;
+        SendMsgInfo(SendMsgInfo&& other)
+            : s(std::move(other.s))
+            , addr(other.addr)
+        { }
+        SendMsgInfo(std::string&& s, sockaddr addr)
+            : s(std::move(s))
+            , addr(addr)
+        { }
+    };
+    threadpool::v4::Worker<SendMsgInfo> __work;
+
+    void FinalSend()
+    {
+        CPUBind::BindCPU();
+        while (!__stop)
+        {
+            __work.RunOnce([this](SendMsgInfo& send_info) {
+                __endpoint->Send(send_info.s,
+                    *reinterpret_cast<sockaddr_in*>(&send_info.addr));
+            });
+        }
+    }
 
     void EraseAssembler(UUID message_id)
     {
@@ -111,12 +147,12 @@ private:
                 len);
             if (is_cell_finish)
             {
-                __endpoint->Send(CellReceived{ReliableUDPType::CellReceived,
-                                     message_info.message_id,
-                                     message_info.cell_info.cell_header.cell_id}
-                                     .serialize(),
-                    *reinterpret_cast<sockaddr_in*>(
-                        const_cast<sockaddr*>(&msg->addr)));
+                __work.Put(std::move(SendMsgInfo{
+                    std::move(CellReceived{ReliableUDPType::CellReceived,
+                        message_info.message_id,
+                        message_info.cell_info.cell_header.cell_id}
+                                  .serialize()),
+                    msg->addr}));
             }
         }
         else if (message_type == ReliableUDPType::MessageFinished)
@@ -133,12 +169,11 @@ private:
                     __message_assemblers.erase(iter);
                 }
             }
-            __endpoint->Send(
-                MessageFinished{ReliableUDPType::MessageFinishedACK,
+            __work.Put(std::move(SendMsgInfo{
+                std::move(MessageFinished{ReliableUDPType::MessageFinishedACK,
                     message_finish.message_id}
-                    .serialize(),
-                *reinterpret_cast<sockaddr_in*>(
-                    const_cast<sockaddr*>(&msg->addr)));
+                              .serialize()),
+                msg->addr}));
             if (payload)
                 __cb(std::move(payload));
         }
@@ -152,26 +187,24 @@ private:
                 iter = __message_assemblers.find(cell_timeout_check.message_id);
             }
             if (iter != __message_assemblers.end())
-                __endpoint->Send(
-                    CellTimeoutResponse{ReliableUDPType::CellTimeoutResponse,
+                __work.Put(std::move(SendMsgInfo{
+                    std::move(CellTimeoutResponse{
+                        ReliableUDPType::CellTimeoutResponse,
                         cell_timeout_check.message_id,
                         cell_timeout_check.cell_id,
                         std::move(ArrayToVector(iter->second.DealWithTimeout(
                             cell_timeout_check.cell_id)))}
-                        .serialize(),
-                    *reinterpret_cast<sockaddr_in*>(
-                        const_cast<sockaddr*>(&msg->addr)));
+                                  .serialize()),
+                    msg->addr}));
             else
-            {
-                __endpoint->Send(
-                    CellTimeoutResponse{ReliableUDPType::CellTimeoutResponse,
-                        cell_timeout_check.message_id,
-                        cell_timeout_check.cell_id,
-                        ArrayToVector(All_Loss_index)}
-                        .serialize(),
-                    *reinterpret_cast<sockaddr_in*>(
-                        const_cast<sockaddr*>(&msg->addr)));
-            }
+                __work.Put(std::move(
+                    SendMsgInfo{std::move(CellTimeoutResponse{
+                                    ReliableUDPType::CellTimeoutResponse,
+                                    cell_timeout_check.message_id,
+                                    cell_timeout_check.cell_id,
+                                    ArrayToVector(All_Loss_index)}
+                                              .serialize()),
+                        msg->addr}));
         }
         else if (message_type == ReliableUDPType::Abnormal)
         { }

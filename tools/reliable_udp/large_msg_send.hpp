@@ -65,8 +65,10 @@ public:
                 [this, addr](MessageInfo& message_info) {
                     std::string msg(message_info.CalculateSize(), '\0');
                     message_info.serialize(msg.data());
-                    if (__endpoint->Send(msg, addr) == network::Result::SUCCESS)
-                        __flow_control->Wait(msg.size());
+                    __flow_control->Wait(msg.size());
+                    while (
+                        __endpoint->Send(msg, addr) != network::Result::SUCCESS)
+                    { }
                 },
                 [this](UUID message_id, UUID cell_id, sockaddr_in addr) {
                     timermanager::TimerManager<UUID>::GetInstance()->AddAlarm(
@@ -95,45 +97,60 @@ public:
     };
 
 public:  // only for test
-    bool SendLost(std::string_view message,
+    bool SendLost(std::string&& message,
         const sockaddr_in& addr,
         uint32_t lost_index)
     {
-        // if (message.size() <= MAX_SEGMENT_PAYLOAD_SIZE * SPLIT_COUNT * 1024)
-        // {
-        //     UUID msg_id = UUID::gen();
-        //     auto iter   = __message_spliters.emplace(msg_id,
-        //         MessageSpliter<SPLIT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE>(
-        //             message.data(), msg_id, addr));
-        //     iter.first->second.DealWithSplitCell(
-        //         [this, addr, lost_index](MessageInfo& message_info) {
-        //             auto msg = std::move(message_info.serialize());
-        //             if (message_info.cell_info.cell_header.cell_current_index
-        //                     != lost_index
-        //                 && __endpoint->Send(message_info.serialize(), addr)
-        //                     == network::Result::SUCCESS)
-        //                 __flow_control->Wait(msg.size());
-        //         },
-        //         [this](UUID message_id, UUID cell_id, sockaddr_in addr) {
-        //             timermanager::TimerManager<UUID>::GetInstance()->AddAlarm(
-        //                 std::chrono::milliseconds(TIMEOUT),
-        //                 cell_id,
-        //                 std::string(),
-        //                 [this, message_id, cell_id, addr]() {
-        //                     __endpoint->Send(
-        //                         CellTimeoutCheck{
-        //                             ReliableUDPType::CellTimeoutCheck,
-        //                             message_id,
-        //                             cell_id}
-        //                             .serialize(),
-        //                         addr);
-        //                 },
-        //                 std::chrono::milliseconds(TIMEOUT));
-        //         });
-        //     return true;
-        // }
-        // else
-        return false;
+        if (message.size() <= MAX_SEGMENT_PAYLOAD_SIZE * SPLIT_COUNT * 1024)
+        {
+            UUID msg_id = UUID::gen();
+            typename std::unordered_map<UUID, MAP_VALUE_TYPE>::iterator iter;
+            MessageSpliter<SPLIT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE>* spliter_ptr
+                = ObjectPool<MessageSpliter<SPLIT_COUNT,
+                    MAX_SEGMENT_PAYLOAD_SIZE>>::GetInstance()
+                      ->GetObject(std::move(message), msg_id, addr);
+            {
+                std::unique_lock<std::shared_mutex> lock(__mutex);
+                iter = __message_spliters.emplace(msg_id, spliter_ptr).first;
+            }
+            spliter_ptr->DealWithSplitCell(
+                [this, addr, lost_index](MessageInfo& message_info) {
+                    std::string msg(message_info.CalculateSize(), '\0');
+                    message_info.serialize(msg.data());
+                    if (message_info.cell_info.cell_header.cell_offset
+                        == lost_index)
+                    {
+                        return;
+                    }
+                    __flow_control->Wait(msg.size());
+                    while (
+                        __endpoint->Send(msg, addr) != network::Result::SUCCESS)
+                    { }
+                },
+                [this](UUID message_id, UUID cell_id, sockaddr_in addr) {
+                    timermanager::TimerManager<UUID>::GetInstance()->AddAlarm(
+                        std::chrono::milliseconds(TIMEOUT),
+                        cell_id,
+                        std::string(),
+                        [this, message_id, cell_id, addr]() {
+                            __endpoint->Send(
+                                CellTimeoutCheck{
+                                    ReliableUDPType::CellTimeoutCheck,
+                                    message_id,
+                                    cell_id}
+                                    .serialize(),
+                                addr);
+                        },
+                        std::chrono::milliseconds(TIMEOUT));
+                });
+
+            if (spliter_ptr->IsFinished())
+                EraseSpliter(iter);
+
+            return true;
+        }
+        else
+            return false;
     };
 
 private:
