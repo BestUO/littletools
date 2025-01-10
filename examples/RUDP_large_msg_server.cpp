@@ -14,7 +14,9 @@ int main()
     bool flag                              = false;
     auto first_timepoint                   = std::chrono::steady_clock::now();
 
-    RUDPLargeMsgRecv<MAX_SEGMENT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE, BAND_WIDTH>
+    RUDP::LargeMsg::RUDPLargeMsgRecv<MAX_SEGMENT_COUNT,
+        MAX_SEGMENT_PAYLOAD_SIZE,
+        BAND_WIDTH>
         rudp_large_msg_recv("127.0.0.1",
             9988,
             [&recv_count, &flag, &first_timepoint](

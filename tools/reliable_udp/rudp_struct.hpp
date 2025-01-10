@@ -15,6 +15,7 @@ enum class ReliableUDPType : uint8_t
     CellTimeoutCheck,
     CellTimeoutResponse,
     Abnormal,
+    VectorCellSend,
 };
 
 struct CellInfoHeader

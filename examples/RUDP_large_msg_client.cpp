@@ -15,7 +15,9 @@ int main()
     auto first_timepoint                   = std::chrono::steady_clock::now();
 
     auto flow_control = std::make_shared<FlowControl>(BAND_WIDTH);
-    RUDPLargeMsgSend<MAX_SEGMENT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE, BAND_WIDTH>
+    RUDP::LargeMsg::RUDPLargeMsgSend<MAX_SEGMENT_COUNT,
+        MAX_SEGMENT_PAYLOAD_SIZE,
+        BAND_WIDTH>
         rudp_large_msg_send("127.0.0.1", 9987, flow_control);
 
     std::string message(1024 * 100, '\100');

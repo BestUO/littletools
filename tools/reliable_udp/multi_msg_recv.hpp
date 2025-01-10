@@ -21,7 +21,7 @@
 
 namespace RUDP
 {
-namespace LargeMsg
+namespace MultiMsg
 {
 #define TIMEOUT 1000
 
@@ -42,7 +42,7 @@ struct RUDPLargeMsgRecv
 public:
     RUDPLargeMsgRecv(const std::string& ip,
         uint16_t port,
-        std::function<void(std::unique_ptr<char[]>)> cb)
+        std::function<void(std::vector<std::string>&&)> cb)
         : __endpoint(
             std::make_shared<network::inet_udp::UDP<RudpAllocate<1440>>>())
         , __cb(cb)
@@ -62,6 +62,7 @@ public:
         network::NetWorkManager<network::SimpleEpoll>::GetInstance()
             ->AddListenSocket(__endpoint);
     };
+
     ~RUDPLargeMsgRecv()
     {
         __thread_pool.Stop();
@@ -74,7 +75,7 @@ public:
 
 private:
     std::shared_ptr<network::inet_udp::UDP<RudpAllocate<1440>>> __endpoint;
-    std::function<void(std::unique_ptr<char[]>)> __cb;
+    std::function<void(std::vector<std::string>&&)> __cb;
     std::shared_mutex __rw_mutex;
     std::unordered_map<UUID, MessageAssembler<SPLIT_COUNT>>
         __message_assemblers;
@@ -121,7 +122,7 @@ private:
     {
         auto data                    = msg->__buf;
         ReliableUDPType message_type = *(ReliableUDPType*)data;
-        if (message_type == ReliableUDPType::CellSend)
+        if (message_type == ReliableUDPType::VectorCellSend)
         {
             MessageInfo message_info;
             auto offset = message_info.deserialize(data);
@@ -138,13 +139,14 @@ private:
                 iter = __message_assemblers
                            .emplace(message_info.message_id,
                                MessageAssembler<SPLIT_COUNT>(
-                                   message_info.message_size,
+                                   std::vector<std::string>(
+                                       message_info.message_size),
                                    message_info.message_id))
                            .first;
             }
 
             auto len = EndianSwap<>::swap(*(uint16_t*)(data + offset));
-            auto is_cell_finish = iter->second.DealWithCellMessage(
+            auto is_cell_finish = iter->second.DealWithVectorCellMessage(
                 message_info.cell_info.cell_header,
                 message_info.message_offset,
                 data + offset + sizeof(uint16_t),
@@ -161,7 +163,7 @@ private:
         }
         else if (message_type == ReliableUDPType::MessageFinished)
         {
-            std::unique_ptr<char[]> payload = nullptr;
+            std::vector<std::string> payload;
             MessageFinished message_finish(data);
             {
                 std::unique_lock<std::shared_mutex> lock(__rw_mutex);
@@ -169,7 +171,7 @@ private:
                     = __message_assemblers.find(message_finish.message_id);
                 if (iter != __message_assemblers.end())
                 {
-                    payload = iter->second.GetPalyload();
+                    payload = std::move(iter->second.GetVectorPalyload());
                     __message_assemblers.erase(iter);
                 }
             }
@@ -178,7 +180,7 @@ private:
                     message_finish.message_id}
                               .serialize()),
                 msg->addr}));
-            if (payload)
+            if (!payload.empty())
                 __cb(std::move(payload));
         }
         else if (message_type == ReliableUDPType::CellTimeoutCheck)
@@ -236,6 +238,6 @@ private:
         }
         return vec;
     }
-};  // namespace RUDPLargeMsgRecv
-}  // namespace LargeMsg
+};
+}  // namespace MultiMsg
 }  // namespace RUDP

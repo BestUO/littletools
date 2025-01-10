@@ -3,6 +3,7 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
+#include <string>
 #include <unistd.h>
 #include "doctest/doctest.h"
 #include "nanobench.h"
@@ -13,6 +14,8 @@
 #include "tools/network/socket.hpp"
 #include "tools/reliable_udp/large_msg_send.hpp"
 #include "tools/reliable_udp/large_msg_recv.hpp"
+#include "tools/reliable_udp/multi_msg_send.hpp"
+#include "tools/reliable_udp/multi_msg_recv.hpp"
 #include "tools/network/network_global.hpp"
 #include "tools/uuid.hpp"
 
@@ -69,7 +72,8 @@ TEST_CASE("ReliableUDP_SplitCell_CellReceived")
 TEST_CASE("ReliableUDP_SplitCell_221")
 {
     std::string s = "12345";
-    SplitCell<8, 2> split_cell(std::move(s), UUID::gen(), 5, 0, UUID::gen());
+    RUDP::SplitCell<8, 2> split_cell(
+        std::move(s), UUID::gen(), 5, 0, UUID::gen());
     auto messages_infos = split_cell.GetMessagesForTest();
 
     CHECK(messages_infos.size() == 3);
@@ -98,7 +102,8 @@ TEST_CASE("ReliableUDP_SplitCell_221")
 TEST_CASE("ReliableUDP_SplitCell_5")
 {
     std::string s = "12345";
-    SplitCell<8, 10> split_cell(std::move(s), UUID::gen(), 5, 0, UUID::gen());
+    RUDP::SplitCell<8, 10> split_cell(
+        std::move(s), UUID::gen(), 5, 0, UUID::gen());
     auto messages_infos = split_cell.GetMessagesForTest();
 
     CHECK(messages_infos.size() == 1);
@@ -114,10 +119,10 @@ TEST_CASE("ReliableUDP_MessageSpliter")
     std::string message("123456789");
     constexpr int MAX_SEGMENT_COUNT        = 8;
     constexpr int MAX_SEGMENT_PAYLOAD_SIZE = 1;
-    MessageSpliter<MAX_SEGMENT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE> message_split(
-        std::move(message),
-        UUID::gen(),
-        network::SocketBase::CreateAddr("127.0.0.1", 0));
+    RUDP::MessageSpliter<MAX_SEGMENT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE>
+        message_split(std::move(message),
+            UUID::gen(),
+            network::SocketBase::CreateAddr("127.0.0.1", 0));
     int a = 0;
     message_split.DealWithSplitCell(
         [&a](MessageInfo) {
@@ -176,6 +181,7 @@ TEST_CASE("ReliableUDP_Assembler")
         == true);
 
     uint8_t b[] = {'0', ' ', '2', '3', '\0', '5', '6', '7', '8', '9'};
+
     CHECK(memcmp(assembler.GetPalyload().get(), b, 10) == 0);
 }
 
@@ -187,10 +193,14 @@ TEST_CASE("ReliableUDP_large_msg_send_1cell_1package")
     constexpr int MAX_SEGMENT_PAYLOAD_SIZE = 8;
     constexpr int BAND_WIDTH               = 1024 * 10;
     auto flow_control = std::make_shared<FlowControl>(BAND_WIDTH);
-    RUDPLargeMsgSend<MAX_SEGMENT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE, BAND_WIDTH>
+    RUDP::LargeMsg::RUDPLargeMsgSend<MAX_SEGMENT_COUNT,
+        MAX_SEGMENT_PAYLOAD_SIZE,
+        BAND_WIDTH>
         rudp_large_msg_send("127.0.0.1", 9987, flow_control);
     std::unique_ptr<char[]> recv_clone;
-    RUDPLargeMsgRecv<MAX_SEGMENT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE, BAND_WIDTH>
+    RUDP::LargeMsg::RUDPLargeMsgRecv<MAX_SEGMENT_COUNT,
+        MAX_SEGMENT_PAYLOAD_SIZE,
+        BAND_WIDTH>
         rudp_large_msg_recv(
             "127.0.0.1", 9988, [&recv_clone](std::unique_ptr<char[]> recv) {
                 recv_clone = std::move(recv);
@@ -216,10 +226,14 @@ TEST_CASE("ReliableUDP_large_msg_send_1cell_7package")
     constexpr int MAX_SEGMENT_PAYLOAD_SIZE = 1;
     constexpr int BAND_WIDTH               = 1024 * 10;
     auto flow_control = std::make_shared<FlowControl>(BAND_WIDTH);
-    RUDPLargeMsgSend<MAX_SEGMENT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE, BAND_WIDTH>
+    RUDP::LargeMsg::RUDPLargeMsgSend<MAX_SEGMENT_COUNT,
+        MAX_SEGMENT_PAYLOAD_SIZE,
+        BAND_WIDTH>
         rudp_large_msg_send("127.0.0.1", 9987, flow_control);
     std::unique_ptr<char[]> recv_clone;
-    RUDPLargeMsgRecv<MAX_SEGMENT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE, BAND_WIDTH>
+    RUDP::LargeMsg::RUDPLargeMsgRecv<MAX_SEGMENT_COUNT,
+        MAX_SEGMENT_PAYLOAD_SIZE,
+        BAND_WIDTH>
         rudp_large_msg_recv(
             "127.0.0.1", 9988, [&recv_clone](std::unique_ptr<char[]> recv) {
                 recv_clone = std::move(recv);
@@ -245,10 +259,14 @@ TEST_CASE("ReliableUDP_large_msg_send_1cell_8package")
     constexpr int MAX_SEGMENT_PAYLOAD_SIZE = 1;
     constexpr int BAND_WIDTH               = 1024 * 10;
     auto flow_control = std::make_shared<FlowControl>(BAND_WIDTH);
-    RUDPLargeMsgSend<MAX_SEGMENT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE, BAND_WIDTH>
+    RUDP::LargeMsg::RUDPLargeMsgSend<MAX_SEGMENT_COUNT,
+        MAX_SEGMENT_PAYLOAD_SIZE,
+        BAND_WIDTH>
         rudp_large_msg_send("127.0.0.1", 9987, flow_control);
     std::unique_ptr<char[]> recv_clone;
-    RUDPLargeMsgRecv<MAX_SEGMENT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE, BAND_WIDTH>
+    RUDP::LargeMsg::RUDPLargeMsgRecv<MAX_SEGMENT_COUNT,
+        MAX_SEGMENT_PAYLOAD_SIZE,
+        BAND_WIDTH>
         rudp_large_msg_recv(
             "127.0.0.1", 9988, [&recv_clone](std::unique_ptr<char[]> recv) {
                 recv_clone = std::move(recv);
@@ -274,10 +292,14 @@ TEST_CASE("ReliableUDP_large_msg_send_2cell_9package")
     constexpr int MAX_SEGMENT_PAYLOAD_SIZE = 1;
     constexpr int BAND_WIDTH               = 1024 * 10;
     auto flow_control = std::make_shared<FlowControl>(BAND_WIDTH);
-    RUDPLargeMsgSend<MAX_SEGMENT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE, BAND_WIDTH>
+    RUDP::LargeMsg::RUDPLargeMsgSend<MAX_SEGMENT_COUNT,
+        MAX_SEGMENT_PAYLOAD_SIZE,
+        BAND_WIDTH>
         rudp_large_msg_send("127.0.0.1", 9987, flow_control);
     std::unique_ptr<char[]> recv_clone;
-    RUDPLargeMsgRecv<MAX_SEGMENT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE, BAND_WIDTH>
+    RUDP::LargeMsg::RUDPLargeMsgRecv<MAX_SEGMENT_COUNT,
+        MAX_SEGMENT_PAYLOAD_SIZE,
+        BAND_WIDTH>
         rudp_large_msg_recv(
             "127.0.0.1", 9988, [&recv_clone](std::unique_ptr<char[]> recv) {
                 recv_clone = std::move(recv);
@@ -303,14 +325,18 @@ TEST_CASE("ReliableUDP_large_msg_send_lost_all")
     constexpr int MAX_SEGMENT_PAYLOAD_SIZE = 1;
     constexpr int BAND_WIDTH               = 1024 * 10;
     auto flow_control = std::make_shared<FlowControl>(BAND_WIDTH);
-    RUDPLargeMsgSend<MAX_SEGMENT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE, BAND_WIDTH>
+    RUDP::LargeMsg::RUDPLargeMsgSend<MAX_SEGMENT_COUNT,
+        MAX_SEGMENT_PAYLOAD_SIZE,
+        BAND_WIDTH>
         rudp_large_msg_send("127.0.0.1", 9987, flow_control);
     std::string message = "12345678";
     auto message_clone  = message;
     rudp_large_msg_send.Send(std::move(message_clone),
         network::SocketBase::CreateAddr("127.0.0.1", 9988));
     std::unique_ptr<char[]> recv_clone;
-    RUDPLargeMsgRecv<MAX_SEGMENT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE, BAND_WIDTH>
+    RUDP::LargeMsg::RUDPLargeMsgRecv<MAX_SEGMENT_COUNT,
+        MAX_SEGMENT_PAYLOAD_SIZE,
+        BAND_WIDTH>
         rudp_large_msg_recv(
             "127.0.0.1", 9988, [&recv_clone](std::unique_ptr<char[]> recv) {
                 recv_clone = std::move(recv);
@@ -330,13 +356,17 @@ TEST_CASE("ReliableUDP_large_msg_send_lost_partition")
     constexpr int MAX_SEGMENT_PAYLOAD_SIZE = 1;
     constexpr int BAND_WIDTH               = 1024 * 10;
     std::unique_ptr<char[]> recv_clone;
-    RUDPLargeMsgRecv<MAX_SEGMENT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE, BAND_WIDTH>
+    RUDP::LargeMsg::RUDPLargeMsgRecv<MAX_SEGMENT_COUNT,
+        MAX_SEGMENT_PAYLOAD_SIZE,
+        BAND_WIDTH>
         rudp_large_msg_recv(
             "127.0.0.1", 9988, [&recv_clone](std::unique_ptr<char[]> recv) {
                 recv_clone = std::move(recv);
             });
     auto flow_control = std::make_shared<FlowControl>(BAND_WIDTH);
-    RUDPLargeMsgSend<MAX_SEGMENT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE, BAND_WIDTH>
+    RUDP::LargeMsg::RUDPLargeMsgSend<MAX_SEGMENT_COUNT,
+        MAX_SEGMENT_PAYLOAD_SIZE,
+        BAND_WIDTH>
         rudp_large_msg_send("127.0.0.1", 9987, flow_control);
 
     std::string message       = "12345678";
@@ -358,14 +388,18 @@ TEST_CASE("ReliableUDP_large_msg_send_100k")
     constexpr int MAX_SEGMENT_PAYLOAD_SIZE = 1024;
     constexpr int BAND_WIDTH               = 1024 * 1024;
     std::unique_ptr<char[]> recv_clone;
-    RUDPLargeMsgRecv<MAX_SEGMENT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE, BAND_WIDTH>
+    RUDP::LargeMsg::RUDPLargeMsgRecv<MAX_SEGMENT_COUNT,
+        MAX_SEGMENT_PAYLOAD_SIZE,
+        BAND_WIDTH>
         rudp_large_msg_recv(
             "127.0.0.1", 9988, [&recv_clone](std::unique_ptr<char[]> recv) {
                 recv_clone = std::move(recv);
             });
     int send_count    = 0;
     auto flow_control = std::make_shared<FlowControl>(BAND_WIDTH);
-    RUDPLargeMsgSend<MAX_SEGMENT_COUNT, MAX_SEGMENT_PAYLOAD_SIZE, BAND_WIDTH>
+    RUDP::LargeMsg::RUDPLargeMsgSend<MAX_SEGMENT_COUNT,
+        MAX_SEGMENT_PAYLOAD_SIZE,
+        BAND_WIDTH>
         rudp_large_msg_send("127.0.0.1", 9987, flow_control);
     sleep(1);
     std::string message(1024 * 100, '\100');
@@ -382,6 +416,51 @@ TEST_CASE("ReliableUDP_large_msg_send_100k")
               << "us" << std::endl;
 
     CHECK(memcmp(recv_clone.get(), message.c_str(), message.size()) == 0);
+    network::NetWorkManager<network::SimpleEpoll>::GetInstance()->Stop();
+    timermanager::TimerManager<UUID>::GetInstance()->StopTimerManager();
+}
+
+TEST_CASE("ReliableUDP_multi_msg_send")
+{
+    timermanager::TimerManager<UUID>::GetInstance()->StartTimerManager();
+    network::NetWorkManager<network::SimpleEpoll>::GetInstance()->Start();
+    constexpr int MAX_SEGMENT_COUNT        = 8;
+    constexpr int MAX_SEGMENT_PAYLOAD_SIZE = 1024;
+    constexpr int BAND_WIDTH               = 1024 * 1024;
+    std::vector<std::string> recv_clone;
+    RUDP::MultiMsg::RUDPLargeMsgRecv<MAX_SEGMENT_COUNT,
+        MAX_SEGMENT_PAYLOAD_SIZE,
+        BAND_WIDTH>
+        rudp_large_msg_recv(
+            "127.0.0.1", 9988, [&recv_clone](std::vector<std::string>&& recv) {
+                recv_clone = std::move(recv);
+            });
+    int send_count    = 0;
+    auto flow_control = std::make_shared<FlowControl>(BAND_WIDTH);
+    RUDP::MultiMsg::RUDPLargeMsgSend<MAX_SEGMENT_COUNT,
+        MAX_SEGMENT_PAYLOAD_SIZE,
+        BAND_WIDTH>
+        rudp_large_msg_send("127.0.0.1", 9987, flow_control);
+    sleep(1);
+    std::vector<std::string> v;
+    for (int i = 0; i < 100; i++)
+        v.push_back(std::to_string(i));
+
+    auto dst = network::SocketBase::CreateAddr("127.0.0.1", 9988);
+
+    auto now = std::chrono::high_resolution_clock::now();
+    rudp_large_msg_send.Send(std::move(v), dst);
+    while (recv_clone.empty())
+        usleep(10);
+    std::cout << "100 msg use: "
+              << std::chrono::duration_cast<std::chrono::microseconds>(
+                     std::chrono::high_resolution_clock::now() - now)
+                     .count()
+              << "us" << std::endl;
+
+    CHECK(recv_clone.size() == 100);
+    for (int i = 0; i < 100; i++)
+        CHECK(recv_clone[i] == std::to_string(i));
     network::NetWorkManager<network::SimpleEpoll>::GetInstance()->Stop();
     timermanager::TimerManager<UUID>::GetInstance()->StopTimerManager();
 }
