@@ -429,3 +429,213 @@ private:
 //     typename ObjectPool<T>::LocalPool>
 //     ObjectPool<T>::__local_pool_ptr_wrap;
 }  // namespace v2
+
+namespace v3
+{
+class SpinLock
+{
+public:
+    SpinLock()  = default;
+    ~SpinLock() = default;
+    void lock()
+    {
+        while (__lock.test_and_set(std::memory_order_acquire))
+            ;
+    }
+    void unlock()
+    {
+        __lock.clear(std::memory_order_release);
+    }
+
+private:
+    std::atomic_flag __lock = ATOMIC_FLAG_INIT;
+};
+
+template <typename T>
+class CACHE_ALIGN ObjectPool
+{
+public:
+    static ObjectPool* GetInstance()
+    {
+        static ObjectPool instance;
+        return &instance;
+    }
+    template <typename... Args>
+    T* GetObject(Args&&... args)
+    {
+        if (unlikely(!__local_pool))
+        {
+            __local_pool = new LocalPool(this);
+            __local_pool_ptr_wrap.setptr(__local_pool);
+        }
+        return __local_pool->GetObject(std::forward<Args>(args)...);
+    }
+
+    void PutObject(T* ptr)
+    {
+        if (unlikely(!__local_pool))
+        {
+            __local_pool = new LocalPool(this);
+            __local_pool_ptr_wrap.setptr(__local_pool);
+        }
+        __local_pool->PutObject(ptr);
+    }
+
+private:
+    ObjectPool() = default;
+    ~ObjectPool()
+    {
+        for (auto& block : __blocks)
+            free(block);
+        for (auto& freechunk : __free_chunks)
+            free(freechunk);
+    }
+
+    struct FreeChunk
+    {
+        T* ptrs[NITEM];
+        unsigned int nfree = 0;
+    };
+
+    struct CACHE_ALIGN Block
+    {
+        T ptrs[NITEM];
+        unsigned int nfree = NITEM;
+    };
+
+    FreeChunk* GetFreeChunk()
+    {
+        __spine_chunk_lock.lock();
+        if (unlikely(__free_chunks.size() == 0))
+        {
+            __spine_chunk_lock.unlock();
+            return nullptr;
+        }
+        else
+        {
+            auto freechunk = __free_chunks.back();
+            __free_chunks.pop_back();
+            __spine_chunk_lock.unlock();
+            return freechunk;
+        }
+    }
+
+    void PutFreeChunk(FreeChunk* freechunk)
+    {
+        __spine_chunk_lock.lock();
+        __free_chunks.emplace_back(freechunk);
+        __spine_chunk_lock.unlock();
+    }
+
+    Block* GetBlock()
+    {
+        auto block   = (Block*)malloc(sizeof(Block));
+        block->nfree = NITEM;
+        __spine_block_lock.lock();
+        __blocks.emplace_back(block);
+        __spine_block_lock.unlock();
+        return block;
+    }
+
+    class LocalPool
+    {
+    public:
+        explicit LocalPool(ObjectPool* pool)
+            : __pool(pool){};
+        ~LocalPool()
+        {
+            if (likely(__free_chunk))
+            {
+                // if (likely(__free_chunk->nfree > 0))
+                //     __pool->PutFreeChunk(__free_chunk);
+                // else
+                free(__free_chunk);
+            }
+        }
+
+        template <typename... Args>
+        T* GetObject(Args&&... args)
+        {
+            if (likely(__free_chunk))
+            {
+                if (likely(__free_chunk->nfree > 0))
+                { }
+                else
+                {
+                    free(__free_chunk);
+                    __free_chunk = __pool->GetFreeChunk();
+                }
+            }
+            else
+                __free_chunk = __pool->GetFreeChunk();
+
+            if (likely(__free_chunk))
+                return new (__free_chunk->ptrs[--__free_chunk->nfree])
+                    T(std::forward<Args>(args)...);
+            if (unlikely(!__block || !__block->nfree))
+                __block = __pool->GetBlock();
+            return new (&__block->ptrs[--__block->nfree])
+                T(std::forward<Args>(args)...);
+        }
+
+        void PutObject(T* ptr)
+        {
+            if (likely(__free_chunk))
+            {
+                if (unlikely(__free_chunk->nfree == NITEM))
+                {
+                    __pool->PutFreeChunk(__free_chunk);
+                    __free_chunk        = (FreeChunk*)malloc(sizeof(FreeChunk));
+                    __free_chunk->nfree = 0;
+                }
+            }
+            else
+            {
+                __free_chunk        = (FreeChunk*)malloc(sizeof(FreeChunk));
+                __free_chunk->nfree = 0;
+            }
+            if (likely(std::is_destructible<T>::value))
+                ptr->~T();
+            __free_chunk->ptrs[__free_chunk->nfree++] = ptr;
+        }
+
+    private:
+        FreeChunk* __free_chunk = nullptr;
+        Block* __block          = nullptr;
+        ObjectPool* __pool;
+    };
+
+    template <typename PTRTYPE>
+    class ThreadLocalPtrWrap
+    {
+    public:
+        ~ThreadLocalPtrWrap()
+        {
+            delete __ptr;
+        }
+        void setptr(LocalPool* ptr)
+        {
+            __ptr = ptr;
+        }
+
+    private:
+        PTRTYPE* __ptr;
+    };
+    static thread_local LocalPool* __local_pool;
+    // static thread_local std::unique_ptr<LocalPool> __local_pool;
+    std::vector<FreeChunk*> __free_chunks;
+    std::vector<Block*> __blocks;
+    SpinLock __spine_chunk_lock;
+    SpinLock __spine_block_lock;
+    static thread_local ThreadLocalPtrWrap<LocalPool> __local_pool_ptr_wrap;
+};
+
+template <typename T>
+thread_local typename ObjectPool<T>::LocalPool* ObjectPool<T>::__local_pool
+    = nullptr;
+
+template <typename T>
+thread_local typename ObjectPool<T>::template ThreadLocalPtrWrap<
+    typename ObjectPool<T>::LocalPool>
+    ObjectPool<T>::__local_pool_ptr_wrap;
+}  // namespace v3
