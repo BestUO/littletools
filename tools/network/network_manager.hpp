@@ -50,7 +50,8 @@ private:
     void Run()
     {
         pthread_setname_np(pthread_self(), "NetWork");
-        CPUBind::BindCPU();
+        // CPUBind::BindCPU();
+        // CPUBind::SetThreadPriority(90);
         while (!__stop)
         {
             this->NetWorkRunOnce();

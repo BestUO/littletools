@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sched.h>
+#include <thread>
 
 class CPUBind
 {
@@ -25,6 +26,17 @@ public:
             printf("Could not set CPU affinity\n");
         }
         CheckBindCPU();
+    }
+
+    static void SetThreadPriority(int8_t priority)
+    {
+        struct sched_param param;
+        param.sched_priority = priority;
+        int policy           = SCHED_FIFO;
+        if (pthread_setschedparam(pthread_self(), policy, &param) == 0)
+            printf("Thread priority set to: %d\n", param.sched_priority);
+        else
+            printf("Failed to set thread priority");
     }
 
     static void CheckBindCPU()

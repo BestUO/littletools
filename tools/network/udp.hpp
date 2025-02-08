@@ -239,6 +239,14 @@ public:
         }
         return Result::SUCCESS;
     }
+
+    Result SetSocketBufSize(bool ifsend, int buffersize)
+    {
+        auto sock = Socket<false, true>::GetSocket();
+        Socket<false, true>::GetSocketBufSize(sock, ifsend);
+        Socket<false, true>::SetSocketBufSize(sock, ifsend, buffersize);
+        return Result::SUCCESS;
+    }
 };
 
 }  // namespace inet_udp
