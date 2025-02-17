@@ -79,8 +79,8 @@ struct CollectAnyAwaiter
                 if (continuation.done())
                     return;
                 std::move(std::get<index>(*input))
-                    .AsyncStart2([event_count     = event_count,
-                                     result       = __result,
+                    .AsyncStart2([result          = __result,
+                                     event_count  = event_count,
                                      continuation = continuation](auto i) {
                         if (event_count->AnyDone())
                         {

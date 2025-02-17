@@ -17,6 +17,7 @@ TEST_CASE("coroutine_task_not_void")
     fun(1).AsyncStart2([](auto result) {
         CHECK(result.GetValue() == 1);
     });
+    sleep(1);
 }
 
 TEST_CASE("coroutine_task_void")
@@ -26,6 +27,7 @@ TEST_CASE("coroutine_task_void")
         co_return;
     };
     fun(1).AsyncStart2([](auto result) {});
+    sleep(1);
 }
 
 TEST_CASE("coroutine_task_nested_int")
@@ -39,6 +41,7 @@ TEST_CASE("coroutine_task_nested_int")
         co_return;
     };
     fun(1).AsyncStart2([](auto result) {});
+    sleep(1);
 }
 
 TEST_CASE("coroutine_task_nested_void")
@@ -53,6 +56,7 @@ TEST_CASE("coroutine_task_nested_void")
     fun(1).AsyncStart2([](auto result) {
         CHECK(result.GetValue() == 1);
     });
+    sleep(1);
 }
 
 TEST_CASE("coroutine_task_async")
@@ -66,6 +70,7 @@ TEST_CASE("coroutine_task_async")
         co_return;
     };
     fun(1).AsyncStart2([](auto result) {});
+    sleep(1);
 }
 
 TEST_CASE("coroutine_task_sleep")
@@ -75,6 +80,7 @@ TEST_CASE("coroutine_task_sleep")
         co_return;
     };
     fun().AsyncStart2([](auto result) {});
+    sleep(1);
 }
 
 TEST_CASE("coroutine_task_collect_any_int_string")
@@ -93,6 +99,7 @@ TEST_CASE("coroutine_task_collect_any_int_string")
         co_return;
     };
     fun().AsyncStart2([](auto result) {});
+    sleep(1);
 }
 
 TEST_CASE("coroutine_task_collect_any_int_void")
@@ -108,6 +115,7 @@ TEST_CASE("coroutine_task_collect_any_int_void")
         co_return;
     };
     fun().AsyncStart2([](auto result) {});
+    sleep(1);
 }
 
 TEST_CASE("coroutine_task_collect_all_int_void_string")
@@ -127,6 +135,7 @@ TEST_CASE("coroutine_task_collect_all_int_void_string")
         co_return;
     };
     fun().AsyncStart2([](auto result) {});
+    sleep(1);
 }
 
 TEST_CASE("coroutine_task_collect_final")

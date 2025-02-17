@@ -74,9 +74,12 @@ public:
         {
             _coro.promise()._continuation = h;
             timermanager::v3::TimerManager<uint8_t>::GetInstance()->AddAlarm(
-                std::chrono::seconds(0), 0, "", [this, h = std::move(_coro)]() {
-                    if (!h.done())
-                        h.resume();
+                std::chrono::seconds(0),
+                0,
+                "",
+                [this, core = std::move(_coro)]() {
+                    if (!core.done())
+                        core.resume();
                 });
         }
 

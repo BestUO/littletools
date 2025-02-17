@@ -34,9 +34,9 @@
             "name": "doctooltest",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/examples/doctooltest",
+            "program": "${workspaceFolder}/build/test/doctooltest",
             "args": [
-                "--test-case=ReliableUDP_large_msg_send_100k"
+                "--test-case=coroutine_task_not_void"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

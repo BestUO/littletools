@@ -25,6 +25,9 @@ set (PROJ_NAME_RUDP_CLIENT "RUDP_large_msg_client")
 project(${PROJ_NAME_RUDP_CLIENT})
 
 add_executable(${PROJ_NAME_RUDP_CLIENT} RUDP_large_msg_client.cpp)
-# target_sources(${PROJ_NAME_RUDP_CLIENT} 
-# PRIVATE ${CMAKE_SOURCE_DIR}/tools/rbtree/rbtree.cpp
-# )
+target_sources(${PROJ_NAME_RUDP_CLIENT} 
+PRIVATE ${CMAKE_SOURCE_DIR}/tools/rbtree/rbtree.cpp
+)
+#===================================================
+add_executable(io_uring_example io_uring_example.cpp)
+target_link_libraries(io_uring_example uring)
