@@ -1,17 +1,18 @@
 #pragma once
 #include <functional>
 #include <tuple>
-//普通函数.
-//函数指针.
-// function/lambda.
-//成员函数.
-//函数对象.
 
-//转换为std::function和函数指针.
+// 普通函数.
+// 函数指针.
+// function/lambda.
+// 成员函数.
+// 函数对象.
+
+// 转换为 std::function 和函数指针.
 template <typename T>
 struct function_traits;
 
-//普通函数.
+// 普通函数.
 template <typename Ret, typename... Args>
 struct function_traits<Ret(Args...)>
 {
@@ -39,7 +40,7 @@ public:
         bare_tuple_type;
 };
 
-//函数指针.
+// 函数指针.
 template <typename Ret, typename... Args>
 struct function_traits<Ret (*)(Args...)> : function_traits<Ret(Args...)>
 { };
@@ -62,9 +63,19 @@ FUNCTION_TRAITS(const)
 FUNCTION_TRAITS(volatile)
 FUNCTION_TRAITS(const volatile)
 
-//函数对象.
+// 函数对象.
 template <typename Callable>
 struct function_traits : function_traits<decltype(&Callable::operator())>
+{ };
+
+// 特化处理 const 修饰的 lambda 表达式
+template <typename Callable>
+struct function_traits<const Callable> : function_traits<Callable>
+{ };
+
+// 特化处理引用类型的 lambda 表达式
+template <typename Callable>
+struct function_traits<Callable&> : function_traits<Callable>
 { };
 
 template <typename Function>

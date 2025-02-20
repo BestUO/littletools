@@ -25,5 +25,6 @@ network.cpp
 reliable_udp.cpp
 simple_list.cpp
 concurrentqueue.cpp
+method_chaining.cpp
 )
 target_link_libraries(${PROJ_NAME_TEST} pthread)
