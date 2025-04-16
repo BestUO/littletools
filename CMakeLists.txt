@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 set (PROJ_NAME "littletools")
+set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
 project(${PROJ_NAME})
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
