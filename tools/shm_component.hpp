@@ -58,7 +58,7 @@ public:
     ~SHMFactory()
     {
         close(__fd);
-        munmap(&__ptr, sizeof(pthread_mutex_t));
+        munmap(&__ptr, sizeof(T));
         shm_unlink(__name.c_str());
     }
     T* operator->() const
@@ -97,7 +97,9 @@ public:
     }
     void lock()
     {
-        pthread_mutex_lock(&__mutex);
+        auto r = pthread_mutex_lock(&__mutex);
+        if (r == EOWNERDEAD)
+            r = pthread_mutex_consistent(&__mutex);
     }
     bool try_lock()
     {

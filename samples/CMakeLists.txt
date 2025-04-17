@@ -31,3 +31,6 @@ PRIVATE ${CMAKE_SOURCE_DIR}/tools/rbtree/rbtree.cpp
 #===================================================
 add_executable(io_uring_example io_uring_example.cpp)
 target_link_libraries(io_uring_example uring)
+
+#===================================================
+add_executable(shm shm.cpp)
