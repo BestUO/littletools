@@ -6,3 +6,5 @@ data/*
 conf/
 .svn
 .cache
+
+http_download/build
