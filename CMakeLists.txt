@@ -1,4 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
+
+set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set (PROJ_NAME "littletools")
 project(${PROJ_NAME})
 

@@ -20,11 +20,12 @@ coroutine_test.cpp
 ${CMAKE_SOURCE_DIR}/tools/raft/Raft.cpp
 ${CMAKE_SOURCE_DIR}/tools/raft/RaftStructs.cpp
 ${CMAKE_SOURCE_DIR}/tools/rbtree/rbtree.cpp
-shm_queue.cpp
+# shm_queue.cpp
 network.cpp
 reliable_udp.cpp
 simple_list.cpp
 concurrentqueue.cpp
 method_chaining.cpp
+shm_test.cpp
 )
 target_link_libraries(${PROJ_NAME_TEST} pthread)

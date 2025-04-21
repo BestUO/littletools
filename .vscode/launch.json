@@ -36,7 +36,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/test/doctooltest",
             "args": [
-                "--test-case=*"
+                "--test-case=SHMV2_SHMMsgQueue_SendMsgToAll_2"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
@@ -53,6 +53,21 @@
                     "description": "Enable pretty-printing for gdb",
                     "text": "-enable-pretty-printing",
                     "ignoreFailures": true
+                },
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                // {
+                //     "description": "Set follow-fork-mode to child",
+                //     "text": "-gdb-set follow-fork-mode child",
+                //     "ignoreFailures": false
+                // },
+                {
+                    "description": "Set detach-on-fork off",
+                    "text": "-gdb-set detach-on-fork off",
+                    "ignoreFailures": false
                 }
             ],
             "preLaunchTask": "build doctooltest",

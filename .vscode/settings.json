@@ -1,14 +1,29 @@
 {
-    "clang-format.executable": "clang-format",
-    "clang-format.assumeFilename": ".clang-format",
-    "[python]": {
-        "editor.defaultFormatter": "ms-python.black-formatter",
-        "editor.formatOnSave": false
-    },
-    "python.formatting.provider": "black",
-    "python.formatting.blackArgs": [
-        "--skip-string-normalization",
-        "--line-length=100"
+    "clangd.path": "clangd",
+    "clangd.onConfigChanged": "restart",
+    "clangd.arguments": [
+        "--clang-tidy",
+        "--clang-tidy-checks=bugprone-*,performance-*,modernize-*,readability-*",
+        // "--all-scopes-completion",
+        // "--completion-style=detailed",
+        // "--header-insertion=iwyu",
+        // "--pch-storage=memory",
+        // "--log=info",
+        // "--j=4",
+        // "--background-index",
+        // "--compile-commands-dir=${workspaceFolder}/build",
+        // "--completion-parse=auto",
+        // // "--query-driver=/usr/bin/g++*",
+        // "--malloc-trim",
     ],
     "editor.formatOnSave": true,
+    "editor.defaultFormatter": null,
+    "C_Cpp.clang_format_path": "clang-format",
+    "C_Cpp.formatting": "clangFormat",
+    "[c]": {
+        "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
+    },
+    "[cpp]": {
+        "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
+    }
 }

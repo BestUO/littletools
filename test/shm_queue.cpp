@@ -6,9 +6,15 @@
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <sys/wait.h>
 #include "doctest/doctest.h"
 #include "nanobench.h"
 #include "tools/shm_component.hpp"
+
+struct TestStruct
+{
+    int b;
+};
 
 TEST_CASE("shm_cv")
 {
@@ -34,18 +40,14 @@ TEST_CASE("shm_cv")
 
 TEST_CASE("shm_SHMSharedObj")
 {
-    struct A
-    {
-        int b;
-    };
-    SHMObj<A> a;
-    SHMSharedObj<A> obj(&a, nullptr);
+    SHMV1::SHMObj<TestStruct> a;
+    SHMV1::SHMSharedObj<TestStruct> obj(&a, nullptr);
     {
         CHECK(1 == obj.GetCount());
-        SHMSharedObj<A> obj2 = obj;
+        SHMV1::SHMSharedObj<TestStruct> obj2 = obj;
         CHECK(2 == obj.GetCount());
         CHECK(2 == obj2.GetCount());
-        SHMSharedObj<A> obj3;
+        SHMV1::SHMSharedObj<TestStruct> obj3;
         obj3 = obj;
         CHECK(3 == obj.GetCount());
         CHECK(3 == obj2.GetCount());
@@ -56,13 +58,9 @@ TEST_CASE("shm_SHMSharedObj")
 
 TEST_CASE("shm_SHMMemoryPool_special_type")
 {
-    struct A
-    {
-        int b;
-    };
-    A a;
+    TestStruct a;
     uint16_t index = -1;
-    SHMMemoryPool<A> pool;
+    SHMV1::SHMMemoryPool<TestStruct> pool;
     {
         auto obj                     = pool.Allocate();
         obj.GetSHMObj()->GetData().b = 10;
@@ -80,7 +78,7 @@ TEST_CASE("shm_SHMMemoryPool_special_type")
 TEST_CASE("shm_SHMMemoryPool_size_type")
 {
     uint16_t index = -1;
-    SHMMemoryPool<char, 10> pool;
+    SHMV1::SHMMemoryPool<char, 10> pool;
     {
         auto obj = pool.Allocate();
         memcpy(obj.GetSHMObj()->GetData(), "123", 3);
@@ -98,12 +96,8 @@ TEST_CASE("shm_SHMMemoryPool_size_type")
 TEST_CASE("shm_SHMMessageQueue_base")
 {
     shm_unlink("SHMMessageQueue");
-    struct A
-    {
-        int b;
-    };
     std::thread t2([]() {
-        SHMFactory<SHMMessageQueue<A>> queue("SHMMessageQueue");
+        SHMFactory<SHMV1::SHMMessageQueue<TestStruct>> queue("SHMMessageQueue");
         queue->GetMutex().lock();
         queue->GetCondVar().wait(queue->GetMutex());
         auto [flag, a] = queue->PopFront();
@@ -112,7 +106,7 @@ TEST_CASE("shm_SHMMessageQueue_base")
     });
     sleep(1);
     std::thread t1([]() {
-        SHMFactory<SHMMessageQueue<A>> queue("SHMMessageQueue");
+        SHMFactory<SHMV1::SHMMessageQueue<TestStruct>> queue("SHMMessageQueue");
         queue->GetMutex().lock();
         queue->PushBack({1});
         queue->GetMutex().unlock();
@@ -126,13 +120,9 @@ TEST_CASE("shm_SHMMessageQueue_base")
 TEST_CASE("shm_SHMMessageQueue_crazy")
 {
     shm_unlink("SHMMessageQueue");
-    struct A
-    {
-        int b;
-    };
     int total = 1000000;
     std::thread t2([total = total]() {
-        SHMFactory<SHMMessageQueue<A>> queue("SHMMessageQueue");
+        SHMFactory<SHMV1::SHMMessageQueue<TestStruct>> queue("SHMMessageQueue");
         while (true)
         {
             queue->GetMutex().lock();
@@ -150,7 +140,7 @@ TEST_CASE("shm_SHMMessageQueue_crazy")
     });
     sleep(1);
     std::thread t1([total = total]() {
-        SHMFactory<SHMMessageQueue<A>> queue("SHMMessageQueue");
+        SHMFactory<SHMV1::SHMMessageQueue<TestStruct>> queue("SHMMessageQueue");
         int num = 0;
         while (num++ < total)
         {
@@ -174,14 +164,11 @@ TEST_CASE("shm_SHMMemoryPool_SHMMessageQueue_special_type")
 {
     shm_unlink("MemoryPool");
     shm_unlink("SHMMessageQueue");
-    struct A
-    {
-        int b;
-    };
 
-    SHMFactory<SHMMemoryPool<A>> pool("MemoryPool");
-    SHMFactory<SHMMessageQueue<SHMMemoryPool<A>::MPE, true>> queue(
-        "SHMMessageQueue");
+    SHMFactory<SHMV1::SHMMemoryPool<TestStruct>> pool("MemoryPool");
+    SHMFactory<
+        SHMV1::SHMMessageQueue<SHMV1::SHMMemoryPool<TestStruct>::MPE, true>>
+        queue("SHMMessageQueue");
     {
         auto sharedobj                     = pool->Allocate();
         sharedobj.GetSHMObj()->GetData().b = 10;
@@ -204,9 +191,10 @@ TEST_CASE("shm_SHMMemoryPool_SHMMessageQueue_size_type_base")
 {
     shm_unlink("MemoryPool");
     shm_unlink("SHMMessageQueue");
-    SHMFactory<SHMMemoryPool<char, 10>> pool("MemoryPool");
-    SHMFactory<SHMMessageQueue<SHMMemoryPool<char, 10>::MPE, true>> queue(
-        "SHMMessageQueue");
+    SHMFactory<SHMV1::SHMMemoryPool<char, 10>> pool("MemoryPool");
+    SHMFactory<
+        SHMV1::SHMMessageQueue<SHMV1::SHMMemoryPool<char, 10>::MPE, true>>
+        queue("SHMMessageQueue");
     {
         auto sharedobj = pool->Allocate();
         memcpy(sharedobj.GetSHMObj()->GetData(), "123", 3);
@@ -231,9 +219,10 @@ TEST_CASE("shm_SHMMemoryPool_SHMMessageQueue_size_type_crazy")
     shm_unlink("SHMMessageQueue");
     int total = 1000000;
     std::thread t2([total = total]() {
-        SHMFactory<SHMMemoryPool<char, 1000>> pool("MemoryPool");
-        SHMFactory<SHMMessageQueue<SHMMemoryPool<char, 10>::MPE, true>> queue(
-            "SHMMessageQueue");
+        SHMFactory<SHMV1::SHMMemoryPool<char, 1000>> pool("MemoryPool");
+        SHMFactory<
+            SHMV1::SHMMessageQueue<SHMV1::SHMMemoryPool<char, 10>::MPE, true>>
+            queue("SHMMessageQueue");
         auto data = std::to_string(total);
         while (true)
         {
@@ -255,9 +244,10 @@ TEST_CASE("shm_SHMMemoryPool_SHMMessageQueue_size_type_crazy")
     });
     sleep(1);
     std::thread t1([total = total]() {
-        SHMFactory<SHMMemoryPool<char, 1000>> pool("MemoryPool");
-        SHMFactory<SHMMessageQueue<SHMMemoryPool<char, 10>::MPE, true>> queue(
-            "SHMMessageQueue");
+        SHMFactory<SHMV1::SHMMemoryPool<char, 1000>> pool("MemoryPool");
+        SHMFactory<
+            SHMV1::SHMMessageQueue<SHMV1::SHMMemoryPool<char, 10>::MPE, true>>
+            queue("SHMMessageQueue");
 
         int num = 0;
         while (num++ < total)

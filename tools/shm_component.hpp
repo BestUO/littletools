@@ -1,5 +1,7 @@
 #pragma once
 #include <pthread.h>
+#include <bitset>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -13,14 +15,16 @@
 #include <atomic>
 #include <type_traits>
 #include <limits>
+#include <map>
 
-#define CIRCLEINDEXTYPE uint8_t
-#define SHM_QUEUE_SIZE CIRCLEINDEXTYPE(-1) + 1
-#define SHMALIGN(s, a) (((s - 1) | (a - 1)) + 1)
+#define READER_SIZE 64
+#define CIRCLE_INDEX_TYPE uint8_t
+#define SHM_QUEUE_SIZE CIRCLE_INDEX_TYPE(-1) + 1
+#define SHM_ALIGN(s, a) (((s - 1) | (a - 1)) + 1)
 inline uint8_t* align_address(void* ptr, size_t alignment)
 {
     auto int_ptr         = reinterpret_cast<uintptr_t>(ptr);
-    auto aligned_int_ptr = SHMALIGN(int_ptr, alignment);
+    auto aligned_int_ptr = SHM_ALIGN(int_ptr, alignment);
     return reinterpret_cast<uint8_t*>(aligned_int_ptr);
 }
 
@@ -155,6 +159,8 @@ private:
 template <typename T>
 concept PodType = std::is_trivial_v<T> && std::is_standard_layout_v<T>;
 // concept PodType = std::true_type::value;
+namespace SHMV1
+{
 
 template <typename T>
 concept DeQueueElement = requires(T t)
@@ -382,7 +388,7 @@ public:
         }
     }
 
-    void PushBack(T* data, CIRCLEINDEXTYPE index)
+    void PushBack(T* data, CIRCLE_INDEX_TYPE index)
     {
         if (__tail == -1)
         {
@@ -418,7 +424,7 @@ public:
         else
         {
             auto oldtail = __tail;
-            __tail       = data[__tail].__prev;
+            __tail       = data[__tail].__next;
 
             data[oldtail].__next = -1;
             data[oldtail].__prev = -1;
@@ -427,7 +433,7 @@ public:
         }
     }
 
-    void PushBack(T* data, CIRCLEINDEXTYPE index)
+    void PushBack(T* data, CIRCLE_INDEX_TYPE index)
     {
         if (__tail == -1)
         {
@@ -491,13 +497,13 @@ public:
     }
 
 private:
-    CIRCLEINDEXTYPE __head = 0;
-    CIRCLEINDEXTYPE __tail = 0;
+    CIRCLE_INDEX_TYPE __head = 0;
+    CIRCLE_INDEX_TYPE __tail = 0;
 
     bool IsFull()
     {
-        return std::numeric_limits<CIRCLEINDEXTYPE>::max()
-            == CIRCLEINDEXTYPE(__tail - __head);
+        return std::numeric_limits<CIRCLE_INDEX_TYPE>::max()
+            == CIRCLE_INDEX_TYPE(__tail - __head);
     }
 
     bool IsEmpty()
@@ -685,13 +691,13 @@ private:
     MutexLock __mutex;
     CondVar __cond_var;
     SHMElement __data[N];
-    CIRCLEINDEXTYPE __head = 0;
-    CIRCLEINDEXTYPE __tail = 0;
+    CIRCLE_INDEX_TYPE __head = 0;
+    CIRCLE_INDEX_TYPE __tail = 0;
 
     bool IsFull()
     {
-        return std::numeric_limits<CIRCLEINDEXTYPE>::max()
-            == CIRCLEINDEXTYPE(__tail - __head);
+        return std::numeric_limits<CIRCLE_INDEX_TYPE>::max()
+            == CIRCLE_INDEX_TYPE(__tail - __head);
     }
 
     bool IsEmpty()
@@ -699,3 +705,252 @@ private:
         return __head == __tail;
     }
 };
+}  // namespace SHMV1
+
+namespace SHMV2
+{
+template <typename T>
+concept DeQueElement = requires(T t)
+{
+    {
+        decltype(t.__prev)(), decltype(t.__next)()
+        } -> std::same_as<int32_t>;
+};
+
+template <typename T>
+concept QueueElement = requires(T t)
+{
+    {
+        decltype(t.__next)()
+        } -> std::same_as<int32_t>;
+};
+
+template <PodType T>
+class Element
+{
+public:
+    T* GetData()
+    {
+        return (T*)__t;
+    }
+
+private:
+    char __t[sizeof(T)] = {0};
+};
+
+template <typename T>
+class IndexDataTypeCheck
+{
+public:
+    int32_t __index = 0;
+};
+
+template <QueueElement T>
+class SHMStack
+{
+public:
+    int16_t Pop(T* data)
+    {
+        if (__head == -1)
+            return -1;
+        else
+        {
+            auto old_head         = __head;
+            __head                = data[old_head].__next;
+            data[old_head].__next = -1;
+
+            return old_head;
+        }
+    }
+
+    void Push(T* data, int32_t index)
+    {
+        if (__head == -1)
+        {
+            __head = index;
+        }
+        else
+        {
+            data[index].__next = __head;
+            __head             = index;
+        }
+    }
+
+    bool IsEmpty()
+    {
+        return __head == -1;
+    }
+
+private:
+    int32_t __head = -1;
+};
+
+template <DeQueElement T>
+class SHMDeque
+{
+public:
+    int32_t Pop(T* data)
+    {
+        if (__head == -1)
+            return -1;
+        else
+        {
+            auto old_head = __head;
+            __head        = data[old_head].__next;
+
+            data[old_head].__next = -1;
+            data[old_head].__prev = -1;
+
+            if (__head == -1)
+                __tail = -1;
+
+            return old_head;
+        }
+    }
+
+    void Push(T* data, int32_t index)
+    {
+        if (__tail == -1)
+        {
+            __head = __tail = index;
+        }
+        else
+        {
+            data[index].__prev  = __tail;
+            data[index].__next  = -1;
+            data[__tail].__next = index;
+            __tail              = index;
+        }
+    }
+
+    bool IsEmpty()
+    {
+        return __head == -1;
+    }
+
+private:
+    int32_t __head = -1;
+    int32_t __tail = -1;
+};
+
+template <PodType T, size_t N = SHM_QUEUE_SIZE>
+class SHMMemoryPool
+{
+public:
+    SHMMemoryPool()
+    {
+        for (size_t i = 0; i < N; i++)
+            __shm_stack.Push(__data, i);
+    }
+
+    std::tuple<IndexDataTypeCheck<T>, T*> Allocate()
+    {
+        std::lock_guard<MutexLock> lck(__mutex);
+        auto index = __shm_stack.Pop(__data);
+        if (index == -1)
+            return {{index}, nullptr};
+        else
+            return {{index}, __data[index].__t.GetData()};
+    }
+
+    void Free(IndexDataTypeCheck<T> index)
+    {
+        std::lock_guard<MutexLock> lck(__mutex);
+        __shm_stack.Push(__data, index.__index);
+    }
+
+private:
+    struct SHMMempoolElement
+    {
+        int32_t __next = -1;
+        Element<T> __t;
+    };
+    MutexLock __mutex;
+    SHMStack<SHMMempoolElement> __shm_stack;
+    SHMMempoolElement __data[N];
+};
+
+template <PodType T, size_t N = SHM_QUEUE_SIZE, size_t M = READER_SIZE>
+class SHMMsgQueue
+{
+public:
+    SHMMsgQueue()
+    {
+        for (size_t i = 0; i < N; i++)
+        {
+            __shm_msgs.Push(__data, i);
+        }
+    }
+
+    std::tuple<int32_t, T*> Allocate()
+    {
+        std::lock_guard<MutexLock> lck(__mutex);
+        auto index = __shm_msgs.Pop(__data);
+        if (index == -1)
+            return {index, nullptr};
+        else
+            return {index, __data[index].__t.GetData()};
+    }
+
+    void SendMsg(int32_t index)
+    {
+        std::lock_guard<MutexLock> lck(__mutex);
+        __shm_msgs_queue.Push(__data, index);
+    }
+
+    std::tuple<int32_t, T*> RecvMsg()
+    {
+        std::lock_guard<MutexLock> lck(__mutex);
+        auto index = __shm_msgs_queue.Pop(__data);
+        if (index == -1)
+            return {index, nullptr};
+        else
+            return {index, __data[index].__t.GetData()};
+    }
+
+    void Free(int32_t index)
+    {
+        std::lock_guard<MutexLock> lck(__mutex);
+        __shm_msgs.Push(__data, index);
+    }
+
+private:
+    struct SHMMempoolElement
+    {
+        // bitset<64> __reader;
+        int32_t __next = -1;
+        int32_t __prev = -1;
+        Element<T> __t;
+    };
+    struct ReaderInfo
+    {
+        int32_t __reader = -1;
+        pid_t __pid      = 0;
+    };
+    MutexLock __mutex;
+    SHMDeque<SHMMempoolElement> __shm_msgs;
+    SHMDeque<SHMMempoolElement> __shm_msgs_queue;
+    SHMMempoolElement __data[N]  = {};
+    ReaderInfo __reader_infos[M] = {};
+};
+
+template <PodType T, size_t N = SHM_QUEUE_SIZE, size_t M = READER_SIZE>
+class SHMMsgQueueManager
+{
+public:
+    void Attach()
+    {
+        auto pid = getpid();
+    }
+
+private:
+    struct SHMMsgQueueElement
+    {
+        int32_t __reader[64] = {0};
+        T __t;
+    };
+    SHMMsgQueue<SHMMsgQueueElement, N> __queue;
+    std::map<pid_t, int32_t> __pid2reader;
+};
+
+};  // namespace SHMV2
