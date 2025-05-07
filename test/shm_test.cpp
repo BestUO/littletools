@@ -174,17 +174,18 @@ TEST_CASE("SHMV2_SHMMsgQueue_SendMsgToAny")
     else
     {
         SHMFactory<SHMMsgQueue<TestStruct, 1024>> queue("SHMMsgQueue");
+        int32_t reader_index = queue->Attach();
         while (true)
         {
             if (times <= 0)
                 break;
 
-            auto [index, s_ptr] = queue->RecvOneMsg();
+            auto [index, s_ptr] = queue->RecvTopMsgWithReader(reader_index);
             if (index != -1)
             {
                 times--;
                 CHECK(s_ptr->a == index);
-                queue->Free(index);
+                queue->Free(index, reader_index);
             }
         }
 
@@ -229,7 +230,7 @@ TEST_CASE("SHMV2_SHMMsgQueue_SendMsgToAll")
             {
                 CHECK(s_ptr->a == times);
                 times--;
-                queue->Free(index);
+                queue->Free(index, reader_index);
             }
         }
         queue->Detach(reader_index);
@@ -265,7 +266,6 @@ TEST_CASE("SHMV2_SHMMsgQueue_SendMsgToAll_2")
                     }
                 }
             }
-            printf("%d send exit\n", getpid());
             exit(0);
         }
         else if (pid > 0)
@@ -289,13 +289,11 @@ TEST_CASE("SHMV2_SHMMsgQueue_SendMsgToAll_2")
                     if (index != -1)
                     {
                         CHECK(s_ptr->a == index);
-                        queue->Free(index);
+                        queue->Free(index, reader_index);
                         count++;
                     }
                 }
                 queue->Detach(reader_index);
-                std::cout << getpid() << " recv: " << count << reader_index
-                          << std::endl;
             }
             exit(0);
         }

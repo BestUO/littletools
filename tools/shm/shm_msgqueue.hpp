@@ -39,18 +39,18 @@ public:
         __shm_msgs_queue.Push(__data, index);
     }
 
-    std::tuple<int32_t, T*> RecvOneMsg()
-    {
-        std::lock_guard<SHMMutex> lck(__mutex);
-        auto index = __shm_msgs_queue.Pop(__data);
-        if (index == -1)
-            return {index, nullptr};
-        else
-        {
-            __reader_bitset.ClearAllbit(__data[index].__reader);
-            return {index, __data[index].__t.GetData()};
-        }
-    }
+    // std::tuple<int32_t, T*> RecvOneMsg()
+    // {
+    //     std::lock_guard<SHMMutex> lck(__mutex);
+    //     auto index = __shm_msgs_queue.Pop(__data);
+    //     if (index == -1)
+    //         return {index, nullptr};
+    //     else
+    //     {
+    //         __reader_bitset.ClearAllbit(__data[index].__reader);
+    //         return {index, __data[index].__t.GetData()};
+    //     }
+    // }
 
     void SendMsgToAll(int32_t index)
     {
@@ -78,18 +78,19 @@ public:
             return {-1, nullptr};
         else
         {
-            __reader_bitset.ClearBit(__data[msg_index].__reader, reader_index);
-            if (__reader_bitset.IsEmpty(__data[msg_index].__reader))
-                __shm_msgs_queue.Pop(__data);
             return {msg_index, __data[msg_index].__t.GetData()};
         }
     }
 
-    void Free(int32_t index)
+    void Free(int32_t msg_index, int32_t reader_index)
     {
         std::lock_guard<SHMMutex> lck(__mutex);
-        if (__reader_bitset.IsEmpty(__data[index].__reader))
-            __shm_msg_pool.Push(__data, index);
+        __reader_bitset.ClearBit(__data[msg_index].__reader, reader_index);
+        if (__reader_bitset.IsEmpty(__data[msg_index].__reader))
+        {
+            __shm_msgs_queue.Pop(__data, msg_index);
+            __shm_msg_pool.Push(__data, msg_index);
+        }
     }
 
     int32_t Attach()
