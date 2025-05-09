@@ -18,7 +18,7 @@ public:
         return GetBit(__bitset, index);
     }
 
-    bool GetBit(const BITSET_ARRAY& bitset, size_t index) const
+    static bool GetBit(const BITSET_ARRAY& bitset, size_t index)
     {
         if (index < BITSET_SIZE)
         {
@@ -31,9 +31,14 @@ public:
 
     void SetBit(size_t index)
     {
+        SetBit(__bitset, index);
+    }
+
+    static void SetBit(BITSET_ARRAY& bitset, size_t index)
+    {
         if (index < BITSET_SIZE)
         {
-            __bitset[index / BITSET_M_SIZE] |= (1U << (index % BITSET_M_SIZE));
+            bitset[index / BITSET_M_SIZE] |= (1U << (index % BITSET_M_SIZE));
         }
     }
 
@@ -42,7 +47,7 @@ public:
         ClearBit(__bitset, index);
     }
 
-    void ClearBit(BITSET_ARRAY& bitset, size_t index)
+    static void ClearBit(BITSET_ARRAY& bitset, size_t index)
     {
         if (index < BITSET_SIZE)
         {
@@ -50,7 +55,7 @@ public:
         }
     }
 
-    void ClearAllbit(BITSET_ARRAY& bitset)
+    static void ClearAllBit(BITSET_ARRAY& bitset)
     {
         for (size_t i = 0; i < BITSET_ARRAY_SIZE; ++i)
         {
@@ -85,7 +90,7 @@ public:
         return PopCount(__bitset);
     }
 
-    int32_t PopCount(const BITSET_ARRAY& bitset) const
+    static int32_t PopCount(const BITSET_ARRAY& bitset)
     {
         int32_t count = 0;
         for (size_t i = 0; i < BITSET_ARRAY_SIZE; ++i)
@@ -95,7 +100,12 @@ public:
         return count;
     }
 
-    bool IsEmpty(const BITSET_ARRAY& bitset) const
+    bool IsEmpty() const
+    {
+        return IsEmpty(__bitset);
+    }
+
+    static bool IsEmpty(const BITSET_ARRAY& bitset)
     {
         int32_t count = 0;
         for (size_t i = 0; i < BITSET_ARRAY_SIZE; ++i)

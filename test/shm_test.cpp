@@ -7,6 +7,7 @@
 #include "doctest/doctest.h"
 #include "nanobench.h"
 #include "tools/shm/bitset.hpp"
+#include "tools/shm/global.hpp"
 #include "tools/shm/shm_factory.hpp"
 #include "tools/shm/shm_mempool.hpp"
 #include "tools/shm/shm_msgqueue.hpp"
@@ -151,102 +152,11 @@ TEST_CASE("SHMV2_SHMDeque")
 
 TEST_CASE("SHMV2_SHMMsgQueue_SendMsgToAny")
 {
-    int32_t times   = 1024 * 1024;
-    auto client_pid = fork();
-    if (client_pid == 0)
-    {
-        SHMFactory<SHMMsgQueue<TestStruct, 1024>> queue("SHMMsgQueue");
-        while (true)
-        {
-            if (times <= 0)
-                break;
-
-            auto [index, s_ptr] = queue->Allocate();
-            if (index != -1)
-            {
-                times--;
-                s_ptr->a = index;
-                queue->SendMsgToAny(index);
-            }
-        }
-        exit(0);
-    }
-    else
-    {
-        SHMFactory<SHMMsgQueue<TestStruct, 1024>> queue("SHMMsgQueue");
-        int32_t reader_index = queue->Attach();
-        while (true)
-        {
-            if (times <= 0)
-                break;
-
-            auto [index, s_ptr] = queue->RecvTopMsgWithReader(reader_index);
-            if (index != -1)
-            {
-                times--;
-                CHECK(s_ptr->a == index);
-                queue->Free(index, reader_index);
-            }
-        }
-
-        int ws = 0;
-        waitpid(client_pid, &ws, 0);
-    }
-}
-
-TEST_CASE("SHMV2_SHMMsgQueue_SendMsgToAll")
-{
-    int32_t times   = 1024 * 1024;
-    auto client_pid = fork();
-    if (client_pid == 0)
-    {
-        SHMFactory<SHMMsgQueue<TestStruct, 1024>> queue("SHMMsgQueue");
-        while (true)
-        {
-            if (times <= 0)
-                break;
-
-            auto [index, s_ptr] = queue->Allocate();
-            if (index != -1)
-            {
-                s_ptr->a = times;
-                times--;
-                queue->SendMsgToAll(index);
-            }
-        }
-        exit(0);
-    }
-    else
-    {
-        SHMFactory<SHMMsgQueue<TestStruct, 1024>> queue("SHMMsgQueue");
-        int32_t reader_index = queue->Attach();
-        while (true)
-        {
-            if (times <= 0)
-                break;
-
-            auto [index, s_ptr] = queue->RecvTopMsgWithReader(reader_index);
-            if (index != -1)
-            {
-                CHECK(s_ptr->a == times);
-                times--;
-                queue->Free(index, reader_index);
-            }
-        }
-        queue->Detach(reader_index);
-        int ws = 0;
-        waitpid(client_pid, &ws, 0);
-    }
-}
-
-TEST_CASE("SHMV2_SHMMsgQueue_SendMsgToAll_2")
-{
+    int32_t times = 1024 * 1024;
     std::vector<pid_t> child_pids;
-    SHMFactory<SHMMsgQueue<TestStruct, 1024>> statistic("SHMMsgQueue");
     int32_t send_processes = 2;
-    int32_t recv_processes = 1;
-    int32_t times          = 1024 * 1024;
-
+    int32_t recv_processes = 2;
+    SHMFactory<SHMMsgQueue<TestStruct, 1024>> queue("SHMMsgQueue");
     for (int i = 0; i < send_processes; i++)
     {
         pid_t pid = fork();
@@ -254,15 +164,20 @@ TEST_CASE("SHMV2_SHMMsgQueue_SendMsgToAll_2")
         {
             {
                 SHMFactory<SHMMsgQueue<TestStruct, 1024>> queue("SHMMsgQueue");
-                int count = 0;
-                while (count < times)
+                while (true)
                 {
+                    if (times <= 0)
+                        break;
+
                     auto [index, s_ptr] = queue->Allocate();
                     if (index != -1)
                     {
+                        times--;
                         s_ptr->a = index;
-                        queue->SendMsgToAll(index);
-                        count++;
+                        while (queue->SendMsgToAny(index) == Result::NOREADER)
+                        {
+                            usleep(1);
+                        }
                     }
                 }
             }
@@ -281,16 +196,18 @@ TEST_CASE("SHMV2_SHMMsgQueue_SendMsgToAll_2")
             {
                 SHMFactory<SHMMsgQueue<TestStruct, 1024>> queue("SHMMsgQueue");
                 int32_t reader_index = queue->Attach();
-                int count            = 0;
-                while (count < times * send_processes)
+                while (true)
                 {
+                    if (times <= 0)
+                        break;
+
                     auto [index, s_ptr]
                         = queue->RecvTopMsgWithReader(reader_index);
                     if (index != -1)
                     {
+                        times--;
                         CHECK(s_ptr->a == index);
                         queue->Free(index, reader_index);
-                        count++;
                     }
                 }
                 queue->Detach(reader_index);
@@ -310,71 +227,84 @@ TEST_CASE("SHMV2_SHMMsgQueue_SendMsgToAll_2")
     }
 }
 
-// TEST_CASE("SHMV2_SHMMsgQueue_SendMsgToAll_2")
-// {
-//     std::vector<pid_t> child_pids;
-//     int32_t send_processes = 1;
-//     int32_t recv_processes = 1;
+TEST_CASE("SHMV2_SHMMsgQueue_SendMsgToAll")
+{
+    int32_t times = 1024 * 10;
+    std::vector<pid_t> child_pids;
+    int32_t send_processes = 2;
+    int32_t recv_processes = 2;
+    SHMFactory<SHMMsgQueue<TestStruct, 1024>> queue("SHMMsgQueue");
+    for (int i = 0; i < recv_processes; i++)
+    {
+        pid_t pid = fork();
+        if (pid == 0)
+        {
+            {
+                SHMFactory<SHMMsgQueue<TestStruct, 1024>> queue("SHMMsgQueue");
+                int32_t reader_index = queue->Attach();
+                times                = times * send_processes;
+                while (true)
+                {
+                    if (times <= 0)
+                        break;
 
-//     for (int i = 0; i < send_processes; i++)
-//     {
-//         pid_t pid = fork();
-//         if (pid == 0)
-//         {
-//             SHMFactory<SHMMsgQueue<TestStruct, 1024>> queue("SHMMsgQueue");
-//             int count = 0;
-//             while (count < 1000)
-//             {
-//                 auto [index, s_ptr] = queue->Allocate();
-//                 if (index != -1)
-//                 {
-//                     s_ptr->a = index;
-//                     queue->SendMsgToAll(index);
-//                     count++;
-//                 }
-//             }
-//             std::cout << getpid() << " send: " << count << std::endl;
-//             exit(0);
-//         }
-//         else if (pid > 0)
-//         {
-//             child_pids.push_back(pid);
-//         }
-//     }
+                    auto [index, s_ptr]
+                        = queue->RecvTopMsgWithReader(reader_index);
+                    if (index != -1)
+                    {
+                        times--;
+                        CHECK(s_ptr->a == index);
+                        queue->Free(index, reader_index);
+                    }
+                }
+                queue->Detach(reader_index);
+            }
+            exit(0);
+        }
+        else if (pid > 0)
+        {
+            child_pids.push_back(pid);
+        }
+    }
+    sleep(1);
+    for (int i = 0; i < send_processes; i++)
+    {
+        pid_t pid = fork();
+        if (pid == 0)
+        {
+            {
+                SHMFactory<SHMMsgQueue<TestStruct, 1024>> queue("SHMMsgQueue");
+                while (true)
+                {
+                    if (times <= 0)
+                        break;
 
-//     for (int i = 0; i < recv_processes; i++)
-//     {
-//         pid_t pid = fork();
-//         if (pid == 0)
-//         {
-//             SHMFactory<SHMMsgQueue<TestStruct, 1024>> queue("SHMMsgQueue");
-//             int32_t reader_index = queue->Attach();
-//             int count            = 0;
-//             while (count < 1000)
-//             {
-//                 auto [index, s_ptr] =
-//                 queue->RecvTopMsgWithReader(reader_index); if (index != -1)
-//                 {
-//                     CHECK(s_ptr->a == index);
-//                     queue->Free(index);
-//                     count++;
-//                 }
-//             }
-//             std::cout << getpid() << " recv: " << count << std::endl;
-//             exit(0);
-//         }
-//         else if (pid > 0)
-//         {
-//             child_pids.push_back(pid);
-//         }
-//     }
+                    auto [index, s_ptr] = queue->Allocate();
+                    if (index != -1)
+                    {
+                        times--;
+                        s_ptr->a = index;
+                        while (queue->SendMsgToAll(index) == Result::NOREADER)
+                        {
+                            usleep(1);
+                        }
+                    }
+                }
+            }
+            exit(0);
+        }
+        else if (pid > 0)
+        {
+            child_pids.push_back(pid);
+        }
+    }
 
-//     for (pid_t pid : child_pids)
-//     {
-//         int status;
-//         waitpid(pid, &status, 0);
-//     }
-// }
+    for (pid_t pid : child_pids)
+    {
+        int status;
+        waitpid(pid, &status, 0);
+    }
+}
 
 TEST_CASE("SHMV2_SHMMemPool")
 {
