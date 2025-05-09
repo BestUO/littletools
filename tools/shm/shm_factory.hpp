@@ -151,7 +151,7 @@ public:
 
     bool init(const std::string& name)
     {
-        __shm_sem.InitNamedSemaphore("/" + name + "_factory_sem", true);
+        __shm_sem.InitNamedSemaphore("/" + name + "_factory", true);
         if (__shm_sem.Wait(50))
         {
             bool is_create = true;

@@ -1,11 +1,8 @@
 #include <cstdint>
-#include <iostream>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <mutex>
-
 #include "doctest/doctest.h"
-#include "nanobench.h"
 #include "tools/shm/bitset.hpp"
 #include "tools/shm/global.hpp"
 #include "tools/shm/shm_factory.hpp"
@@ -13,7 +10,7 @@
 #include "tools/shm/shm_msgqueue.hpp"
 #include "tools/shm/shm_deque.hpp"
 #include "tools/shm/shm_mutex.hpp"
-#include "tools/shm/shm_cv.hpp"
+#include "tools/shm/shm_msgqueue_manager.hpp"
 
 struct TestStruct
 {
@@ -322,5 +319,85 @@ TEST_CASE("SHMV2_SHMMemPool")
             s_ptr->a = times;
             pool->Free(index);
         }
+    }
+}
+
+TEST_CASE("SHMV2_SHMMsgQueueManager")
+{
+    int32_t times = 1024 * 2;
+    std::vector<pid_t> child_pids;
+    int32_t send_processes = 2;
+    int32_t recv_processes = 2;
+    for (int i = 0; i < recv_processes; i++)
+    {
+        pid_t pid = fork();
+        if (pid == 0)
+        {
+            {
+                SHMMsgQueueManager<TestStruct, 1024>* queue
+                    = SHMMsgQueueManager<TestStruct, 1024>::GetInstance(
+                        "SHMV2_SHMMsgQueueManager_TestStruct");
+                queue->Attach([](int32_t index, TestStruct* s_ptr) {
+                    CHECK(s_ptr->a == index);
+                });
+                times = times * send_processes;
+                while (true)
+                {
+                    if (times <= 0)
+                        break;
+
+                    if (int32_t index = queue->RecvTopMsgOnce(); index != -1)
+                    {
+                        times--;
+                        queue->Free(index);
+                    }
+                }
+                queue->Detach();
+            }
+            exit(0);
+        }
+        else if (pid > 0)
+        {
+            child_pids.push_back(pid);
+        }
+    }
+    sleep(1);
+    for (int i = 0; i < send_processes; i++)
+    {
+        pid_t pid = fork();
+        if (pid == 0)
+        {
+            {
+                SHMMsgQueueManager<TestStruct, 1024>* queue
+                    = SHMMsgQueueManager<TestStruct, 1024>::GetInstance(
+                        "SHMV2_SHMMsgQueueManager_TestStruct");
+                while (true)
+                {
+                    if (times <= 0)
+                        break;
+
+                    auto [index, s_ptr] = queue->Allocate();
+                    if (index != -1)
+                    {
+                        times--;
+                        s_ptr->a = index;
+                        while (queue->SendMsgToAll(index) == Result::NOREADER)
+                        {
+                            usleep(1);
+                        }
+                    }
+                }
+            }
+            exit(0);
+        }
+        else if (pid > 0)
+        {
+            child_pids.push_back(pid);
+        }
+    }
+    for (pid_t pid : child_pids)
+    {
+        int status;
+        waitpid(pid, &status, 0);
     }
 }

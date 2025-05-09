@@ -52,29 +52,16 @@ public:
         }
     }
 
-    // std::tuple<int32_t, T*> RecvOneMsg()
-    // {
-    //     std::lock_guard<SHMMutex> lck(__mutex);
-    //     auto index = __shm_msgs_queue.Pop(__data);
-    //     if (index == -1)
-    //         return {index, nullptr};
-    //     else
-    //     {
-    //         Bitset<M>::ClearAllbit(__data[index].__reader);
-    //         return {index, __data[index].__t.GetData()};
-    //     }
-    // }
-
     Result SendMsgToAll(int32_t index)
     {
         std::lock_guard<SHMMutex> lck(__mutex);
-        if (__reader_bitset.IsEmpty())
+        __reader_bitset.BitsetCopy(__data[index].__reader);
+        if (Bitset<M>::IsEmpty(__data[index].__reader))
         {
             return Result::NOREADER;
         }
         else
         {
-            __reader_bitset.BitsetCopy(__data[index].__reader);
             __shm_msgs_queue.Push(__data, index);
             return Result::OK;
         }
@@ -83,14 +70,14 @@ public:
     Result SendMsgToAllExceptReader(int32_t index, int32_t reader_index)
     {
         std::lock_guard<SHMMutex> lck(__mutex);
-        if (__reader_bitset.IsEmpty())
+        __reader_bitset.BitsetCopy(__data[index].__reader);
+        Bitset<M>::ClearBit(__data[index].__reader, reader_index);
+        if (Bitset<M>::IsEmpty(__data[index].__reader))
         {
             return Result::NOREADER;
         }
         else
         {
-            __reader_bitset.BitsetCopy(__data[index].__reader);
-            Bitset<M>::ClearBit(__data[index].__reader, reader_index);
             __shm_msgs_queue.Push(__data, index);
             return Result::OK;
         }
@@ -130,7 +117,6 @@ public:
             __shm_msgs_queue.Pop(__data, msg_index);
             __shm_msg_pool.Push(__data, msg_index);
         }
-        int init = 1;
     }
 
     int32_t Attach()
@@ -154,12 +140,6 @@ public:
 
         GabageCollectUnsafe(reader_index);
     }
-
-    // void GabageCollect(uint32_t reader_index)
-    // {
-    //     std::lock_guard<SHMMutex> lck(__mutex);
-    //     GabageCollectUnsafe(reader_index);
-    // }
 
 private:
     struct SHMMempoolElement
