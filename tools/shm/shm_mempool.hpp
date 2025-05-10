@@ -2,10 +2,10 @@
 
 #include <pthread.h>
 #include <mutex>
-#include "tools/shm/global.hpp"
+#include "tools/shm/shm_global.hpp"
 #include "tools/shm/shm_mutex.hpp"
 #include "tools/shm/shm_stack.hpp"
-#include "tools/shm/global.hpp"
+#include "tools/shm/shm_global.hpp"
 
 template <PodType T, size_t N = SHM_QUEUE_SIZE>
 class SHMMemoryPool

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tools/shm/global.hpp"
+#include "tools/shm/shm_global.hpp"
 
 template <DeQueElement T>
 class SHMDeque

@@ -3,17 +3,17 @@
 #include <pthread.h>
 #include "tools/shm/shm_mutex.hpp"
 
-class CondVar
+class SHMCondVar
 {
 public:
-    CondVar()
+    SHMCondVar()
     {
         pthread_condattr_t attr;
         pthread_condattr_init(&attr);
         pthread_condattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
         pthread_cond_init(&__cond, &attr);
     }
-    ~CondVar()
+    ~SHMCondVar()
     {
         pthread_cond_destroy(&__cond);
     }

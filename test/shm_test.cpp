@@ -3,14 +3,15 @@
 #include <sys/wait.h>
 #include <mutex>
 #include "doctest/doctest.h"
-#include "tools/shm/bitset.hpp"
-#include "tools/shm/global.hpp"
+#include "tools/shm/shm_bitset.hpp"
+#include "tools/shm/shm_global.hpp"
 #include "tools/shm/shm_factory.hpp"
 #include "tools/shm/shm_mempool.hpp"
 #include "tools/shm/shm_msgqueue.hpp"
 #include "tools/shm/shm_deque.hpp"
 #include "tools/shm/shm_mutex.hpp"
 #include "tools/shm/shm_msgqueue_manager.hpp"
+#include "tools/shm/shm_msgqueue_manager_group.hpp"
 
 struct TestStruct
 {
@@ -470,4 +471,10 @@ TEST_CASE("SHMV2_SHMMsgQueueManager_GC")
         int status;
         waitpid(pid, &status, 0);
     }
+}
+
+TEST_CASE("SHMV2_SHMMsgQueueManager_group")
+{
+    SHMMsgQueueManagerGroup* queue_group
+        = SHMMsgQueueManagerGroup::GetInstance();
 }

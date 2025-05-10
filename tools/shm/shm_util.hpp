@@ -23,7 +23,8 @@ public:
 
         auto start = function.find(prefix) + prefix.size();
         auto end   = function.rfind(suffix);
-        return function.substr(start, end - start);
+        // return function.substr(start, end - start);
+        return function;
     }
 };
 

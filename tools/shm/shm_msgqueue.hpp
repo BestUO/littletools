@@ -5,10 +5,10 @@
 #include <mutex>
 #include <unistd.h>
 #include <vector>
-#include "tools/shm/global.hpp"
+#include "tools/shm/shm_global.hpp"
 #include "tools/shm/shm_mutex.hpp"
 #include "tools/shm/shm_deque.hpp"
-#include "tools/shm/bitset.hpp"
+#include "tools/shm/shm_bitset.hpp"
 #include "tools/shm/shm_util.hpp"
 
 template <PodType T, size_t N = SHM_QUEUE_SIZE, size_t M = READER_SIZE>

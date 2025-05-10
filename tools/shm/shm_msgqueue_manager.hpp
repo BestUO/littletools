@@ -6,7 +6,7 @@
 #include <thread>
 #include <unistd.h>
 #include "tools/shm/shm_msgqueue.hpp"
-#include "tools/shm/global.hpp"
+#include "tools/shm/shm_global.hpp"
 #include "tools/shm/shm_factory.hpp"
 
 template <PodType T, size_t N = SHM_QUEUE_SIZE, size_t M = READER_SIZE>
@@ -90,7 +90,7 @@ public:
         __is_running = true;
         while (__is_running)
         {
-            if (int32_t index = RecvTopMsgOnce() != -1)
+            if (int32_t index = RecvTopMsgOnce(); index != -1)
             {
                 Free(index, __reader_index);
             }
