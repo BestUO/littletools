@@ -7,8 +7,8 @@
 #include <sched.h>
 #include <sys/mman.h>
 #include <unistd.h>
-#include <signal.h>
 #include "tools/shm/shm_sem.hpp"
+#include "tools/shm/shm_util.hpp"
 
 // template <typename T>
 // class SHMFactory
@@ -84,7 +84,7 @@ public:
             }
             else
             {
-                any_alive |= !IsPidDead(__pid[i]);
+                any_alive |= !SHMUtil::IsPidDead(__pid[i]);
             }
         }
         return any_alive;
@@ -130,10 +130,6 @@ public:
 private:
     pid_t __pid[64]   = {0};
     size_t __shm_size = 0;
-    bool IsPidDead(pid_t tid)
-    {
-        return kill(tid, 0) != 0;
-    }
 };
 
 template <typename T>

@@ -30,6 +30,11 @@ public:
         __queue->Free(msg_index, __reader_index);
     }
 
+    void GabageCollect()
+    {
+        __queue->GabageCollect();
+    }
+
     Result SendMsgToAny(int32_t index)
     {
         return __queue->SendMsgToAny(index);

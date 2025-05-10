@@ -9,6 +9,7 @@
 #include "tools/shm/shm_mutex.hpp"
 #include "tools/shm/shm_deque.hpp"
 #include "tools/shm/bitset.hpp"
+#include "tools/shm/shm_util.hpp"
 
 template <PodType T, size_t N = SHM_QUEUE_SIZE, size_t M = READER_SIZE>
 class SHMMsgQueue
@@ -139,6 +140,21 @@ public:
         __reader_bitset.ClearBit(reader_index);
 
         GabageCollectUnsafe(reader_index);
+    }
+
+    void GabageCollect()
+    {
+        std::lock_guard<SHMMutex> lck(__mutex);
+        for (int32_t i = 0; i < M; i++)
+        {
+            if (__reader_infos[i].__pid != 0
+                && SHMUtil::IsPidDead(__reader_infos[i].__pid))
+            {
+                __reader_infos[i].__pid = 0;
+                __reader_bitset.ClearBit(i);
+                GabageCollectUnsafe(i);
+            }
+        }
     }
 
 private:

@@ -401,3 +401,73 @@ TEST_CASE("SHMV2_SHMMsgQueueManager")
         waitpid(pid, &status, 0);
     }
 }
+
+TEST_CASE("SHMV2_SHMMsgQueueManager_GC")
+{
+    int32_t times = 15;
+    std::vector<pid_t> child_pids;
+    int32_t send_processes = 1;
+    int32_t recv_processes = 1;
+    for (int i = 0; i < recv_processes; i++)
+    {
+        pid_t pid = fork();
+        if (pid == 0)
+        {
+            {
+                auto queue = SHMMsgQueueManager<TestStruct, 8>::GetInstance(
+                    "SHMV2_SHMMsgQueueManager_GC");
+                queue->Attach([](int32_t index, TestStruct* s_ptr) {
+                    CHECK(s_ptr->a == index);
+                });
+                sleep(2);
+                exit(0);
+            }
+        }
+        else if (pid > 0)
+        {
+            child_pids.push_back(pid);
+        }
+    }
+    sleep(1);
+    for (int i = 0; i < send_processes; i++)
+    {
+        pid_t pid = fork();
+        if (pid == 0)
+        {
+            {
+                auto queue = SHMMsgQueueManager<TestStruct, 8>::GetInstance(
+                    "SHMV2_SHMMsgQueueManager_GC");
+                while (true)
+                {
+                    if (times <= 0)
+                        break;
+
+                    auto [index, s_ptr] = queue->Allocate();
+                    if (index != -1)
+                    {
+                        times--;
+                        s_ptr->a = index;
+                        while (queue->SendMsgToAll(index) == Result::NOREADER)
+                        {
+                            CHECK(times == 6);
+                            exit(0);
+                        }
+                    }
+                    else
+                    {
+                        queue->GabageCollect();
+                    }
+                }
+            }
+        }
+        else if (pid > 0)
+        {
+            child_pids.push_back(pid);
+        }
+    }
+    for (pid_t pid : child_pids)
+    {
+        int status;
+        waitpid(pid, &status, 0);
+    }
+}
