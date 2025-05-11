@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string_view>
 #include <map>
 #include <mutex>
@@ -65,9 +66,9 @@ public:
         std::function<void(int32_t, T*)> callback)
     {
         std::lock_guard<std::mutex> lock(__mutex);
-        auto hash
-            = std::hash<std::string_view>{}(TypeInfo<T>::GetTypeName() + name);
-        if (__callback_map.find(hash) != __callback_map.end())
+        auto hash = std::hash<std::string_view>{}(
+            std::string(TypeInfo<T>::GetTypeName()) + std::string(name));
+        if (__recv_fun_map.find(hash) != __recv_fun_map.end())
         {
             return;
         }
@@ -76,18 +77,14 @@ public:
             auto __queue = SHMMsgQueueManager<T, N, M>::GetInstance(name);
             __queue->Attach(callback);
 
-            __callback_map[hash] = [name = std::string(name)]() {
-                auto __queue = SHMMsgQueueManager<T, N, M>::GetInstance(name);
-
-                if (int32_t index = __queue->RecvTopMsgOnce(); index != -1)
-                {
-                    __queue->Free(index);
-                    return index;
-                }
-                else
-                {
-                    return -1;
-                }
+            __recv_fun_map[hash] = [name = std::string(name)]() {
+                return SHMMsgQueueManager<T, N, M>::GetInstance(name)
+                    ->RecvTopMsgWithReader();
+            };
+            __callback_map[hash] = [name = std::string(name), callback](
+                                       int32_t index, void* s_ptr) {
+                callback(index, static_cast<T*>(s_ptr));
+                SHMMsgQueueManager<T, N, M>::GetInstance(name)->Free(index);
             };
         }
     }
@@ -98,7 +95,7 @@ public:
         std::lock_guard<std::mutex> lock(__mutex);
         auto hash
             = std::hash<std::string_view>{}(TypeInfo<T>::GetTypeName() + name);
-        if (__callback_map.find(hash) != __callback_map.end())
+        if (__recv_fun_map.find(hash) != __recv_fun_map.end())
         {
             return;
         }
@@ -106,6 +103,7 @@ public:
         {
             auto __queue = SHMMsgQueueManager<T, N, M>::GetInstance(name);
             __queue->Detach();
+            __recv_fun_map.erase(hash);
             __callback_map.erase(hash);
         }
     }
@@ -122,11 +120,19 @@ public:
             bool any_callback = false;
             {
                 std::lock_guard<std::mutex> lock(__mutex);
-                for (auto& [hash, callback] : __callback_map)
+                for (auto& [hash, recv_fun] : __recv_fun_map)
                 {
-                    if (int32_t index = callback(); index != -1)
+                    auto [index, s_ptr] = recv_fun();
+                    if (index != -1)
                     {
+                        __callback_map[hash](
+                            index, s_ptr);  // can add to work pool
                         any_callback = true;
+                    }
+
+                    if (any_callback)
+                    {
+                        std::this_thread::yield();
                     }
                 }
             }
@@ -151,7 +157,9 @@ private:
     SHMMsgQueueManagerGroup(SHMMsgQueueManagerGroup&&)                 = delete;
     SHMMsgQueueManagerGroup& operator=(SHMMsgQueueManagerGroup&&)      = delete;
 
-    std::map<size_t, std::function<int32_t()>> __callback_map;
+    std::map<size_t, std::function<std::tuple<int32_t, void*>()>>
+        __recv_fun_map;
+    std::map<size_t, std::function<void(int32_t, void*)>> __callback_map;
     std::mutex __mutex;
     std::atomic<bool> __is_running = false;
 };

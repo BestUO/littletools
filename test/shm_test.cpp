@@ -18,6 +18,16 @@ struct TestStruct
     int a;
 };
 
+struct TestStruct_1
+{
+    int a;
+};
+
+struct TestStruct_2
+{
+    double a;
+};
+
 struct DequeStruct
 {
     int32_t __next   = -1;
@@ -477,4 +487,33 @@ TEST_CASE("SHMV2_SHMMsgQueueManager_group")
 {
     SHMMsgQueueManagerGroup* queue_group
         = SHMMsgQueueManagerGroup::GetInstance();
+
+    queue_group->Attach<TestStruct_1>(
+        "TestStruct_1", [](int32_t index, TestStruct_1* s_ptr) {
+            CHECK(s_ptr->a == 1);
+        });
+    queue_group->Attach<TestStruct_2>(
+        "TestStruct_2", [](int32_t index, TestStruct_2* s_ptr) {
+            CHECK(s_ptr->a == 1.1);
+        });
+
+    auto [index_1, s_ptr_1]
+        = queue_group->Allocate<TestStruct_1>("TestStruct_1");
+    s_ptr_1->a = 1;
+    queue_group->SendMsgToAny<TestStruct_1>("TestStruct_1", index_1);
+
+    auto [index_2, s_ptr_2]
+        = queue_group->Allocate<TestStruct_2>("TestStruct_2");
+    s_ptr_2->a = 1.1;
+    queue_group->SendMsgToAny<TestStruct_2>("TestStruct_2", index_2);
+
+    std::thread t(
+        [](SHMMsgQueueManagerGroup* queue_group) {
+            sleep(2);
+            queue_group->Stop();
+        },
+        queue_group);
+
+    queue_group->Start();
+    t.join();
 }

@@ -70,6 +70,11 @@ public:
         __callback     = nullptr;
     }
 
+    std::tuple<int32_t, T*> RecvTopMsgWithReader()
+    {
+        return __queue->RecvTopMsgWithReader(__reader_index);
+    }
+
     int32_t RecvTopMsgOnce()
     {
         auto [index, s_ptr] = RecvTopMsgWithReader(__reader_index);
