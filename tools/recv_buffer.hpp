@@ -23,10 +23,6 @@ class RecvBuffer
 public:
     operator std::string_view() const
     {
-        if (__head > __tail || __tail >= N)
-        {
-            return std::string_view();
-        }
         return std::string_view(__buffer + __head, __tail - __head);
     }
 
@@ -36,67 +32,36 @@ public:
         {
             return RecvBufferError::RING_BUFFER_INVALID_SIZE;
         }
-
-        RecvBufferError result = RecvBufferError::RING_BUFFER_INVALID_SIZE;
-
-        if (__tail + size <= N)
+        auto current_data_size = Size();
+        if (current_data_size + size <= N)
         {
+            if (__tail + size > N)
+            {
+                memcpy(__buffer, __buffer + __head, current_data_size);
+                __head = 0;
+                __tail = current_data_size;
+            }
             memcpy(__buffer + __tail, data, size);
             __tail += size;
-            result = RecvBufferError::RING_BUFFER_OK;
+            return RecvBufferError::RING_BUFFER_OK;
         }
         else
         {
-            size_t current_data_size = Size();
-            if (current_data_size + size <= N)
-            {
-                if (__head < __tail && __tail <= N)
-                {
-                    memcpy(__buffer, __buffer + __head, current_data_size);
-                    __head = 0;
-                    __tail = current_data_size;
-
-                    memcpy(__buffer + __tail, data, size);
-                    __tail += size;
-                    result = RecvBufferError::RING_BUFFER_OK;
-                }
-                else
-                {
-                    result = RecvBufferError::RING_BUFFER_FULL;
-                }
-            }
-            else
-            {
-                result = RecvBufferError::RING_BUFFER_FULL;
-            }
+            return RecvBufferError::RING_BUFFER_FULL;
         }
-
-        return result;
     }
 
-    std::string ConsumeAndGetString(size_t len)
+    std::string_view ConsumeAndGetString(size_t len)
     {
-        len = (len > __tail - __head) ? __tail - __head : len;
-        std::string result(__buffer + __head, len);
+        len           = (len > __tail - __head) ? __tail - __head : len;
+        auto old_head = __head;
         __head += len;
         if (__head == __tail)
         {
             __head = 0;
             __tail = 0;
         }
-        return result;
-    }
-
-    size_t ConsumeNotGetString(size_t len)
-    {
-        len = (len > __tail - __head) ? __tail - __head : len;
-        __head += len;
-        if (__head == __tail)
-        {
-            __head = 0;
-            __tail = 0;
-        }
-        return len;
+        return std::string_view(__buffer + old_head, len);
     }
 
     size_t Size() const
@@ -137,33 +102,19 @@ public:
 
         RecvBufferError result = RecvBufferError::RING_BUFFER_INVALID_SIZE;
 
-        if (__buffer.size() + size <= N)
+        if (Size() + size <= N)
         {
+            if (__buffer.size() + size > N)
+            {
+                __buffer.erase(0, __head);
+                __head = 0;
+            }
             __buffer.append(data, size);
             result = RecvBufferError::RING_BUFFER_OK;
         }
         else
         {
-            size_t current_data_size = Size();
-            if (current_data_size + size <= N)
-            {
-                if (__buffer.size() <= N)
-                {
-                    __buffer.erase(0, __head);
-                    __head = 0;
-                    __buffer.append(data, size);
-
-                    result = RecvBufferError::RING_BUFFER_OK;
-                }
-                else
-                {
-                    result = RecvBufferError::RING_BUFFER_FULL;
-                }
-            }
-            else
-            {
-                result = RecvBufferError::RING_BUFFER_FULL;
-            }
+            result = RecvBufferError::RING_BUFFER_FULL;
         }
 
         return result;
@@ -172,7 +123,7 @@ public:
     std::string ConsumeAndGetString(size_t len)
     {
         auto result = __buffer.substr(__head, len);
-        if (__head + result.size() >= __buffer.size())
+        if (__head + len >= __buffer.size())
         {
             __head = 0;
             __buffer.clear();

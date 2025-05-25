@@ -20,14 +20,14 @@ TEST_CASE("RecvBuffer_basic_functionality")
         BUFFER::RecvBufferError result = buffer.Append(data, len);
         CHECK(result == BUFFER::RING_BUFFER_OK);
 
-        std::string consumed = buffer.ConsumeAndGetString(len);
+        std::string_view consumed = buffer.ConsumeAndGetString(len);
         CHECK(consumed == data);
         CHECK(consumed.length() == len);
     }
 
     SUBCASE("empty buffer consumer")
     {
-        std::string result = buffer.ConsumeAndGetString(10);
+        std::string_view result = buffer.ConsumeAndGetString(10);
         CHECK(result.empty());
     }
 
@@ -36,15 +36,15 @@ TEST_CASE("RecvBuffer_basic_functionality")
         std::string data = "abcdefghijklmnopqrstuvwxyz";
         buffer.Append(data.c_str(), data.length());
 
-        std::string part1 = buffer.ConsumeAndGetString(10);
-        std::string part2 = buffer.ConsumeAndGetString(10);
-        std::string part3 = buffer.ConsumeAndGetString(6);
+        std::string_view part1 = buffer.ConsumeAndGetString(10);
+        std::string_view part2 = buffer.ConsumeAndGetString(10);
+        std::string_view part3 = buffer.ConsumeAndGetString(6);
 
         CHECK(part1 == "abcdefghij");
         CHECK(part2 == "klmnopqrst");
         CHECK(part3 == "uvwxyz");
 
-        std::string remaining = buffer.ConsumeAndGetString(1);
+        std::string_view remaining = buffer.ConsumeAndGetString(1);
         CHECK(remaining.empty());
     }
 }
@@ -88,7 +88,7 @@ TEST_CASE("RecvBuffer_overflow_and_edge_cases")
         BUFFER::V1::RecvBuffer<100> buffer;
         buffer.Append("test", 4);
 
-        std::string consumed = buffer.ConsumeAndGetString(100);
+        std::string_view consumed = buffer.ConsumeAndGetString(100);
         CHECK(consumed.length() == 4);
         CHECK(consumed == "test");
     }
@@ -107,7 +107,8 @@ TEST_CASE("RecvBuffer_data_management")
                 = buffer.Append(data.c_str(), data.length());
             CHECK(result == BUFFER::RING_BUFFER_OK);
 
-            std::string consumed = buffer.ConsumeAndGetString(data.length());
+            std::string_view consumed
+                = buffer.ConsumeAndGetString(data.length());
             CHECK(consumed == data);
         }
     }
@@ -126,7 +127,8 @@ TEST_CASE("RecvBuffer_data_management")
             expected += fragment;
         }
 
-        std::string consumed = buffer.ConsumeAndGetString(expected.length());
+        std::string_view consumed
+            = buffer.ConsumeAndGetString(expected.length());
         CHECK(consumed == expected);
     }
 
@@ -135,12 +137,12 @@ TEST_CASE("RecvBuffer_data_management")
         BUFFER::V1::RecvBuffer<100> buffer;
 
         buffer.Append("12345", 5);
-        std::string part1 = buffer.ConsumeAndGetString(3);
+        std::string_view part1 = buffer.ConsumeAndGetString(3);
         CHECK(part1 == "123");
 
         buffer.Append("67890ABCDEF", 11);
 
-        std::string remaining = buffer.ConsumeAndGetString(100);
+        std::string_view remaining = buffer.ConsumeAndGetString(100);
         CHECK(remaining == "4567890ABCDEF");
     }
 }
@@ -156,9 +158,9 @@ TEST_CASE("RecvBuffer_large_data_handling")
             = buffer.Append(large_data.c_str(), large_data.length());
         CHECK(result == BUFFER::RING_BUFFER_OK);
 
-        std::string consumed1 = buffer.ConsumeAndGetString(10000);
-        std::string consumed2 = buffer.ConsumeAndGetString(10000);
-        std::string consumed3 = buffer.ConsumeAndGetString(10000);
+        std::string_view consumed1 = buffer.ConsumeAndGetString(10000);
+        std::string_view consumed2 = buffer.ConsumeAndGetString(10000);
+        std::string_view consumed3 = buffer.ConsumeAndGetString(10000);
 
         CHECK(consumed1.length() == 10000);
         CHECK(consumed2.length() == 10000);
@@ -197,7 +199,7 @@ TEST_CASE("RecvBuffer_boundary_conditions")
             = buffer.Append(data.c_str(), data.length());
         CHECK(result == BUFFER::RING_BUFFER_OK);
 
-        std::string consumed = buffer.ConsumeAndGetString(data.length());
+        std::string_view consumed = buffer.ConsumeAndGetString(data.length());
         CHECK(consumed == data);
     }
 
@@ -215,7 +217,8 @@ TEST_CASE("RecvBuffer_boundary_conditions")
             total_data += small_data;
         }
 
-        std::string consumed = buffer.ConsumeAndGetString(total_data.length());
+        std::string_view consumed
+            = buffer.ConsumeAndGetString(total_data.length());
         CHECK(consumed == total_data);
     }
 }
