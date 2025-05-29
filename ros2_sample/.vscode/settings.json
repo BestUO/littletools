@@ -1,0 +1,41 @@
+{
+    "clangd.path": "clangd",
+    "clangd.onConfigChanged": "restart",
+    "clangd.arguments": [
+        "--clang-tidy",
+        "--clang-tidy-checks=bugprone-*,performance-*,modernize-*,readability-*",
+        // "--all-scopes-completion",
+        // "--completion-style=detailed",
+        // "--header-insertion=iwyu",
+        // "--pch-storage=memory",
+        // "--log=info",
+        // "--j=4",
+        // "--background-index",
+        // "--compile-commands-dir=${workspaceFolder}/build",
+        // "--completion-parse=auto",
+        // // "--query-driver=/usr/bin/g++*",
+        // "--malloc-trim",
+    ],
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": null,
+    "C_Cpp.clang_format_path": "clang-format",
+    "C_Cpp.formatting": "clangFormat",
+    "[c]": {
+        "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
+    },
+    "[cpp]": {
+        "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
+    },
+    "python.defaultInterpreterPath": "/usr/bin/python3",
+    "python.autoComplete.extraPaths": [
+        "/opt/ros/jazzy/lib/python3.12/site-packages",
+        "/opt/ros/jazzy/local/lib/python3.12/dist-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/opt/ros/jazzy/lib/python3.12/site-packages",
+        "/opt/ros/jazzy/local/lib/python3.12/dist-packages"
+    ],
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": true
+}

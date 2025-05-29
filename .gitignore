@@ -1,4 +1,4 @@
-build/*
+**/build/*
 www
 log/*
 *.log
@@ -6,5 +6,7 @@ data/*
 conf/
 .svn
 .cache
-
+ros2_sample/build
+ros2_sample/install
+ros2_sample/log
 http_download/build
