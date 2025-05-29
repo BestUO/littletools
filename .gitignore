@@ -6,5 +6,7 @@ data/*
 conf/
 .svn
 .cache
-
+ros2_study/build
+ros2_study/install
+ros2_study/log
 http_download/build

@@ -1,0 +1,11 @@
+# Goal
+string task_name
+int32 max_steps
+---
+# Result
+int32 final_step
+float32 total_time
+---
+# Feedback
+int32 current_step
+string status
