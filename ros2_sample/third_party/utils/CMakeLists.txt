@@ -15,3 +15,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
+
+# Set C++20 standard for the utils library
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)

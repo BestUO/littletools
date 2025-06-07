@@ -37,6 +37,9 @@ target_sources(${EXEC_NAME}
   PRIVATE src/main.cpp
 )
 
+# Set C++20 standard for the executable
+target_compile_features(${EXEC_NAME} PRIVATE cxx_std_20)
+
 target_link_libraries(${EXEC_NAME} pthread util)
 
 ament_target_dependencies(${EXEC_NAME}
