@@ -9,5 +9,8 @@ target_include_directories(nlohmann_json INTERFACE
   $<INSTALL_INTERFACE:include>
 )
 
+# Set C++20 standard for the json library
+target_compile_features(nlohmann_json INTERFACE cxx_std_20)
+
 # Export the target but don't install it separately here
 # It will be installed by the parent CMakeLists.txt

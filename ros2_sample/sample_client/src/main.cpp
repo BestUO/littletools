@@ -17,7 +17,6 @@ int main(int argc, char** argv)
     SampleClient sample_client(node);
     sample_client.start();
     rclcpp::spin(node);
-    // send_cancel_thread.join();
     rclcpp::shutdown();
     return 0;
 }
