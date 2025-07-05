@@ -1,0 +1,27 @@
+# ROS2 usb_cam 参数配置文件
+# 正确的格式需要包含节点名称作为命名空间
+
+usb_cam:
+  ros__parameters:
+    video_device: "/dev/video0"
+    image_width: 1280
+    image_height: 720
+    framerate: 10.0                    # 注意：MJPEG格式的1280x720通常支持30fps
+    pixel_format: "mjpeg2rgb"              # 支持的格式: mjpeg, yuyv, uyvy, rgb24, etc.
+    camera_frame_id: "camera"          # 相机坐标系名称
+    io_method: "mmap"                  # I/O方法: mmap, read, userptr
+    
+    # 可选参数
+    # camera_name: "usb_cam"             # 相机名称
+    # camera_info_url: ""                # 相机标定文件路径
+    # brightness: -1                     # 亮度 (-1表示不设置)
+    # contrast: -1                       # 对比度
+    # saturation: -1                     # 饱和度
+    # sharpness: -1                      # 锐度
+    # gain: -1                           # 增益
+    # auto_white_balance: true           # 自动白平衡
+    # white_balance: 4000                # 白平衡温度
+    # autoexposure: true                 # 自动曝光
+    # exposure: 100                      # 曝光值
+    # autofocus: false                   # 自动对焦
+    # focus: -1                          # 对焦值

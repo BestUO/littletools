@@ -1,0 +1,20 @@
+使用ffmpeg写一个usb摄像头的c++类
+
+1.使用c++
+
+2.摄像头可以输出MJPEG，H264，YUV422
+
+3.将输出数据保存成jpg图片
+
+
+v4l2-ctl --device=/dev/video0 --list-formats-ext
+
+ffplay -f v4l2 -input_format mjpeg -video_size 640x480 -framerate 5 -i /dev/video0
+ffplay -f v4l2 -input_format yuyv422 -video_size 640x480 -framerate 5 -i /dev/video0
+
+ros2 run usb_cam usb_cam_node_exe --ros-args --params-file ./ros2_params.yaml
+roslaunch usb_cam ros1_params.launch
+
+
+sudo apt-get install libavcodec-dev libavformat-dev libavdevice-dev libswscale-dev libavutil-dev
+g++ -std=c++11 claude.cpp -o usb_camera_demo     $(pkg-config --cflags --libs libavcodec libavformat libavdevice libswscale libavutil)
