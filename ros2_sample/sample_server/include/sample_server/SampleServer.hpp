@@ -8,10 +8,10 @@
 #include "interface_pkg/action/sample_action.hpp"
 #include "interface_pkg/msg/sample_msg.hpp"
 #include "interface_pkg/srv/sample_srv.hpp"
-#include "json.hpp"
+#include "nlohmann_json_ros/json.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
-#include "test_util.h"
+#include "utils_ros/test_util.h"
 
 class SampleServer
 {

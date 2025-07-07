@@ -12,7 +12,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(interface_pkg REQUIRED)
-find_package(third_party REQUIRED)
+find_package(utils_ros REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -46,7 +46,7 @@ ament_target_dependencies(${EXEC_NAME}
   rclcpp
   rclcpp_action
   interface_pkg
-  third_party
+  utils_ros
 )
 
 install(TARGETS ${EXEC_NAME}

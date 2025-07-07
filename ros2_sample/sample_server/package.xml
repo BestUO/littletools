@@ -12,7 +12,8 @@
   <depend>rclcpp</depend>
   <depend>rclcpp_action</depend>
   <depend>interface_pkg</depend>
-  <depend>third_party</depend>
+  <depend>utils_ros</depend>
+  <depend>nlohmann_json_ros</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

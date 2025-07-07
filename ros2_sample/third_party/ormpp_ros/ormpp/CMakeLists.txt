@@ -1,0 +1,22 @@
+cmake_minimum_required(VERSION 3.15)
+project(ormpp)
+
+if(ENABLE_SQLITE3_CODEC)
+    include(cmake/openssl.cmake)
+endif()
+include(cmake/build.cmake)
+include(cmake/develop.cmake)
+include(cmake/platform.cmake)
+include(cmake/dependency.cmake)
+
+if (ENABLE_PG)
+    include_directories(${PGSQL_INCLUDE_DIR} ormpp)
+elseif(ENABLE_MYSQL)
+    include_directories(${MYSQL_INCLUDE_DIR} ormpp)
+elseif(ENABLE_MARIADB)
+    include_directories(${MARIADB_INCLUDE_DIR} ormpp)
+else()
+    include_directories(ormpp)
+endif()
+
+include_directories(./)

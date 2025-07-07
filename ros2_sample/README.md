@@ -17,6 +17,7 @@ wget http://fishros.com/install -O fishros && . fishros
 - **sample_server_component**: ROS2 composable component version of server (publisher functionality)
 - **sample_client_component**: ROS2 composable component version of client (subscriber functionality)
 - **third_party**: External dependencies (JSON library and utilities)
+- **ormpp_example_pkg**: Database ORM example using ORMPP library
 
 ## Building the Project
 
@@ -31,6 +32,7 @@ colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
 # or for specific packages:
 colcon build --packages-select interface_pkg sample_server sample_client
 colcon build --packages-select sample_server_component sample_client_component
+colcon build --packages-select ormpp_example_pkg
 ```
 
 Source the workspace:
@@ -61,6 +63,65 @@ ros2 launch sample_server two_server.launch.py
 
 # Launch multiple clients
 ros2 launch sample_client two_client.launch.py
+```
+
+## Running ORMPP Database Example
+
+The ORMPP example demonstrates database operations using the ORMPP (Object-Relational Mapping for C++) library integrated with ROS2.
+
+### Basic Usage
+```bash
+# Run the ORMPP example
+ros2 run ormpp_example_pkg ormpp_example
+```
+
+### Database Operations
+
+The ORMPP example performs the following database operations:
+- Creates/connects to SQLite database (`example.db`)
+- Demonstrates table creation and data insertion
+- Shows query operations and data retrieval
+- Illustrates ORM mapping between C++ objects and database tables
+
+### Database File Verification
+
+After running the ORMPP example, you can verify the database operations using the following methods:
+
+#### Method 1: Using SQLite3 Command Line Tool
+```bash
+# Install sqlite3 if not already installed
+sudo apt-get install sqlite3
+
+# Open the database file
+sqlite3 example.db
+
+# List all tables
+.tables
+
+# Show table schema
+.schema
+
+# Query data from tables
+SELECT * FROM your_table_name;
+
+# Exit sqlite3
+.exit
+```
+
+### Common Database Operations Verification
+
+```bash
+# Check database integrity
+sqlite3 example.db "PRAGMA integrity_check;"
+
+# View database stats
+sqlite3 example.db "PRAGMA database_list;"
+
+# Export database to SQL file
+sqlite3 example.db ".dump" > database_backup.sql
+
+# Import database from SQL file
+sqlite3 new_database.db < database_backup.sql
 ```
 
 ## Running Components

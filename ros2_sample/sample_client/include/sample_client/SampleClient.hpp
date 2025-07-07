@@ -11,7 +11,7 @@
 #include "interface_pkg/srv/sample_srv.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
-#include "test_util.h"
+#include "utils_ros/test_util.h"
 
 class SampleClient
 {
