@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="main_root">
+    <Sequence>
+      <ForceSuccess>
+        <Repeat num_cycles="3">
+          <Sequence>
+            <ThinkWhatToSay text="{message}"
+                            enum_out="{enum_out}"/>
+            <Sleep msec="1000"/>
+            <!-- <Script code="
+                if get('enum_out') == 'NORTH' then
+                    set('enum_out', 'SOUTH')
+                elseif get('enum_out') == 'SOUTH' then
+                    set('enum_out', 'EAST')
+                elseif get('enum_out') == 'EAST' then
+                    set('enum_out', 'WEST')
+                elseif get('enum_out') == 'WEST' then
+                    set('enum_out', 'NORTH')
+                end
+            "/> -->
+            <Script code="enum_out = (enum_out=='NORTH')?'EAST':'WEST'"/>
+            <!-- <Script code="enum_out := 'WEST'"/> -->
+            <Switch4 case_1="NORTH"
+                     case_2="SOUTH"
+                     case_3="EAST"
+                     case_4="WEST"
+                     variable="{enum_out}">
+              <North/>
+              <South/>
+              <East/>
+              <West/>
+              <EnumTestDefault/>
+            </Switch4>
+          </Sequence>
+        </Repeat>
+      </ForceSuccess>
+      <SaySomething text="{message}"
+                    test="test"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <!-- Description of Node Models (used by Groot) -->
+  <TreeNodesModel>
+    <Action ID="East"
+            editable="true"/>
+    <Action ID="EnumTestDefault"
+            editable="true"/>
+    <Action ID="North"
+            editable="true"/>
+    <Action ID="SaySomething"
+            editable="true">
+      <input_port name="text"/>
+      <input_port name="test"/>
+    </Action>
+    <Action ID="South"
+            editable="true"/>
+    <Action ID="ThinkWhatToSay"
+            editable="true">
+      <output_port name="text"/>
+      <output_port name="enum_out"/>
+    </Action>
+    <Action ID="West"
+            editable="true"/>
+  </TreeNodesModel>
+
+</root>
