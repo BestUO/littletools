@@ -7,7 +7,7 @@
 #include <string>
 
 namespace app_nodes {
-    namespace mqtt_mgr {
+    namespace mqtt_wrap {
 
         class MosquittoClient : public mosqpp::mosquittopp {
         public:
@@ -37,13 +37,13 @@ namespace app_nodes {
             void on_disconnect(int rc);
             void on_log(int level, const char *str);
             void on_message(const struct mosquitto_message *msg);
-            friend class MqttMgr;
+            friend class MqttWrapImpl;
         };
 
-        class MqttMgr {
+        class MqttWrapImpl {
         public:
-            static MqttMgr *Instance() {
-                static MqttMgr instance;
+            static MqttWrapImpl *Instance() {
+                static MqttWrapImpl instance;
                 return &instance;
             }
 
@@ -51,12 +51,12 @@ namespace app_nodes {
             bool MqttMgrInit();
 
         private:
-            MqttMgr();
-            MqttMgr(const MqttMgr &)            = delete;
-            MqttMgr &operator=(const MqttMgr &) = delete;
-            MqttMgr(MqttMgr &&)                 = delete;
-            MqttMgr &operator=(MqttMgr &&)      = delete;
-            ~MqttMgr();
+            MqttWrapImpl();
+            MqttWrapImpl(const MqttWrapImpl &)            = delete;
+            MqttWrapImpl &operator=(const MqttWrapImpl &) = delete;
+            MqttWrapImpl(MqttWrapImpl &&)                 = delete;
+            MqttWrapImpl &operator=(MqttWrapImpl &&)      = delete;
+            ~MqttWrapImpl();
         };
-    }// namespace mqtt_mgr
+    }// namespace mqtt_wrap
 }// namespace app_nodes
