@@ -11,10 +11,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(PkgConfig REQUIRED)
+
+# Find MySQL (optional, for projects that need it)
+pkg_check_modules(MYSQL mysqlclient)
 
 # Configure ormpp
 # set(ENABLE_SQLITE3 ON)
 # add_definitions(-DORMPP_ENABLE_SQLITE3)
+# set(ENABLE_MYSQL ON)
+# add_definitions(-DORMPP_ENABLE_MYSQL)  # This should be decided by individual projects like ormpp_mysql_demo
 # add_definitions(-DORMPP_ENABLE_LOG)
 # add_subdirectory(ormpp)
 
@@ -26,10 +32,17 @@ target_include_directories(ormpp_interface INTERFACE
   $<INSTALL_INTERFACE:include>
   $<INSTALL_INTERFACE:include/ormpp_ros>
 )
-target_compile_definitions(ormpp_interface INTERFACE ORMPP_ENABLE_SQLITE3)
-target_compile_definitions(ormpp_interface INTERFACE ORMPP_ENABLE_LOG)
 
-# Export all third party libraries
+# Add MySQL support if found (optional)
+if(MYSQL_FOUND)
+  target_include_directories(ormpp_interface INTERFACE ${MYSQL_INCLUDE_DIRS})
+  target_link_libraries(ormpp_interface INTERFACE ${MYSQL_LIBRARIES})
+endif()
+
+# Note: ORMPP_ENABLE_MYSQL should be defined by projects that need MySQL support
+
+# target_compile_definitions(ormpp_interface INTERFACE ORMPP_ENABLE_LOG)
+
 ament_export_targets(third_party_targets HAS_LIBRARY_TARGET)
 ament_export_include_directories(include)
 ament_export_dependencies(PkgConfig)
