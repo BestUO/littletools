@@ -13,9 +13,10 @@ template <CALLBACKBASE... Args>
 class MqttClient
 {
    public:
-    MqttClient(const char *id) : client_(app_nodes::mqtt_wrap::MqttWrapImpl::CreateMosquittoClient(id)), classes_callback_(Args()...)
+    MqttClient(const char *id)
+        : client_(app_nodes::mqtt_wrap::MqttWrapImpl::CreateMosquittoClient(id)), classes_callback_(std::make_unique<Args>()...)
     {
-        std::apply([this](auto... class_callback) { (this->fun_executor_.Merge(std::move(class_callback.GetFunExecutor())), ...); },
+        std::apply([this](auto &&...class_callback) { (this->fun_executor_.Merge(std::move(class_callback->GetFunExecutor())), ...); },
                    classes_callback_);
         client_->SetMessageCallback(std::bind(&MqttClient::Callback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     }
@@ -33,7 +34,7 @@ class MqttClient
                 (
                     [&]
                     {
-                        for (const auto &topic : callbacks.GetSubscribedTopics())
+                        for (const auto &topic : callbacks->GetSubscribedTopics())
                         {
                             client_->Subscribe(topic.c_str());
                         }
@@ -51,7 +52,7 @@ class MqttClient
    private:
     FunExecutor fun_executor_;
     std::unique_ptr<app_nodes::mqtt_wrap::MosquittoClient> client_;
-    std::tuple<Args...> classes_callback_;
+    std::tuple<std::unique_ptr<Args>...> classes_callback_;
 
     void Callback(const char *topic, int payloadlen, uint8_t *payload)
     {
