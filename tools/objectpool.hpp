@@ -171,63 +171,6 @@ private:
     std::atomic_flag __lock = ATOMIC_FLAG_INIT;
 };
 
-// class SpinLock
-// {
-// public:
-//     SpinLock()  = default;
-//     ~SpinLock() = default;
-//     void lock()
-//     {
-//         __mutex.lock();
-//     }
-//     void unlock()
-//     {
-//         __mutex.unlock();
-//     }
-
-// private:
-//     std::mutex __mutex;
-// };
-
-// class SpinLock
-// {
-// public:
-//     explicit SpinLock(std::int32_t count = 1024) noexcept
-//         : _spinCount(count)
-//         , _locked(false)
-//     { }
-
-//     bool tryLock() noexcept
-//     {
-//         return !_locked.exchange(true, std::memory_order_acquire);
-//     }
-
-//     void lock() noexcept
-//     {
-//         auto counter = _spinCount;
-//         while (!tryLock())
-//         {
-//             while (_locked.load(std::memory_order_relaxed))
-//             {
-//                 if (counter-- <= 0)
-//                 {
-//                     std::this_thread::yield();
-//                     counter = _spinCount;
-//                 }
-//             }
-//         }
-//     }
-
-//     void unlock() noexcept
-//     {
-//         _locked.store(false, std::memory_order_release);
-//     }
-
-// private:
-//     std::int32_t _spinCount;
-//     std::atomic<bool> _locked;
-// };
-
 template <typename T>
 class CACHE_ALIGN ObjectPool
 {
@@ -346,7 +289,8 @@ private:
             if (likely(__free_chunk))
             {
                 if (likely(__free_chunk->nfree > 0))
-                { }
+                {
+                }
                 else
                 {
                     free(__free_chunk);
@@ -567,7 +511,8 @@ private:
             if (likely(__free_chunk))
             {
                 if (likely(__free_chunk->nfree > 0))
-                { }
+                {
+                }
                 else
                 {
                     free(__free_chunk);

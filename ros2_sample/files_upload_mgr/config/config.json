@@ -1,0 +1,36 @@
+{
+    "log_dirs": {
+        "desc": "need to support dir tree, and upload single file",
+        "dirs": [
+            {
+                "desc": "log dir",
+                "dir_path": "/home/robot/resource/log/robot/",
+                "module_name": "",
+                "command": "get_log_list"
+            },
+            {
+                "desc": "log dir",
+                "dir_path": "/home/robot/resource/log/algorithm/",
+                "module_name": "",
+                "command": "get_log_list"
+            },
+            {
+                "desc": "bag dir",
+                "dir_path": "/home/robot/resource/log/bags",
+                "module_name": "",
+                "command": "get_bag_list"
+            }
+        ]
+    },
+    "config_dirs": {
+        "desc": "upload auto, support download. if module_name is empty, no need to notify other module, command is call method of other module",
+        "dirs": [
+            {
+                "desc": "sensor_driver urdf",
+                "dir_path": "/home/robot/cleanrobot/algorithm/sensor_driver/install/jm10_description/share/jm10_description/urdf/",
+                "module_name": "",
+                "command": "sync_config"
+            }
+        ]
+    }
+}
