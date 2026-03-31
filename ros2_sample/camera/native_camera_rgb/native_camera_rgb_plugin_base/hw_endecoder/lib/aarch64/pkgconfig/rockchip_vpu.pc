@@ -1,0 +1,12 @@
+prefix=/home/robot/dev/clj/mpp-1.0.11/install
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: rockchip_vpu
+Description: Rockchip Media Process Platform (Legacy)
+Requires.private:
+Version: 0.3.1
+Libs: -L${libdir} -lrockchip_vpu
+Libs.private:
+Cflags: -I${includedir}

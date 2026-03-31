@@ -1,0 +1,53 @@
+{
+    "width": 1280,
+    "height": 720,
+    "frame_rate": 10,
+    "camera_format": "mjpeg",
+    "camera_device": "/dev/video0",
+    "calibrate_param": {
+        "camera_matrix": [
+            535.0,
+            0.0,
+            320.0,
+            0.0,
+            535.0,
+            240.0,
+            0.0,
+            0.0,
+            1.0
+        ],
+        "distortion_model": "plumb_bob",
+        "distortion_coefficients": [
+            0.1,
+            -0.01,
+            0.001,
+            0.002,
+            0.0
+        ],
+        "rectification_matrix": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+        ],
+        "projection_matrix": [
+            535.0,
+            0.0,
+            320.0,
+            0.0,
+            0.0,
+            535.0,
+            240.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0
+        ]
+    }
+}

@@ -1,0 +1,12 @@
+prefix=/usr/local
+exec_prefix=${prefix}
+libdir=${prefix}/lib/x86_64-linux-gnu
+includedir=${prefix}/include
+
+Name: rockchip_vpu
+Description: Rockchip Media Process Platform (Legacy)
+Requires.private:
+Version: 0.3.0
+Libs: -L${libdir} -lrockchip_vpu
+Libs.private:
+Cflags: -I${includedir}

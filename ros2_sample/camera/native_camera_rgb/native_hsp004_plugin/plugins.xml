@@ -1,0 +1,5 @@
+<library path="native_hsp004_plugin">
+    <class type="controller_native::NativeHSP004Plugin" base_class_type="controller_native::NativeCommonBase">
+        <description>This is a square plugin.</description>
+    </class>
+</library>
