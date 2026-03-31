@@ -42,6 +42,7 @@ namespace controller_native {
     }
 
     void NativeCameraRGBPluginBase::Clear() {// Ensure MP4 trailer is written.
+        std::lock_guard<std::mutex> lock(mutex_);
         live_stream_.Close();
         take_photo_.Close();
 
@@ -79,6 +80,7 @@ namespace controller_native {
                     time_now = time_now_tmp;
                     LOGGER_INFO(logger_, "recv camera data, model_:{}", (int) model_.load());
                 }
+                std::lock_guard<std::mutex> lock(mutex_);
 #ifdef USE_RK_MPP
                 auto frame_yuv420SP_VU =
                         decoder_ptr_->Decode((const char *) camera_data_ptr->data, camera_data_ptr->size);
@@ -244,6 +246,7 @@ namespace controller_native {
     std::tuple<bool, std::string, cv::Mat> NativeCameraRGBPluginBase::TakePhoto(int32_t width, int32_t height,
                                                                                 const std::string &file_dir,
                                                                                 const std::string &dst_format) {
+        std::lock_guard<std::mutex> lock(mutex_);
         take_photo_.Init(width, height, file_dir, dst_format);
         model_ |= CameraRGBController::Model::SAVEIMG;
 
@@ -252,6 +255,7 @@ namespace controller_native {
 
     bool NativeCameraRGBPluginBase::OpenLiveStream(const std::string &url, int width, int height, int frame_rate,
                                                    [[maybe_unused]] int64_t bitrate) {
+        std::lock_guard<std::mutex> lock(mutex_);
         if (camera_rgb_base_info_ptr_) {
             if (!url.empty()) {
 #ifdef USE_RK_MPP
@@ -285,6 +289,7 @@ namespace controller_native {
     }
 
     bool NativeCameraRGBPluginBase::CloseLiveStream() {
+        std::lock_guard<std::mutex> lock(mutex_);
         model_ &= ~CameraRGBController::Model::LIVESTREAM;
 #ifdef USE_RK_MPP
         stream_h264_pusher_ptr_->Stop();
@@ -297,6 +302,7 @@ namespace controller_native {
 
     bool NativeCameraRGBPluginBase ::StartRecordVideo(int fps, int32_t width, int32_t height,
                                                       const std::string &file_dir, const std::string &dst_format) {
+        std::lock_guard<std::mutex> lock(mutex_);
         (void) width;
         (void) height;
         LOGGER_INFO(logger_, "StartRecordVideo fps: {}, file_dir: {}, dst_format: {}", fps, file_dir, dst_format);
@@ -323,6 +329,7 @@ namespace controller_native {
     }
 
     std::string NativeCameraRGBPluginBase::StopRecordVideo() {
+        std::lock_guard<std::mutex> lock(mutex_);
         model_ &= ~CameraRGBController::Model::SAVEVIDEO;
         LOGGER_INFO(logger_, "StopRecordVideo");
 #ifdef USE_RK_MPP

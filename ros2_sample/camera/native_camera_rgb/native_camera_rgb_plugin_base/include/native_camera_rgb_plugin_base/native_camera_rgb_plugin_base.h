@@ -9,6 +9,7 @@
 // #include "native_camera_rgb_plugin_base/rockchip.hpp"
 #include "native_camera_rgb_plugin_base/take_photo.h"
 #include <memory>
+#include <mutex>
 #include <opencv2/opencv.hpp>
 #include <string>
 
@@ -167,6 +168,7 @@ namespace controller_native {
         LiveStreamClass live_stream_;///< H.264实时视频流处理对象
         TakePhotoClass take_photo_;  ///< 拍照处理对象
         std::atomic<int> model_ = 0; ///< 相机型号/模式，使用原子变量保证线程安全
+        std::mutex mutex_;           ///< 互斥锁，保护共享资源访问
                                      // #ifdef USE_RK_MPP
                                      //         DeCoder decoder_;
                                      //         EnCoder encoder_;
