@@ -49,6 +49,14 @@ flowcontrol
 ## coroutine func_test
 ./build/examples/doctooltest --test-case=*coroutine_*
 
+## c++ call python func_test
+```
+cd call_python
+cmake -B build
+cmake --build build/
+./build/call_python
+```
+
 ## to do
 optimize timermanager map+list
 large_msg_recv workpool/objectpool
