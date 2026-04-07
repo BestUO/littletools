@@ -5,9 +5,9 @@
 
 class PythonWrapper {
 public:
-    PythonWrapper() : interpreter_() {}
+    PythonWrapper() {}
 
-    std::string CallFunction(const pybind11::module_ &test, const std::string &func_name) {
+    std::string CallFunction(pybind11::module_ &test, const std::string &func_name) {
         try {
             pybind11::object result = test.attr(func_name.c_str())();
             return result.cast<std::string>();
@@ -17,7 +17,7 @@ public:
     }
 
     template<typename ReturnType, typename... Args>
-    ReturnType CallFunction(const pybind11::module_ &test, const std::string &func_name, Args &&...args) {
+    ReturnType CallFunction(pybind11::module_ &test, const std::string &func_name, Args &&...args) {
         try {
             pybind11::object result = test.attr(func_name.c_str())(std::forward<Args>(args)...);
             return result.cast<ReturnType>();
@@ -36,7 +36,7 @@ public:
     }
 
     template<typename... Args>
-    pybind11::object CreateInstance(const pybind11::module_ &test, const std::string &class_name, Args &&...args) {
+    pybind11::object CreateInstance(pybind11::module_ &test, const std::string &class_name, Args &&...args) {
         try {
             pybind11::object cls = test.attr(class_name.c_str());
             return cls(std::forward<Args>(args)...);
@@ -91,17 +91,33 @@ public:
         }
     }
 
-    bool HasCallable(const pybind11::module_ &module, const std::string &class_name, const std::string &method_name) {
+    template<typename... MethodNames>
+    bool HasCallable(pybind11::module_ &module, const std::string &class_name, MethodNames &&...method_names) {
+        static_assert((std::is_convertible_v<MethodNames, std::string_view> && ...),
+                      "All method names must be string-like");
         try {
-            pybind11::object cls = module.attr(class_name.c_str());
-
-            if (!pybind11::hasattr(cls, method_name.c_str())) { return false; }
-
+            pybind11::object cls      = module.attr(class_name.c_str());
             pybind11::object callable = pybind11::module_::import("builtins").attr("callable");
-            return callable(cls.attr(method_name.c_str())).cast<bool>();
+
+            return (... && [&](std::string_view method_name) {
+                if (!pybind11::hasattr(cls, method_name.data())) { return false; }
+                return callable(cls.attr(method_name.data())).cast<bool>();
+            }(std::string_view(method_names)));
         } catch (...) { return false; }
     }
 
-private:
-    pybind11::scoped_interpreter interpreter_;
+    bool IsBaseOf(const std::string &base_module_name, const std::string &base_class_name, pybind11::module_ &module,
+                  const std::string &class_name) {
+        try {
+            pybind11::object base_cls =
+                    pybind11::module_::import(base_module_name.c_str()).attr(base_class_name.c_str());
+            pybind11::object cls        = module.attr(class_name.c_str());
+            pybind11::object issubclass = pybind11::module_::import("builtins").attr("issubclass");
+
+            return issubclass(cls, base_cls).cast<bool>();
+        } catch (const pybind11::error_already_set &e) {
+            printf("[IsBaseOf] Python error: %s\n", e.what());
+            return false;
+        }
+    }
 };

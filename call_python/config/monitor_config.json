@@ -1,0 +1,18 @@
+{
+    "clean_disk": {
+        "interval_day": 1,
+        "disk_space_left_G": 30,
+        "paths": [
+            {
+                "path": "",
+                "dir_size_G": 10,
+                "file_size_M": 1,
+                "keep_day": 7
+            }
+        ]
+    },
+    "cpu_threshold": 70,
+    "mem_threshold": 70,
+    "temperature_threshold": 70,
+    "wa_threshold": 10
+}
