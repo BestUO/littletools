@@ -29,5 +29,6 @@ concurrentqueue.cpp
 method_chaining.cpp
 shm_test.cpp
 fun_executor.cpp
+easylog_test.cpp
 )
 target_link_libraries(${PROJ_NAME_TEST} pthread)
