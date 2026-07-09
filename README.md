@@ -57,6 +57,13 @@ cmake --build build/
 ./build/call_python
 ```
 
+## log with liburing
+### build liburing
+1. cd 3rdparty/liburing && mkdir build && cd build
+2. ../configure --cc=gcc --cxx=g++ --prefix=./install
+3. make -j 4
+4. make install
+
 ## to do
 optimize timermanager map+list
 large_msg_recv workpool/objectpool

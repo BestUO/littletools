@@ -1,0 +1,12 @@
+prefix=/home/thomas/Desktop/littletools/3rdparty/liburing/build/install
+exec_prefix=${prefix}
+libdir=/home/thomas/Desktop/littletools/3rdparty/liburing/build/install/lib
+includedir=/home/thomas/Desktop/littletools/3rdparty/liburing/build/install/include
+
+Name: liburing
+Version: 2.15
+Description: io_uring FFI library
+URL: https://git.kernel.dk/cgit/liburing/
+
+Libs: -L${libdir} -luring-ffi
+Cflags: -I${includedir}
