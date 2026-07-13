@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(URING_LIBRARY_DIR "${THIRD_PARTY_PATH}/lib/liburing")
 
+include_directories(${CMAKE_SOURCE_DIR})
 
 # ----- 添加可执行文件或库 -----
 add_library(${PROJECT_NAME} uring_write_file.cpp)

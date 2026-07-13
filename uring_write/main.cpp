@@ -99,7 +99,7 @@ public:
         {
             file_.flush();
             // force the data to be written to disk
-            sync();
+            // sync();
         }
     }
 
@@ -120,8 +120,8 @@ int main(int argc, char* argv[])
             uring_write->WriteMsg(
                 "12345678901234567890123456789012345678901234567890123456789012"
                 "34567890123456789012345678901234567890\n");
-        uring_write->Flush();
     }
+    uring_write->Flush();
     uring_write->UnInit();
 
     auto write_file = std::make_shared<WriteFile>();
@@ -132,8 +132,8 @@ int main(int argc, char* argv[])
             write_file->WriteMsg(
                 "12345678901234567890123456789012345678901234567890123456789012"
                 "34567890123456789012345678901234567890\n");
-        write_file->Flush();
     }
+    write_file->Flush();
     write_file->UnInit();
     return 0;
 }
