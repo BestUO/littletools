@@ -36,7 +36,7 @@ bool UringWriteFile::Init(const std::string& file_name)
         iovs_[i].iov_len  = PAGE_CACHE;
         free_page_list_.enqueue(&pages_[i]);
     }
-    free_page_list_.wait_dequeue(base_info_.current_buf_slot);
+    free_page_list_.wait_dequeue(base_info_.current_page);
     if (!ResumeFromExistingFile())
     {
         return false;
@@ -55,9 +55,7 @@ bool UringWriteFile::Init(const std::string& file_name)
         fprintf(stderr, "register_buffers: %s\n", strerror(-ret));
         return false;
     }
-    sq_thread_ = std::thread([this]() {
-        DealWithSQ();
-    });
+
     cq_thread_ = std::thread([this]() {
         DealWithCQ();
     });
@@ -70,27 +68,17 @@ bool UringWriteFile::UnInit()
     FlushWithoutLock();
 
     stop_flag_ = true;
-    dirty_page_list_.enqueue(nullptr);
+    WakeUpCqThread(&ring_);
     if (cq_thread_.joinable())
         cq_thread_.join();
-    if (sq_thread_.joinable())
-        sq_thread_.join();
 
     io_uring_unregister_buffers(&ring_);
     io_uring_queue_exit(&ring_);
-    // if (base_info_.current_buf_slot->current_pos > 0)
-    // {
-    //     off_t true_size = base_info_.file_offset
-    //         + static_cast<off_t>(base_info_.current_buf_slot->current_pos);
-    //     if (ftruncate(fd_, true_size) != 0)
-    //         perror("ftruncate (strip trailing padding)");
-    // }
 
     for (int i = 0; i < NUM_BUFFERS; i++)
         free(pages_[i].data);
     close(fd_);
 
-    printf("UringWriteFile::UnInit() called, count = %d\n", count);
     return true;
 }
 
@@ -146,22 +134,21 @@ bool UringWriteFile::ResumeFromExistingFile()
 
     if (st.st_size == 0)
     {
-        memcpy(
-            base_info_.current_buf_slot->data, BOM_STR.data(), BOM_STR.size());
-        base_info_.current_buf_slot->current_pos = BOM_STR.size();
+        memcpy(base_info_.current_page->data, BOM_STR.data(), BOM_STR.size());
+        base_info_.current_page->current_pos = BOM_STR.size();
         return true;
     }
     else
     {
-        off_t full_blocks                        = st.st_size / PAGE_CACHE;
-        off_t remainder                          = st.st_size % PAGE_CACHE;
-        base_info_.current_buf_slot->file_offset = base_info_.file_offset
+        off_t full_blocks                    = st.st_size / PAGE_CACHE;
+        off_t remainder                      = st.st_size % PAGE_CACHE;
+        base_info_.current_page->file_offset = base_info_.file_offset
             = full_blocks * PAGE_CACHE;
 
         ssize_t n = pread(fd_,
-            base_info_.current_buf_slot->data,
+            base_info_.current_page->data,
             PAGE_CACHE,
-            base_info_.current_buf_slot->file_offset);
+            base_info_.current_page->file_offset);
         if (n < 0)
         {
             perror("pread last block");
@@ -175,7 +162,7 @@ bool UringWriteFile::ResumeFromExistingFile()
                 static_cast<long>(remainder));
             return false;
         }
-        base_info_.current_buf_slot->current_pos = remainder;
+        base_info_.current_page->current_pos = remainder;
         return true;
     }
 }
@@ -188,89 +175,84 @@ void UringWriteFile::WriteMsg(std::string_view msg)
 
     while (remaining > 0)
     {
-        size_t space = PAGE_CACHE - base_info_.current_buf_slot->current_pos;
+        size_t space = PAGE_CACHE - base_info_.current_page->current_pos;
         size_t chunk = std::min(remaining, space);
-        memcpy(base_info_.current_buf_slot->data
-                + base_info_.current_buf_slot->current_pos,
+        memcpy(base_info_.current_page->data
+                + base_info_.current_page->current_pos,
             msg.data() + offset,
             chunk);
-        base_info_.current_buf_slot->current_pos += chunk;
+        base_info_.current_page->current_pos += chunk;
         remaining -= chunk;
         offset += chunk;
 
         if (chunk == space)
         {
-            dirty_page_list_.enqueue(base_info_.current_buf_slot);
+            dirty_page_list_.enqueue(base_info_.current_page);
+            if (dirty_page_list_.size_approx()
+                >= static_cast<size_t>(BATCH_SIZE))
+            {
+                SubmitDirtyPages();
+            }
             base_info_.file_offset += PAGE_CACHE;
-            base_info_.current_buf_slot = AcquireFreeBufSlot();
+            base_info_.current_page = AcquireFreeBufSlot();
         }
     }
 }
 
-UringWriteFile::BufSlot* UringWriteFile::AcquireFreeBufSlot()
+void UringWriteFile::SubmitDirtyPages()
 {
-
-    if (free_page_list_.size_approx() == 0)
+    unsigned available_count = dirty_page_list_.try_dequeue_bulk(
+        tmp_slots_.data(), io_uring_sq_space_left(&ring_));
+    for (auto i = 0; i < available_count; i++)
     {
-        count++;
+        struct io_uring_sqe* sqe = io_uring_get_sqe(&ring_);
+        auto slot                = tmp_slots_[i];
+        if (slot)
+        {
+            io_uring_prep_write_fixed(sqe,
+                fd_,
+                slot->data,
+                slot->current_pos,
+                slot->file_offset,
+                slot->index);
+        }
+        else
+        {
+            io_uring_prep_nop(sqe);
+        }
+        io_uring_sqe_set_data(sqe, slot);
     }
-    BufSlot* slot;
+    io_uring_submit(&ring_);
+}
+
+UringWriteFile::PageInfo* UringWriteFile::AcquireFreeBufSlot()
+{
+    PageInfo* slot;
     free_page_list_.wait_dequeue(slot);
     slot->current_pos = 0;
     slot->file_offset = base_info_.file_offset;
     return slot;
 }
 
-void UringWriteFile::DealWithSQ()
-{
-    std::array<BufSlot*, NUM_BUFFERS> slots{};
-    size_t count = 0;
-    while (!stop_flag_)
-    {
-        count = dirty_page_list_.wait_dequeue_bulk(
-            slots.data(), io_uring_sq_space_left(&ring_));
-        if (count > 0)
-        {
-            for (size_t i = 0; i < count; ++i)
-            {
-                auto slot                = slots[i];
-                struct io_uring_sqe* sqe = io_uring_get_sqe(&ring_);
-                if (slot)
-                {
-                    io_uring_prep_write_fixed(sqe,
-                        fd_,
-                        slot->data,
-                        slot->current_pos,
-                        slot->file_offset,
-                        slot->index);
-                }
-                else
-                {
-                    io_uring_prep_nop(sqe);
-                }
-                io_uring_sqe_set_data(sqe, slot);
-            }
-            // printf("Submitting %zu write requests to io_uring\n", count);
-            io_uring_submit(&ring_);
-        }
-    }
-}
-
 void UringWriteFile::DealWithCQ()
 {
-    struct io_uring_cqe* cqes[QUEUE_DEPTH]      = {nullptr};
-    struct BufSlot* free_bufs_list[QUEUE_DEPTH] = {nullptr};
+    struct __kernel_timespec ts                  = {15, 0};
+    struct io_uring_cqe* cqes[QUEUE_DEPTH]       = {nullptr};
+    struct PageInfo* free_bufs_list[QUEUE_DEPTH] = {nullptr};
 
     while (!stop_flag_)
     {
         unsigned count = io_uring_peek_batch_cqe(&ring_, cqes, QUEUE_DEPTH);
         if (count == 0)
         {
-            int ret = io_uring_wait_cqe(&ring_, &cqes[0]);
+            int ret = io_uring_wait_cqe_timeout(&ring_, &cqes[0], &ts);
+            // int ret = io_uring_wait_cqe(&ring_, &cqes[0]);
             if (ret < 0)
             {
                 if (ret == -ETIME || ret == -EINTR)
+                {
                     continue;
+                }
                 // 其他错误(如 -EINVAL 代表内核太老不支持该特性)是致命的，
                 fprintf(stderr, "wait_cqes_min_timeout: %s\n", strerror(-ret));
                 break;
@@ -280,7 +262,7 @@ void UringWriteFile::DealWithCQ()
         int valid_count = 0;
         for (unsigned i = 0; i < count; i++)
         {
-            auto buf_slot = (BufSlot*)io_uring_cqe_get_data(cqes[i]);
+            auto buf_slot = (PageInfo*)io_uring_cqe_get_data(cqes[i]);
             if (buf_slot)
             {
                 if (cqes[i]->res < 0)
@@ -312,16 +294,24 @@ void UringWriteFile::WaitAllComplete()
 
 void UringWriteFile::FlushWithoutLock()
 {
-    if (base_info_.current_buf_slot->current_pos > 0)
-    {
-        dirty_page_list_.enqueue(base_info_.current_buf_slot);
-        WaitAllComplete();
-        base_info_.current_buf_slot = AcquireFreeBufSlot();
-    }
+    dirty_page_list_.enqueue(base_info_.current_page);
+    SubmitDirtyPages();
+    WaitAllComplete();
+    base_info_.current_page = nullptr;
 }
 
-void UringWriteFile::Flush()
+// void UringWriteFile::Flush()
+// {
+//     std::lock_guard<std::mutex> lock(write_mutex_);
+//     FlushWithoutLock();
+// }
+
+void UringWriteFile::WakeUpCqThread(struct io_uring* ring)
 {
-    std::lock_guard<std::mutex> lock(write_mutex_);
-    FlushWithoutLock();
+    struct io_uring_sqe* sqe = io_uring_get_sqe(ring);
+    if (sqe)
+    {
+        io_uring_prep_nop(sqe);
+    }
+    io_uring_submit(ring);
 }

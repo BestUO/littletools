@@ -5,9 +5,7 @@
 #include <string>
 #include <fcntl.h>
 #include "liburing/liburing.h"
-#include <list>
 #include <array>
-#include <condition_variable>
 
 class UringWriteFile
 {
@@ -18,56 +16,48 @@ public:
     void WriteMsg(std::string_view msg);
     bool Init(const std::string& file_name);
     bool UnInit();
-    void Flush();
+    // void Flush();
 
 private:
-    struct BufSlot
+    struct PageInfo
     {
         int index          = 0;
         char* data         = nullptr;
         size_t current_pos = 0;
         size_t file_offset = 0;
     };
-    // struct BlockFooter
-    // {
-    //     uint32_t magic;
-    //     uint32_t real_len;
-    // };
 
-    struct PageInfo
+    struct BaseInfo
     {
-        BufSlot* current_buf_slot = nullptr;
-        size_t file_offset        = 0;
+        PageInfo* current_page = nullptr;
+        size_t file_offset     = 0;
     };
-    int count                                        = 0;
-    static constexpr inline size_t PAGE_CACHE        = 1024 * 4;
-    static constexpr inline size_t NUM_BUFFERS       = 1024 * 4;
-    static constexpr inline size_t QUEUE_DEPTH       = 128;
+    static constexpr inline size_t PAGE_CACHE        = 1024 * 1024;
+    static constexpr inline size_t NUM_BUFFERS       = 8;
+    static constexpr inline size_t QUEUE_DEPTH       = NUM_BUFFERS;
     static constexpr inline std::string_view BOM_STR = "\xEF\xBB\xBF";
-    // static constexpr inline size_t FOOTER_SIZE       = sizeof(BlockFooter);
-    // static constexpr inline size_t USABLE_SIZE = PAGE_CACHE - FOOTER_SIZE;
+    static constexpr inline size_t BATCH_SIZE        = NUM_BUFFERS / 4;
 
-    std::array<BufSlot, NUM_BUFFERS> pages_{};
+    std::array<PageInfo, NUM_BUFFERS> pages_{};
     std::array<struct iovec, NUM_BUFFERS> iovs_{};
-    // std::list<BufSlot*> free_page_list_;
-    // std::list<BufSlot*> dirty_page_list_;
-    moodycamel::BlockingConcurrentQueue<BufSlot*> dirty_page_list_;
-    moodycamel::BlockingConcurrentQueue<BufSlot*> free_page_list_;
+    moodycamel::BlockingConcurrentQueue<PageInfo*> dirty_page_list_;
+    moodycamel::BlockingConcurrentQueue<PageInfo*> free_page_list_;
     struct io_uring ring_;
     int fd_ = -1;
 
     std::atomic<bool> stop_flag_ = false;
     std::mutex write_mutex_;
-    PageInfo base_info_;
-    std::thread sq_thread_;
+    BaseInfo base_info_;
     std::thread cq_thread_;
+    std::array<PageInfo*, NUM_BUFFERS> tmp_slots_{};
 
-    void DealWithSQ();
     void DealWithCQ();
     bool OpenFile(const std::string& file_name);
     bool ResumeFromExistingFile();
     bool RotateFile(const std::string& new_file_name);
     void WaitAllComplete();
-    UringWriteFile::BufSlot* AcquireFreeBufSlot();
+    UringWriteFile::PageInfo* AcquireFreeBufSlot();
     void FlushWithoutLock();
+    void SubmitDirtyPages();
+    void WakeUpCqThread(struct io_uring* ring);
 };

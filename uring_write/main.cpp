@@ -1,3 +1,4 @@
+#include <chrono>
 #include <memory>
 #include <string>
 #include <cstring>
@@ -117,11 +118,14 @@ int main(int argc, char* argv[])
     {
         TimeCost time_cost("log with uring");
         for (auto i = 0; i < count; i++)
+        {
             uring_write->WriteMsg(
                 "12345678901234567890123456789012345678901234567890123456789012"
                 "34567890123456789012345678901234567890\n");
+            // std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
     }
-    uring_write->Flush();
+    // uring_write->Flush();
     uring_write->UnInit();
 
     auto write_file = std::make_shared<WriteFile>();
