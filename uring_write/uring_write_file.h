@@ -16,7 +16,7 @@ public:
     void WriteMsg(std::string_view msg);
     bool Init(const std::string& file_name);
     bool UnInit();
-    // void Flush();
+    void Flush();
 
 private:
     struct PageInfo
@@ -32,11 +32,12 @@ private:
         PageInfo* current_page = nullptr;
         size_t file_offset     = 0;
     };
-    static constexpr inline size_t PAGE_CACHE        = 1024 * 1024;
-    static constexpr inline size_t NUM_BUFFERS       = 8;
-    static constexpr inline size_t QUEUE_DEPTH       = NUM_BUFFERS;
+    static constexpr inline size_t PAGE_CACHE  = 1024 * 1024;
+    static constexpr inline size_t NUM_BUFFERS = 8;
+    // sqe must be enough for all dirty pages
+    static constexpr inline size_t QUEUE_DEPTH       = NUM_BUFFERS * 2;
     static constexpr inline std::string_view BOM_STR = "\xEF\xBB\xBF";
-    static constexpr inline size_t BATCH_SIZE        = NUM_BUFFERS / 4;
+    static constexpr inline size_t BATCH_SIZE        = NUM_BUFFERS / 2;
 
     std::array<PageInfo, NUM_BUFFERS> pages_{};
     std::array<struct iovec, NUM_BUFFERS> iovs_{};
