@@ -140,11 +140,14 @@ void OneThreadBench()
     }
     write_file->Flush();
     write_file->UnInit();
+
+    std::filesystem::remove("./log/test_uring.log");
+    std::filesystem::remove("./log/test_write.log");
 }
 
 void FiveThreadsBench()
 {
-    size_t count = 100000;
+    size_t count = 200000;
     std::atomic<size_t> uring_cost(0);
     std::atomic<size_t> write_cost(0);
 
@@ -205,14 +208,18 @@ void FiveThreadsBench()
         write_file->Flush();
         write_file->UnInit();
     }
-    printf("uring write cost: %ld us, write cost: %ld us\n",
+    printf(
+        "five thread log with uring Time taken: %ld us\nfive thread log with "
+        "write Time taken: %ld us\n",
         uring_cost.load(),
         write_cost.load());
+    std::filesystem::remove("./log/test_uring.log");
+    std::filesystem::remove("./log/test_write.log");
 }
 
 int main(int argc, char* argv[])
 {
-    // OneThreadBench();
+    OneThreadBench();
     FiveThreadsBench();
     return 0;
 }

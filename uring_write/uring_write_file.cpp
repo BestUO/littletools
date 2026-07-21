@@ -57,6 +57,9 @@ bool UringWriteFile::Init(const std::string& file_name)
         return false;
     }
 
+    sq_thread_ = std::thread([this]() {
+        DealWithSQ();
+    });
     cq_thread_ = std::thread([this]() {
         DealWithCQ();
     });
@@ -71,6 +74,8 @@ bool UringWriteFile::UnInit()
 
     stop_flag_ = true;
     WakeUpCqThread(&ring_);
+    if (sq_thread_.joinable())
+        sq_thread_.join();
     if (cq_thread_.joinable())
         cq_thread_.join();
 
@@ -193,41 +198,10 @@ void UringWriteFile::WriteMsg(std::string_view msg)
         if (chunk == space)
         {
             dirty_page_list_.enqueue(base_info_.current_page);
-            if (dirty_page_list_.size_approx()
-                >= static_cast<size_t>(BATCH_SIZE))
-            {
-                SubmitDirtyPages();
-            }
             base_info_.file_offset += PAGE_CACHE;
             base_info_.current_page = AcquireFreeBufSlot();
         }
     }
-}
-
-void UringWriteFile::SubmitDirtyPages()
-{
-    unsigned available_count
-        = dirty_page_list_.try_dequeue_bulk(tmp_slots_.data(), NUM_BUFFERS);
-    for (auto i = 0; i < available_count; i++)
-    {
-        struct io_uring_sqe* sqe = io_uring_get_sqe(&ring_);
-        auto slot                = tmp_slots_[i];
-        if (slot)
-        {
-            io_uring_prep_write_fixed(sqe,
-                fd_,
-                slot->data,
-                slot->current_pos,
-                slot->file_offset,
-                slot->index);
-        }
-        else
-        {
-            io_uring_prep_nop(sqe);
-        }
-        io_uring_sqe_set_data(sqe, slot);
-    }
-    io_uring_submit(&ring_);
 }
 
 UringWriteFile::PageInfo* UringWriteFile::AcquireFreeBufSlot()
@@ -237,6 +211,36 @@ UringWriteFile::PageInfo* UringWriteFile::AcquireFreeBufSlot()
     slot->current_pos = 0;
     slot->file_offset = base_info_.file_offset;
     return slot;
+}
+
+void UringWriteFile::DealWithSQ()
+{
+    std::array<PageInfo*, NUM_BUFFERS> tmp_slots{};
+    while (!stop_flag_)
+    {
+        unsigned available_count
+            = dirty_page_list_.wait_dequeue_bulk(tmp_slots.data(), NUM_BUFFERS);
+        for (auto i = 0; i < available_count; i++)
+        {
+            struct io_uring_sqe* sqe = io_uring_get_sqe(&ring_);
+            auto slot                = tmp_slots[i];
+            if (slot)
+            {
+                io_uring_prep_write_fixed(sqe,
+                    fd_,
+                    slot->data,
+                    slot->current_pos,
+                    slot->file_offset,
+                    slot->index);
+            }
+            else
+            {
+                io_uring_prep_nop(sqe);
+            }
+            io_uring_sqe_set_data(sqe, slot);
+        }
+        io_uring_submit(&ring_);
+    }
 }
 
 void UringWriteFile::DealWithCQ()
@@ -303,7 +307,6 @@ void UringWriteFile::FlushWithoutLock()
     if (base_info_.current_page && base_info_.current_page->current_pos > 0)
     {
         dirty_page_list_.enqueue(base_info_.current_page);
-        SubmitDirtyPages();
         base_info_.file_offset += base_info_.current_page->current_pos;
         base_info_.current_page = nullptr;
     }
@@ -317,10 +320,5 @@ void UringWriteFile::Flush()
 
 void UringWriteFile::WakeUpCqThread(struct io_uring* ring)
 {
-    struct io_uring_sqe* sqe = io_uring_get_sqe(ring);
-    if (sqe)
-    {
-        io_uring_prep_nop(sqe);
-    }
-    io_uring_submit(ring);
+    dirty_page_list_.enqueue(nullptr);
 }

@@ -50,8 +50,9 @@ private:
     std::mutex write_mutex_;
     BaseInfo base_info_;
     std::thread cq_thread_;
-    std::array<PageInfo*, NUM_BUFFERS> tmp_slots_{};
+    std::thread sq_thread_;
 
+    void DealWithSQ();
     void DealWithCQ();
     bool OpenFile(const std::string& file_name);
     bool ResumeFromExistingFile();
@@ -59,6 +60,5 @@ private:
     void WaitAllComplete();
     UringWriteFile::PageInfo* AcquireFreeBufSlot();
     void FlushWithoutLock();
-    void SubmitDirtyPages();
     void WakeUpCqThread(struct io_uring* ring);
 };
