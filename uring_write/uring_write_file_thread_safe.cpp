@@ -1,4 +1,4 @@
-#include "uring_write_file.h"
+#include "uring_write_file_thread_safe.h"
 #include <cstddef>
 #include <cstdio>
 #include <stdexcept>
@@ -7,12 +7,12 @@
 #include <thread>
 #include <filesystem>
 
-UringWriteFile::UringWriteFile()
+UringWriteFileThreadSafe::UringWriteFileThreadSafe()
     : dirty_page_list_(NUM_BUFFERS)
     , free_page_list_(NUM_BUFFERS)
 { }
 
-bool UringWriteFile::Init(const std::string& file_name)
+bool UringWriteFileThreadSafe::Init(const std::string& file_name)
 {
     if (!OpenFile(file_name))
     {
@@ -66,7 +66,7 @@ bool UringWriteFile::Init(const std::string& file_name)
     return true;
 }
 
-bool UringWriteFile::UnInit()
+bool UringWriteFileThreadSafe::UnInit()
 {
     std::lock_guard<std::mutex> lock(write_mutex_);
     FlushWithoutLock();
@@ -89,7 +89,7 @@ bool UringWriteFile::UnInit()
     return true;
 }
 
-bool UringWriteFile::OpenFile(const std::string& file_name)
+bool UringWriteFileThreadSafe::OpenFile(const std::string& file_name)
 {
     std::filesystem::path path(file_name);
     std::filesystem::path dir = path.parent_path();
@@ -130,7 +130,7 @@ bool UringWriteFile::OpenFile(const std::string& file_name)
     return true;
 }
 
-bool UringWriteFile::ResumeFromExistingFile()
+bool UringWriteFileThreadSafe::ResumeFromExistingFile()
 {
     struct stat st;
     if (fstat(fd_, &st) < 0)
@@ -174,7 +174,7 @@ bool UringWriteFile::ResumeFromExistingFile()
     }
 }
 
-void UringWriteFile::WriteMsg(std::string_view msg)
+void UringWriteFileThreadSafe::WriteMsg(std::string_view msg)
 {
     std::lock_guard<std::mutex> lock(write_mutex_);
     size_t remaining = msg.size();
@@ -204,7 +204,8 @@ void UringWriteFile::WriteMsg(std::string_view msg)
     }
 }
 
-UringWriteFile::PageInfo* UringWriteFile::AcquireFreeBufSlot()
+UringWriteFileThreadSafe::PageInfo*
+UringWriteFileThreadSafe::AcquireFreeBufSlot()
 {
     PageInfo* slot;
     free_page_list_.wait_dequeue(slot);
@@ -213,7 +214,7 @@ UringWriteFile::PageInfo* UringWriteFile::AcquireFreeBufSlot()
     return slot;
 }
 
-void UringWriteFile::DealWithSQ()
+void UringWriteFileThreadSafe::DealWithSQ()
 {
     std::array<PageInfo*, NUM_BUFFERS> tmp_slots{};
     while (!stop_flag_)
@@ -243,7 +244,7 @@ void UringWriteFile::DealWithSQ()
     }
 }
 
-void UringWriteFile::DealWithCQ()
+void UringWriteFileThreadSafe::DealWithCQ()
 {
     struct __kernel_timespec ts                  = {15, 0};
     struct io_uring_cqe* cqes[QUEUE_DEPTH]       = {nullptr};
@@ -294,7 +295,7 @@ void UringWriteFile::DealWithCQ()
     }
 }
 
-void UringWriteFile::WaitAllComplete()
+void UringWriteFileThreadSafe::WaitAllComplete()
 {
     while (free_page_list_.size_approx() != static_cast<size_t>(NUM_BUFFERS))
     {
@@ -302,7 +303,7 @@ void UringWriteFile::WaitAllComplete()
     }
 }
 
-void UringWriteFile::FlushWithoutLock()
+void UringWriteFileThreadSafe::FlushWithoutLock()
 {
     if (base_info_.current_page && base_info_.current_page->current_pos > 0)
     {
@@ -312,13 +313,13 @@ void UringWriteFile::FlushWithoutLock()
     }
 }
 
-void UringWriteFile::Flush()
+void UringWriteFileThreadSafe::Flush()
 {
     std::lock_guard<std::mutex> lock(write_mutex_);
     FlushWithoutLock();
 }
 
-void UringWriteFile::WakeUpCqThread(struct io_uring* ring)
+void UringWriteFileThreadSafe::WakeUpCqThread(struct io_uring* ring)
 {
     dirty_page_list_.enqueue(nullptr);
 }

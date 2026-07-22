@@ -6,12 +6,17 @@
 #include <fcntl.h>
 #include "liburing/liburing.h"
 #include <array>
+#include <cstddef>
+#include <cstdio>
+#include <cstring>
+#include <unistd.h>
+#include <thread>
 
-class UringWriteFile
+class UringWriteFileThreadSafe
 {
 public:
-    UringWriteFile();
-    ~UringWriteFile() = default;
+    UringWriteFileThreadSafe();
+    ~UringWriteFileThreadSafe() = default;
 
     void WriteMsg(std::string_view msg);
     bool Init(const std::string& file_name);
@@ -56,9 +61,8 @@ private:
     void DealWithCQ();
     bool OpenFile(const std::string& file_name);
     bool ResumeFromExistingFile();
-    bool RotateFile(const std::string& new_file_name);
     void WaitAllComplete();
-    UringWriteFile::PageInfo* AcquireFreeBufSlot();
+    PageInfo* AcquireFreeBufSlot();
     void FlushWithoutLock();
     void WakeUpCqThread(struct io_uring* ring);
 };

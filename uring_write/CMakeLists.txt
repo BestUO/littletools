@@ -9,7 +9,7 @@ set(URING_LIBRARY_DIR "${THIRD_PARTY_PATH}/lib/liburing")
 include_directories(${CMAKE_SOURCE_DIR})
 
 # ----- 添加可执行文件或库 -----
-add_library(${PROJECT_NAME} uring_write_file.cpp)
+add_library(${PROJECT_NAME} uring_write_file_thread_safe.cpp)
 
 # ----- 添加编译选项 -----
 target_compile_options(${PROJECT_NAME} PRIVATE -D_GNU_SOURCE)

@@ -10,7 +10,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <ext/stdio_filebuf.h>
-#include "uring_write_file.h"
+#include "uring_write_file_thread_safe.h"
 
 class TimeCost
 {
@@ -113,7 +113,7 @@ private:
 void OneThreadBench()
 {
     size_t count     = 500000;
-    auto uring_write = std::make_shared<UringWriteFile>();
+    auto uring_write = std::make_shared<UringWriteFileThreadSafe>();
     uring_write->Init("./log/test_uring.log");
     {
         TimeCost time_cost("one thread log with uring");
@@ -153,7 +153,7 @@ void FiveThreadsBench()
 
     {
         std::vector<std::thread> threads;
-        auto uring_write = std::make_shared<UringWriteFile>();
+        auto uring_write = std::make_shared<UringWriteFileThreadSafe>();
         uring_write->Init("./log/test_uring.log");
         for (size_t i = 0; i < 5; i++)
         {
