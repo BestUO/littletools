@@ -133,6 +133,7 @@ public:
     void start_thread()
     {
         write_thd_ = std::thread([this] {
+            moodycamel::ConsumerToken ctok{queue_};
             while (!stop_)
             {
                 if (max_files_ > 0 && file_size_ > max_file_size_
@@ -142,7 +143,7 @@ public:
                 }
 
                 record_t record;
-                if (queue_.try_dequeue(record))
+                if (queue_.try_dequeue(ctok, record))
                 {
                     enable_console_ ? write_record<false, true>(record)
                                     : write_record<false, false>(record);
@@ -160,7 +161,7 @@ public:
                 {
                     if (queue_.size_approx() > 0)
                     {
-                        while (queue_.try_dequeue(record))
+                        while (queue_.try_dequeue(ctok, record))
                         {
                             if (max_files_ > 0 && file_size_ > max_file_size_
                                 && static_cast<size_t>(-1) != file_size_)
@@ -333,7 +334,8 @@ public:
 
     void write(record_t& r)
     {
-        queue_.enqueue(std::move(r));
+        thread_local moodycamel::ProducerToken token{queue_};
+        queue_.enqueue(token, std::move(r));
         cnd_.notify_one();
     }
 

@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <thread>
 #include <filesystem>
+#include <condition_variable>
 
 #include "record.hpp"
 #include "tools/concurrentqueue/blockingconcurrentqueue.h"
@@ -103,12 +104,15 @@ public:
 
     void write(record_t& r)
     {
-        record_list_.enqueue(std::move(r));
+        thread_local moodycamel::ProducerToken token{record_list_};
+        record_list_.enqueue(token, std::move(r));
+        cnd_.notify_one();
     }
 
     void flush()
     {
         record_list_.enqueue(record_t{});
+        cnd_.notify_one();
     }
 
     void stop()
@@ -126,7 +130,7 @@ public:
     template <bool sync = false, bool enable_console = false>
     void write_record(record_t& record)
     {
-        std::lock_guard<std::mutex> guard(mtx_);
+        std::lock_guard<std::mutex> guard(que_mtx_);
         WriteRecord(record);
     }
 
@@ -144,7 +148,7 @@ private:
         PageInfo* current_page = nullptr;
         size_t file_offset     = 0;
     };
-    static constexpr inline size_t PAGE_CACHE  = 1024 * 1024 * 4;
+    static constexpr inline size_t PAGE_CACHE  = 1024 * 1024;
     static constexpr inline size_t NUM_BUFFERS = 4;
     // sqe must be enough for all dirty pages
     static constexpr inline size_t QUEUE_DEPTH       = NUM_BUFFERS * 2;
@@ -154,7 +158,8 @@ private:
     std::array<PageInfo, NUM_BUFFERS> pages_{};
     std::array<struct iovec, NUM_BUFFERS> iovs_{};
     moodycamel::ConcurrentQueue<PageInfo*> free_page_list_;
-    moodycamel::BlockingConcurrentQueue<record_t> record_list_;
+    // moodycamel::BlockingConcurrentQueue<record_t> record_list_;
+    moodycamel::ConcurrentQueue<record_t> record_list_;
     struct io_uring_cqe* cqes_[QUEUE_DEPTH] = {nullptr};
     struct io_uring ring_;
     int fd_                               = -1;
@@ -164,7 +169,8 @@ private:
     std::atomic<bool> stop_flag_ = false;
     BaseInfo base_info_;
     std::thread work_thread_;
-    std::mutex mtx_;
+    std::mutex que_mtx_;
+    std::condition_variable cnd_;
 
     template <size_t N, char c>
     void to_int(int num, char* p, int& size)
@@ -315,14 +321,21 @@ private:
 
     void Run()
     {
+        moodycamel::ConsumerToken ctok{record_list_};
         struct record_t record_list_tmp[QUEUE_DEPTH];
         while (!stop_flag_)
         {
-            DealCQEOnce(cqes_);
-            if (record_list_.size_approx() > 0)
+            if (record_list_.size_approx() == 0)
+            {
+                std::unique_lock lock(que_mtx_);
+                cnd_.wait(lock, [&]() {
+                    return record_list_.size_approx() > 0 || stop_flag_;
+                });
+            }
+            else
             {
                 if (auto record_count = record_list_.try_dequeue_bulk(
-                        record_list_tmp, NUM_BUFFERS);
+                        ctok, record_list_tmp, NUM_BUFFERS);
                     record_count > 0)
                 {
                     for (unsigned i = 0; i < record_count; i++)
@@ -331,25 +344,9 @@ private:
                     }
                 }
             }
-            else
-            {
-                bool has_cqs_need_to_deal = (complete_count_ != submit_count_);
-                if (!has_cqs_need_to_deal)
-                {
-                    if (record_list_.wait_dequeue_timed(
-                            record_list_tmp[0], 1000 * 1000 * 15))
-                    {
-                        WriteRecordAndSetPage(record_list_tmp[0]);
-                    }
-                    else
-                    {
-                        flush();
-                    }
-                }
-            }
         }
 
-        while (record_list_.try_dequeue(record_list_tmp[0]))
+        while (record_list_.try_dequeue(ctok, record_list_tmp[0]))
         {
             WriteRecordAndSetPage(record_list_tmp[0]);
         }

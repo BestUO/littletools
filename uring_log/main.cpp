@@ -150,8 +150,8 @@ int main()
 #endif
 
     std::cout << "========easylog sync with 5 thread system write===========\n";
-    std::filesystem::remove("log/async_easylog_5t_sync_system_write.txt");
-    test_easylog("log/async_easylog_5t_sync_system_write.txt",
+    std::filesystem::remove("log/easylog_5t_sync_system_write.txt");
+    test_easylog("log/easylog_5t_sync_system_write.txt",
         single_thread_count,
         /*async =*/false,
         5,
@@ -159,16 +159,24 @@ int main()
 
     std::cout
         << "========easylog async with 5 thread system write===========\n";
-    std::filesystem::remove("log/async_easylog_5t_async_system_write.txt");
-    test_easylog("log/async_easylog_5t_async_system_write.txt",
+    std::filesystem::remove("log/easylog_5t_async_system_write.txt");
+    test_easylog("log/easylog_5t_async_system_write.txt",
         single_thread_count,
         /*async =*/true,
         5,
         false);
 
+    std::cout << "========easylog sync with 5 thread uring write===========\n";
+    std::filesystem::remove("log/easylog_5t_sync_uring_write.txt");
+    test_easylog("log/easylog_5t_sync_uring_write.txt",
+        single_thread_count,
+        /*async =*/false,
+        5,
+        true);
+
     std::cout << "========easylog async with 5 thread uring write===========\n";
-    std::filesystem::remove("log/async_easylog_5t_async_uring_write.txt");
-    test_easylog("log/async_easylog_5t_async_uring_write.txt",
+    std::filesystem::remove("log/easylog_5t_async_uring_write.txt");
+    test_easylog("log/easylog_5t_async_uring_write.txt",
         single_thread_count,
         /*async =*/true,
         5,
