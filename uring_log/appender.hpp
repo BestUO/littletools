@@ -25,7 +25,7 @@
 #include <system_error>
 
 #include "record.hpp"
-#include "concurrentqueue.h"
+#include "tools/concurrentqueue/concurrentqueue.h"
 
 namespace easylog
 {
@@ -331,7 +331,7 @@ public:
 #endif
     }
 
-    void write(record_t&& r)
+    void write(record_t& r)
     {
         queue_.enqueue(std::move(r));
         cnd_.notify_one();

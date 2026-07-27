@@ -258,6 +258,7 @@ public:
 
 private:
     friend class appender;
+    friend class AppenderUring;
 
     std::string_view get_message_inner()
     {

@@ -64,6 +64,24 @@ cmake --build build/
 3. make -j 4
 4. make install
 
+## easylog with liburing
+0. if use aarch64, build liburing and replace `3rdparty/include/liburing` and `3rdparty/lib/liburing`
+1. cmake --build build/ --target=uring_log_benchmark
+2. ./build/uring_log/uring_log_benchmark
+3. 
+```
+RK3588 test result:
+========write 2,500,000 msgs with 5 threads, format: '[time] [level] [tid] [position] [msg]', 80 Bytes every msg, total about 210MB===========
+========spdlog sync with 5 threads system write===========
+spdlog  : 3355988220 ns
+========easylog sync with 5 thread system write===========
+easylog : 1327617906 ns
+========easylog async with 5 thread system write===========
+easylog : 349558067 ns
+========easylog async with 5 thread uring write===========
+easylog : 319162554 ns
+```
+
 ## to do
 optimize timermanager map+list
 large_msg_recv workpool/objectpool

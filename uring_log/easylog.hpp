@@ -18,6 +18,7 @@
 #include <chrono>
 #include <functional>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #if __has_include(<format>)
@@ -34,6 +35,7 @@
 #include <memory>
 
 #include "appender.hpp"
+#include "appender_uring.hpp"
 
 namespace easylog
 {
@@ -71,10 +73,10 @@ public:
 
     void write(record_t& record)
     {
-        if (async_ && appender_)
+        if (async_)
         {
             apply_extra_appenders(record);
-            append_record(std::move(record));
+            append_record(record);
         }
         else
         {
@@ -85,15 +87,20 @@ public:
 
     void flush()
     {
-        if (appender_)
-        {
-            appender_->flush();
-        }
+        std::visit(
+            [](auto& appender) {
+                if (appender)
+                {
+                    appender->flush();
+                }
+            },
+            appender_variant_);
     }
 
     void init(Severity min_severity,
         bool async,
         bool enable_console,
+        bool use_uring,
         const std::string& filename,
         size_t max_file_size,
         size_t max_files,
@@ -101,17 +108,30 @@ public:
         std::chrono::milliseconds log_sample_interval = {},
         std::chrono::milliseconds log_sample_duartion = {})
     {
-        appender_            = std::make_unique<appender>(filename,
-            async,
-            enable_console,
-            max_file_size,
-            max_files,
-            flush_every_time);
-        async_               = async;
-        min_severity_        = min_severity;
-        enable_console_      = enable_console;
-        log_sample_interval_ = log_sample_interval;
-        log_sample_duration_ = log_sample_duartion;
+        if (use_uring)
+        {
+            appender_variant_ = std::make_unique<AppenderUring>(filename,
+                async,
+                enable_console,
+                max_file_size,
+                max_files,
+                flush_every_time);
+            set_async(false);
+        }
+        else
+        {
+            appender_variant_ = std::make_unique<appender>(filename,
+                async,
+                enable_console,
+                max_file_size,
+                max_files,
+                flush_every_time);
+            set_async(async);
+        }
+        set_console(enable_console);
+        set_min_severity(min_severity);
+        set_sample_interval(log_sample_interval);
+        set_sample_duration(log_sample_duartion);
     }
 
     bool check_severity(Severity severity)
@@ -138,10 +158,14 @@ public:
 
     void stop_async_log()
     {
-        if (appender_)
-        {
-            appender_->stop();
-        }
+        std::visit(
+            [](auto& appender) {
+                if (appender)
+                {
+                    appender->stop();
+                }
+            },
+            appender_variant_);
     }
 
     // set and get
@@ -166,10 +190,14 @@ public:
     void set_console(bool enable)
     {
         enable_console_ = enable;
-        if (appender_)
-        {
-            appender_->enable_console(enable);
-        }
+        std::visit(
+            [enable](auto& appender) {
+                if (appender)
+                {
+                    appender->enable_console(enable);
+                }
+            },
+            appender_variant_);
     }
     bool get_console()
     {
@@ -190,34 +218,39 @@ public:
     }
 
 private:
-    logger()
-    {
-        appender_ = std::make_unique<appender>();
-        appender_->enable_console(true);
-        async_ = true;
-    }
-
+    logger()                         = default;
     logger(const logger&)            = delete;
     logger& operator=(const logger&) = delete;
 
-    void append_record(record_t record)
+    void append_record(record_t& record)
     {
-        appender_->write(std::move(record));
+        std::visit(
+            [&](auto& appender) mutable {
+                if (appender)
+                {
+                    appender->write(record);
+                }
+            },
+            appender_variant_);
     }
 
     void append_format(record_t& record)
     {
-        if (appender_)
-        {
-            if (enable_console_)
-            {
-                appender_->write_record<true, true>(record);
-            }
-            else
-            {
-                appender_->write_record<true, false>(record);
-            }
-        }
+        std::visit(
+            [&](auto& appender) mutable {
+                if (appender)
+                {
+                    if (enable_console_)
+                    {
+                        appender->template write_record<true, true>(record);
+                    }
+                    else
+                    {
+                        appender->template write_record<true, false>(record);
+                    }
+                }
+            },
+            appender_variant_);
     }
 
     std::atomic<Severity> min_severity_ =
@@ -231,9 +264,10 @@ private:
     std::atomic<std::chrono::milliseconds> log_sample_interval_;
     std::atomic<std::chrono::milliseconds> log_sample_duration_;
     std::chrono::system_clock::time_point init_time_{};
-    std::unique_ptr<appender> appender_ = nullptr;
     std::vector<std::function<void(record_t& record)>> appenders_;
     inline static std::atomic<bool> has_destruct_ = false;
+    std::variant<std::unique_ptr<appender>, std::unique_ptr<AppenderUring>>
+        appender_variant_;
 };
 
 template <size_t Id = 0>
@@ -241,6 +275,7 @@ inline void init_log(Severity min_severity,
     const std::string& filename = "",
     bool async                  = true,
     bool enable_console         = true,
+    bool use_uring              = true,
     size_t max_file_size        = 0,
     size_t max_files            = 0,
     bool flush_every_time       = false)
@@ -248,6 +283,7 @@ inline void init_log(Severity min_severity,
     logger<Id>::instance().init(min_severity,
         async,
         enable_console,
+        use_uring,
         filename,
         max_file_size,
         max_files,
