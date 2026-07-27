@@ -73,13 +73,15 @@ cmake --build build/
 RK3588 test result:
 ========write 2,500,000 msgs with 5 threads, format: '[time] [level] [tid] [position] [msg]', 80 Bytes every msg, total about 210MB===========
 ========spdlog sync with 5 threads system write===========
-spdlog  : 3355988220 ns
+spdlog  : 2315607969 ns
 ========easylog sync with 5 thread system write===========
-easylog : 1327617906 ns
+easylog : 1359331896 ns
 ========easylog async with 5 thread system write===========
-easylog : 349558067 ns
+easylog : 337628465 ns
+========easylog sync with 5 thread uring write===========
+easylog : 1073387513 ns
 ========easylog async with 5 thread uring write===========
-easylog : 319162554 ns
+easylog : 279847519 ns
 ```
 
 ## to do

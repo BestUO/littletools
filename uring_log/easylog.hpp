@@ -116,7 +116,6 @@ public:
                 max_file_size,
                 max_files,
                 flush_every_time);
-            set_async(false);
         }
         else
         {
@@ -126,8 +125,8 @@ public:
                 max_file_size,
                 max_files,
                 flush_every_time);
-            set_async(async);
         }
+        set_async(async);
         set_console(enable_console);
         set_min_severity(min_severity);
         set_sample_interval(log_sample_interval);
