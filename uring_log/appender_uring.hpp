@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <mutex>
@@ -323,14 +324,24 @@ private:
     {
         moodycamel::ConsumerToken ctok{record_list_};
         struct record_t record_list_tmp[QUEUE_DEPTH];
+        record_t empty_record;
+        auto last_timestamp = time(nullptr);
         while (!stop_flag_)
         {
+            if (auto now = time(nullptr); now - last_timestamp > 15)
+            {
+                last_timestamp = now;
+                WriteRecordAndSetPage(empty_record);
+            }
+
             if (record_list_.size_approx() == 0)
             {
                 std::unique_lock lock(que_mtx_);
-                cnd_.wait(lock, [&]() {
-                    return record_list_.size_approx() > 0 || stop_flag_;
-                });
+                cnd_.wait_until(lock,
+                    std::chrono::steady_clock::now() + std::chrono::seconds(15),
+                    [&]() {
+                        return record_list_.size_approx() > 0 || stop_flag_;
+                    });
             }
             else
             {

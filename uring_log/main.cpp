@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <cstddef>
 #include <exception>
 #include <system_error>
 #ifdef HAVE_GLOG
@@ -67,11 +68,6 @@ void test_easylog(std::string filename,
     size_t thread_count,
     bool use_uring)
 {
-    std::error_code ec;
-    if (ec)
-    {
-        std::cout << ec.message() << "\n";
-    }
     std::vector<std::thread> threads;
     threads.reserve(thread_count);
     easylog::init_log(Severity::DEBUG, filename, async, false, use_uring);
@@ -125,20 +121,16 @@ void bench_mt(int howmany,
 }
 #endif
 
-int main()
+void SpdlogBench(size_t single_thread_count)
 {
-    std::cout << "========write 2,500,000 msgs with 5 threads, format: '[time] "
-                 "[level] "
-                 "[tid] [position] "
-                 "[msg]', 80 Bytes every msg, total about 210MB===========\n";
-    int single_thread_count = 500000;
 #ifdef HAVE_SPDLOG
+    std::string filename = "";
     spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] [%t] [%s:%#] %v");
 
     std::cout << "========spdlog sync with 5 threads system write===========\n";
-    std::filesystem::remove("log/spdlog_5t_sync_system_write.txt");
-    auto sync_basic_mt = spdlog::basic_logger_mt(
-        "basic_mt", "log/spdlog_5t_sync_system_write.txt", true);
+    filename = "log/spdlog_5t_sync_system_write.txt";
+    std::filesystem::remove(filename);
+    auto sync_basic_mt = spdlog::basic_logger_mt("basic_mt", filename, true);
     bench_mt(single_thread_count, std::move(sync_basic_mt), 5);
 
     // std::cout
@@ -148,10 +140,16 @@ int main()
     //     "basic_mt", "log/spdlog_5t_async_system_write.txt", true);
     // bench_mt(single_thread_count, std::move(async_basic_mt), 5);
 #endif
+}
+
+void EasyLogBench(size_t single_thread_count)
+{
+    std::string filename = "";
 
     std::cout << "========easylog sync with 5 thread system write===========\n";
-    std::filesystem::remove("log/easylog_5t_sync_system_write.txt");
-    test_easylog("log/easylog_5t_sync_system_write.txt",
+    filename = "log/easylog_5t_sync_system_write.txt";
+    std::filesystem::remove(filename);
+    test_easylog(filename,
         single_thread_count,
         /*async =*/false,
         5,
@@ -159,26 +157,54 @@ int main()
 
     std::cout
         << "========easylog async with 5 thread system write===========\n";
-    std::filesystem::remove("log/easylog_5t_async_system_write.txt");
-    test_easylog("log/easylog_5t_async_system_write.txt",
+    filename = "log/easylog_5t_async_system_write.txt";
+    std::filesystem::remove(filename);
+    test_easylog(filename,
         single_thread_count,
         /*async =*/true,
         5,
         false);
 
     std::cout << "========easylog sync with 5 thread uring write===========\n";
-    std::filesystem::remove("log/easylog_5t_sync_uring_write.txt");
-    test_easylog("log/easylog_5t_sync_uring_write.txt",
+    filename = "log/easylog_5t_sync_uring_write.txt";
+    std::filesystem::remove(filename);
+    test_easylog(filename,
         single_thread_count,
         /*async =*/false,
         5,
         true);
 
     std::cout << "========easylog async with 5 thread uring write===========\n";
-    std::filesystem::remove("log/easylog_5t_async_uring_write.txt");
-    test_easylog("log/easylog_5t_async_uring_write.txt",
+    filename = "log/easylog_5t_async_uring_write.txt";
+    std::filesystem::remove(filename);
+    test_easylog(filename,
         single_thread_count,
         /*async =*/true,
         5,
         true);
+}
+
+void EasyLogFlushTest()
+{
+    std::string filename = "log/easylog_5t_async_uring_write_flush.txt";
+    std::filesystem::remove(filename);
+    easylog::init_log(Severity::DEBUG, filename, true, false, true);
+    size_t i = 30;
+    while (i--)
+    {
+        ELOGFMT(INFO, "Hello logger: msg number {}", i);
+        sleep(1);
+    }
+}
+
+int main()
+{
+    std::cout << "========write 2,500,000 msgs with 5 threads, format: '[time] "
+                 "[level] "
+                 "[tid] [position] "
+                 "[msg]', 80 Bytes every msg, total about 210MB===========\n";
+    size_t single_thread_count = 500000;
+    SpdlogBench(single_thread_count);
+    EasyLogBench(single_thread_count);
+    return 0;
 }
