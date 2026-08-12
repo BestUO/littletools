@@ -5,6 +5,7 @@
 #include <type_traits>
 
 #include "concept_template.hpp"
+#include "serializer_core.hpp"
 #include "serializer_type.hpp"
 
 namespace serialize
@@ -15,9 +16,8 @@ std::string ValueToString(T&& item)
 {
     using type = std::remove_cvref_t<decltype(item)>;
     std::string s;
-    if constexpr (
-        std::is_integral_v<
-            type> || std::is_same_v<float, type> || std::is_same_v<double, type>)
+    if constexpr (std::is_integral_v<type> || std::is_same_v<float, type>
+        || std::is_same_v<double, type>)
     {
         auto tid     = GetIntergralTypeId<type>();
         uint16_t len = sizeof(uint16_t) + sizeof(TypeId) + GetDataSize(tid);

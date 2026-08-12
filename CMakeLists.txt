@@ -16,7 +16,7 @@ set(THIRD_PARTY_PATH ${PROJECT_SOURCE_DIR}/3rdparty)
 include_directories(${THIRD_PARTY_PATH}/include)
 
 # ADD_SUBDIRECTORY(kafka)
-ADD_SUBDIRECTORY(queue)
+# ADD_SUBDIRECTORY(queue)
 ADD_SUBDIRECTORY(test)
 # ADD_SUBDIRECTORY(trimule)
 # ADD_SUBDIRECTORY(originaltest)
