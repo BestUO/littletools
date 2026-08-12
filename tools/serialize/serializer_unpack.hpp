@@ -7,6 +7,7 @@
 #include <charconv>
 
 #include "concept_template.hpp"
+#include "serializer_core.hpp"
 #include "serializer_type.hpp"
 
 namespace serialize
@@ -38,9 +39,8 @@ template <typename T>
 void SetValueInStruct(T&& item, SerializeString& s)
 {
     using type = std::remove_cvref_t<decltype(item)>;
-    if constexpr (
-        std::is_integral_v<
-            type> || std::is_same_v<float, type> || std::is_same_v<double, type>)
+    if constexpr (std::is_integral_v<type> || std::is_same_v<float, type>
+        || std::is_same_v<double, type>)
     {
         auto segment = s.GetNextValueString();
         TypeId tid;

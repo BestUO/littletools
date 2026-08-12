@@ -1,12 +1,13 @@
 #pragma once
 #include "function_traits.hpp"
+#include "tools/serialize/serializer.hpp"
 #include <any>
 #include <functional>
-#include <nlohmann/json.hpp>
 #include <map>
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -17,9 +18,6 @@ namespace funexecutor
 {
 namespace v1
 {
-template <typename T>
-concept IsTuple = requires { requires std::tuple_size<T>::value >= 0; };
-
 class TupleWrapper
 {
 public:
@@ -307,10 +305,10 @@ private:
                 }
             }
         }
-        else if (a.type() == typeid(nlohmann::json))
-        {
-            // Future: support conversion from json to arbitrary type.
-        }
+        // else if (a.type() == typeid(nlohmann::json))
+        // {
+        //     // Future: support conversion from json to arbitrary type.
+        // }
         throw std::runtime_error(
             std::string("bad any conversion for parameter type: ")
             + a.type().name());
@@ -331,4 +329,163 @@ private:
     }
 };
 }  // namespace v2
+
+namespace v3
+{
+
+template <typename T>
+struct stored_arg
+{
+    using decayed = std::decay_t<T>;
+    using type    = std::conditional_t<std::is_same_v<decayed, const char*>
+               || std::is_same_v<decayed, char*>,
+           std::string,
+           decayed>;
+};
+
+class TupleWrapper
+{
+public:
+    template <typename... Args>
+    TupleWrapper(Args&&... args)
+        : data_(std::make_any<std::tuple<typename stored_arg<Args>::type...>>(
+              std::forward<Args>(args)...))
+    { }
+
+    template <typename ExpectedTuple>
+    const ExpectedTuple& GetTuple() const
+    {
+        try
+        {
+            return std::any_cast<const ExpectedTuple&>(data_);
+        } catch (const std::bad_any_cast&)
+        {
+            throw std::runtime_error("Type mismatch when accessing tuple");
+        }
+    }
+
+private:
+    std::any data_;
+};
+
+class FunExecutor
+{
+public:
+    template <typename Function>
+    void RegisterFunction(const std::string& name, Function&& func)
+    {
+        functions_[name] = [func = std::forward<Function>(func)](
+                               TupleWrapper params, void* result) mutable {
+            using traits
+                = function_traits::v1::function_traits<std::decay_t<Function>>;
+            using args_tuple  = typename traits::tuple_type;
+            using return_type = typename traits::return_type;
+
+            auto args = params.GetTuple<args_tuple>();
+            if constexpr (std::is_void_v<return_type>)
+            {
+                std::apply(func, args);
+            }
+            else
+            {
+                if (result == nullptr)
+                {
+                    std::apply(func, args);
+                }
+                else
+                {
+                    *static_cast<return_type*>(result) = std::apply(func, args);
+                }
+            }
+        };
+    }
+
+    template <typename R, typename... Args>
+    auto InvokeFunction(const std::string& name, Args&&... args)
+    {
+        using ReturnType
+            = std::conditional_t<std::is_void_v<R>, std::monostate, R>;
+        using OptionalReturnType = std::optional<ReturnType>;
+        auto it                  = functions_.find(name);
+        if (it != functions_.end())
+        {
+            if constexpr (std::is_void_v<R>)
+            {
+                it->second(TupleWrapper(std::forward<Args>(args)...), nullptr);
+                return OptionalReturnType{std::monostate{}};
+            }
+            else
+            {
+                R result;
+                it->second(TupleWrapper(std::forward<Args>(args)...), &result);
+                return OptionalReturnType{std::move(result)};
+            }
+        }
+        else
+        {
+            return OptionalReturnType{std::nullopt};
+        }
+    }
+
+    template <typename Function>
+    void RegisterFunctionWithSerialize(const std::string& name, Function&& func)
+    {
+        functions_with_serialize_[name]
+            = [func = std::forward<Function>(func)](
+                  std::string_view str) mutable -> std::string {
+            using traits
+                = function_traits::v1::function_traits<std::decay_t<Function>>;
+            using args_tuple           = traits::tuple_type;
+            constexpr size_t args_size = std::tuple_size<args_tuple>::value;
+            using return_type          = traits::return_type;
+
+            if constexpr (args_size == 1)
+            {
+                using arg_first_type = std::tuple_element<0, args_tuple>::type;
+                auto destination
+                    = serialize::SimpleSerializer::Deserialize<arg_first_type>(
+                        std::string(str));
+                if constexpr (std::is_void_v<return_type>)
+                {
+                    func(destination);
+                    return "";
+                }
+                else
+                {
+                    return serialize::SimpleSerializer::Serialize(
+                        func(destination));
+                }
+            }
+            else
+            {
+                printf(
+                    "Function must have exactly one argument for "
+                    "serialization\n");
+                return "";
+            }
+        };
+    }
+
+    std::string InvokeFunctionWithSerialize(const std::string& name,
+        std::string_view str)
+    {
+        auto it = functions_with_serialize_.find(name);
+        if (it != functions_with_serialize_.end())
+        {
+            return it->second(str);
+        }
+        else
+        {
+            return "";
+        }
+    }
+
+private:
+    std::map<std::string,
+        std::function<void(TupleWrapper params, void* result)>>
+        functions_;
+    std::map<std::string, std::function<std::string(std::string_view str)>>
+        functions_with_serialize_;
+};
+}  // namespace v3
 }  // namespace funexecutor
