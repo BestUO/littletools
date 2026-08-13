@@ -10,3 +10,7 @@ ros2_sample/build
 ros2_sample/install
 ros2_sample/log
 http_download/build
+.omo
+AGENTS.md
+.debug-journal.md
+*.pyc

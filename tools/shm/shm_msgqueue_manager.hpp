@@ -111,6 +111,11 @@ public:
         __is_running = false;
     }
 
+    void Release()
+    {
+        __queue.Release();
+    }
+
 private:
     std::atomic<bool> __is_running = false;
     SHMFactory<SHMMsgQueue<T, N, M>> __queue;

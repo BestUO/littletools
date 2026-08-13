@@ -17,7 +17,7 @@
 #include "queue/ringqueue.hpp"
 #include "function_traits.hpp"
 #include "simple_list.hpp"
-#include "tools/concurrentqueue/concurrentqueue.h"
+#include "concurrentqueue/concurrentqueue.h"
 #include "tools/cpu_bind.hpp"
 
 namespace threadpool

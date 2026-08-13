@@ -1,2 +1,0 @@
-ADD_SUBDIRECTORY(doctest)
-ADD_SUBDIRECTORY(nanobench)

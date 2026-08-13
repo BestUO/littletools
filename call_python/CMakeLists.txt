@@ -16,3 +16,4 @@ set(SRC_FILES
 add_executable(${PROJECT_NAME} ${SRC_FILES})
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
 target_link_libraries(${PROJECT_NAME} pybind11::embed)
+target_compile_definitions(${PROJECT_NAME} PRIVATE CALL_PYTHON_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")

@@ -1,7 +1,8 @@
 set(CMAKE_CXX_STANDARD 20)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/yalantinglibs/include)
-SET(3rdparty ${CMAKE_CURRENT_SOURCE_DIR}/yalantinglibs/include/ylt/thirdparty)
+include_directories(${THIRD_PARTY_PATH}/yalantinglibs/include)
+include_directories(${THIRD_PARTY_PATH}/yalantinglibs/include/ylt/standalone)
+SET(3rdparty ${THIRD_PARTY_PATH}/yalantinglibs/include/ylt/thirdparty)
 
 include_directories(${3rdparty})
 

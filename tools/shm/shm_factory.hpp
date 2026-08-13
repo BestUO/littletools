@@ -216,6 +216,14 @@ public:
 
     ~SHMFactory()
     {
+        Release();
+    }
+
+    void Release()
+    {
+        if (__meta_ptr == nullptr)
+            return;
+
         if (__shm_sem.Wait(50))
         {
             __meta_ptr->ClearLocalPid();
@@ -231,6 +239,7 @@ public:
                 __shm_sem.Post();
             }
         }
+        __meta_ptr = nullptr;
     }
     T* operator->() const
     {

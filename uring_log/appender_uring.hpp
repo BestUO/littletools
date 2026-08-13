@@ -17,8 +17,8 @@
 #include <condition_variable>
 
 #include "record.hpp"
-#include "tools/concurrentqueue/blockingconcurrentqueue.h"
-#include "liburing/liburing.h"
+#include "concurrentqueue/blockingconcurrentqueue.h"
+#include "liburing.h"
 
 namespace easylog
 {

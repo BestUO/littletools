@@ -29,10 +29,24 @@ struct RUDPLargeMsgRecv
     constexpr static uint8_t SPLIT_COUNT = MAX_SEGMENT_COUNT > 8 ? 16 : 8;
     constexpr static std::array<uint8_t, 16> All_Loss_index
         = MAX_SEGMENT_COUNT > 8
-        ? std::array<uint8_t,
-            16>{0, 1, 2, 3, 4, 5, 6, 7, 255, 255, 255, 255, 255, 255, 255, 255}
+        ? std::array<uint8_t, 16>{0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              255,
+              255,
+              255,
+              255,
+              255,
+              255,
+              255,
+              255}
         : std::array<uint8_t,
-            16>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+              16>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
     using RUDPAllocate = RudpAllocate<1440>;
 
 public:
@@ -40,7 +54,7 @@ public:
         uint16_t port,
         std::function<void(std::unique_ptr<char[]>)> cb)
         : __endpoint(
-            std::make_shared<network::inet_udp::UDP<RudpAllocate<1440>>>())
+              std::make_shared<network::inet_udp::UDP<RudpAllocate<1440>>>())
         , __cb(cb)
     {
         __send_thread = std::thread([this]() {
@@ -207,7 +221,8 @@ private:
                         msg->addr}));
         }
         else if (message_type == ReliableUDPType::Abnormal)
-        { }
+        {
+        }
         __endpoint->FreeBuf(const_cast<char*>(data));
     }
 

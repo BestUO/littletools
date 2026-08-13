@@ -21,7 +21,7 @@ int main()
 
     pybind11::scoped_interpreter interpreter;
 
-    PythonMonitor python_monitor("./");
+    PythonMonitor python_monitor(CALL_PYTHON_SOURCE_DIR);
 
     {
         // 释放 GIL，等待退出信号
