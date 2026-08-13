@@ -1,10 +1,10 @@
 #pragma once
-#include "tools/concurrentqueue/blockingconcurrentqueue.h"
+#include "concurrentqueue/blockingconcurrentqueue.h"
 #include <cstddef>
 #include <mutex>
 #include <string>
 #include <fcntl.h>
-#include "liburing/liburing.h"
+#include "liburing.h"
 #include <array>
 #include <cstddef>
 #include <cstdio>

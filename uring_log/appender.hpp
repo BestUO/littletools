@@ -25,7 +25,7 @@
 #include <system_error>
 
 #include "record.hpp"
-#include "tools/concurrentqueue/concurrentqueue.h"
+#include "concurrentqueue/concurrentqueue.h"
 
 namespace easylog
 {

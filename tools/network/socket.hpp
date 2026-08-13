@@ -156,14 +156,21 @@ public:
     Result SetReuseAddrAndPort()
     {
         int opt = 1;
-        if ((setsockopt(__sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))
-                < 0)
-            || (setsockopt(
-                    __sockfd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt))
-                < 0))
+        if (setsockopt(__sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))
+            < 0)
         {
             printf("errno:%d %s\n", errno, strerror(errno));
             return Result::SETSOCKOPT_PORTREUSE_FAIL;
+        }
+        if constexpr (!USEUNIX)
+        {
+            if (setsockopt(
+                    __sockfd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt))
+                < 0)
+            {
+                printf("errno:%d %s\n", errno, strerror(errno));
+                return Result::SETSOCKOPT_PORTREUSE_FAIL;
+            }
         }
         return Result::SUCCESS;
     }

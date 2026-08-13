@@ -1,119 +1,149 @@
-littletools usage in tooltest
-====
-* DPDK RTE_Ring
-* simple queue wrap
-* priority_queue support add or remove
-* RdKafka::Producer and RdKafka::Producer
-* qicosmos/cinatra
-* RWSeparate in cinatra with kafka
-* CommandCenter asyncwrap and syncwrap
-* CephHashFun JenkinsHashFun public_align32pow2 cpu_bind
-* memory pool
-* timemanager
-* freelockqueue c++17 implement from RTE_Ring
-* threadpool
-* c++20 coroutines test
-* hooktest
-* funregister for rpc
-* asio example
-* Simple LRU_Cache
+# littletools
 
-# ToolExample
-git submodule update --init
-cmake -B build -DCMAKE_BUILD_TYPE=Debug;  
-cmake --build build -j 1 
+A collection of C++ experiments, utilities, and benchmarks. The repository
+covers concurrent containers, coroutine examples, networking utilities,
+memory management, logging, and system-level helpers.
 
-## network func_test & bench
-./build/test/doctooltest --test-case=*network_*
+## Contents
 
-## object_pool func_test & bench
-./build/test/doctooltest --test-case=*ObjectPool_*
+- DPDK `RTE_Ring` and a C++17 free-lock queue implementation
+- Simple queue and priority queue wrappers
+- RdKafka producer/consumer examples and Cinatra integration
+- CommandCenter synchronous and asynchronous wrappers
+- Ceph-style hash helpers, alignment utilities, and CPU binding
+- Memory pools, thread pools, timers, and an LRU cache
+- C++20 coroutine, Asio, hook, and RPC examples
 
-## reliable udp func_test & bench
-./build/test/doctooltest --test-case=*ReliableUDP_*
-todo:
-flowcontrol
+## Prerequisites
 
-## serialize tool func_test & bench
-./build/test/doctooltest --test-case=*serialize_*
+- A C++20-capable compiler
+- CMake 3.8 or later
+- Git, including submodule support
+- `make` for the bundled `liburing` build
 
-## timemanager func_test
-./build/test/doctooltest --test-case=*TimerManager_*
+## Build
 
-## raft_pick_leader func_test
-./build/test/doctooltest --test-case=*Raft_*
+Initialize third-party dependencies and configure an out-of-source Release
+build:
 
-## shared memory component func_test
-./build/test/doctooltest --test-case=*shm_*
-
-## coroutine func_test
-./build/test/doctooltest --test-case=*coroutine_*
-
-## c++ call python func_test
+```sh
+git submodule update --init --recursive --depth 1
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j 1
 ```
+
+The top-level build currently includes the tools test suite, io_uring examples
+and benchmark, coroutine examples, yalanting examples, Asio examples, and hook
+tests. Other directories listed in the root `CMakeLists.txt` remain disabled.
+
+## Test Suite
+
+`doctooltest` supports filtering by test-case name:
+
+```sh
+# Network tests and benchmarks
+./build/test/doctooltest --test-case='*network_*'
+
+# Object-pool tests and benchmarks
+./build/test/doctooltest --test-case='*ObjectPool_*'
+
+# Reliable UDP tests and benchmarks
+./build/test/doctooltest --test-case='*ReliableUDP_*'
+
+# Serialization tests and benchmarks
+./build/test/doctooltest --test-case='*serialize_*'
+
+# Timer manager tests
+./build/test/doctooltest --test-case='*TimerManager_*'
+
+# Raft leader-election tests
+./build/test/doctooltest --test-case='*Raft_*'
+
+# Shared-memory component tests
+./build/test/doctooltest --test-case='*shm_*'
+
+# Coroutine tests
+./build/test/doctooltest --test-case='*coroutine_*'
+```
+
+## io_uring Logging Benchmark
+
+The top-level CMake build configures and installs the bundled `liburing` into
+`build/liburing/install`; no manual in-tree build is required. Build and run
+the EasyLog benchmark with:
+
+```sh
+cmake --build build --target uring_log_benchmark
+./build/uring_log/uring_log_benchmark
+```
+
+### RK3588 Reference Result
+
+The following result writes 2,500,000 messages across five threads, with each
+message approximately 80 bytes:
+
+```text
+spdlog synchronous system write:       2315607969 ns
+easylog synchronous system write:      1359331896 ns
+easylog asynchronous system write:      337628465 ns
+easylog synchronous io_uring write:    1073387513 ns
+easylog asynchronous io_uring write:    279847519 ns
+```
+
+## Python Interoperability Example
+
+Build and run the standalone C++-to-Python example from its own directory:
+
+```sh
 cd call_python
-cmake -B build
-cmake --build build/
+cmake -S . -B build
+cmake --build build
 ./build/call_python
 ```
 
-## log with liburing
-### build liburing
-1. cd 3rdparty/liburing && mkdir build && cd build
-2. ../configure --cc=gcc --cxx=g++ --prefix=./install
-3. make -j 4
-4. make install
+## Standalone Applications
 
-## easylog with liburing
-0. if use aarch64, build liburing and replace `3rdparty/include/liburing` and `3rdparty/lib/liburing`
-1. cmake --build build/ --target=uring_log_benchmark
-2. ./build/uring_log/uring_log_benchmark
-3. 
-```
-RK3588 test result:
-========write 2,500,000 msgs with 5 threads, format: '[time] [level] [tid] [position] [msg]', 80 Bytes every msg, total about 210MB===========
-========spdlog sync with 5 threads system write===========
-spdlog  : 2315607969 ns
-========easylog sync with 5 thread system write===========
-easylog : 1359331896 ns
-========easylog async with 5 thread system write===========
-easylog : 337628465 ns
-========easylog sync with 5 thread uring write===========
-easylog : 1073387513 ns
-========easylog async with 5 thread uring write===========
-easylog : 279847519 ns
+These applications require MySQL support and are not currently enabled by the
+top-level CMake build.
+
+### Trimule
+
+An HTTP server that receives call information and stores it in a database.
+Requires C++17.
+
+```sh
+cd Trimule
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build --target trimule -j 2
+cmake --build build --target trimule_copyfile
 ```
 
-## to do
-optimize timermanager map+list
-large_msg_recv workpool/objectpool
-multi_msg_send with rudp
-flow_control do not depend recv num
+To run with Docker:
 
+```sh
+cd Trimule
+sh docker_build.sh
+sh docker_run.sh
+```
 
+To change the port, update `docker_run.sh` and `conf/trimule_config.json`.
 
-# Two Projects
-need mysql support
+### Dialogmanager
 
-## Trimule
-Httpserver for receive call info and store in db
-### require 
-c++17
-### Make
-mkdir build && cd build  
-cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target trimule -j 2;make trimule_copyfile
-### Run in Docker
-//if you want chang port, change docker_run.sh and conf/trimule_config.json  
-cd Trimule  
-sh docker_build.sh  
-sh docker_run.sh  
+An HTTP server for managing dialog sessions and storing them in a database.
+Requires C++17.
 
-## Dialogmanager
-Httpserver for manage dialog session and store info in db
-### require 
-c++17
-### Make
-mkdir build && cd build  
-cmake -DCMAKE_BUILD_TYPE=Debug ..; cmake --build . --target dialogmanager -j 1
-### Config
-conf/dialog_manager_config.json 
+```sh
+cd Dialogmanager
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build --target dialogmanager -j 1
+```
+
+Configuration: `conf/dialog_manager_config.json`.
+
+## Planned Work
+
+- Optimize `timermanager` with a map-and-list design
+- Add a work-pool/object-pool path for large-message receiving
+- Support multi-message sending with reliable UDP
+- Decouple flow control from received-message counts

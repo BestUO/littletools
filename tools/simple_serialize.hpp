@@ -122,20 +122,23 @@ struct has_serialize
 {
 private:
     template <typename C>
-    static constexpr auto check(C*)
-        -> decltype(std::declval<C>().serialize(), std::true_type{});
+    static constexpr auto check(
+        C*) -> decltype(std::declval<C>().serialize(), std::true_type{});
 
-    // template <typename C>
-    // static constexpr auto check(C*)
-    //     -> decltype(std::declval<C>().serialize(std::declval<char*>()),
-    //         std::declval<char*>(),
-    //         std::true_type{});
+    template <typename C>
+    static constexpr auto check_char(C*)
+        -> decltype(std::declval<const C&>().serialize(std::declval<char*>()),
+            std::true_type{});
 
     template <typename>
     static constexpr std::false_type check(...);
 
+    template <typename>
+    static constexpr std::false_type check_char(...);
+
 public:
-    static constexpr bool value = decltype(check<T>(nullptr))::value;
+    static constexpr bool value = decltype(check<T>(nullptr))::value
+        || decltype(check_char<T>(nullptr))::value;
 };
 
 template <typename T, std::enable_if_t<!has_serialize<T>::value, int> = 0>
@@ -338,24 +341,24 @@ uint16_t const CalculateSizeImpl(Rest&... rest)
 //         return context;                             \
 //     }
 
-#define GEN_SERIALIZE(...)                         \
-    char* serialize(char* buf) const               \
-    {                                              \
-        return SerializeImpl(buf, __VA_ARGS__);    \
-    }                                              \
-    std::string serialize() const                  \
-    {                                              \
-        std::string s(CalculateSize(), '\0');      \
-        SerializeImpl(s.data(), __VA_ARGS__);      \
-        return s;                                  \
-    }                                              \
-    uint16_t deserialize(const char* buf)          \
-    {                                              \
-        uint16_t offset;                           \
-        DeserializeImpl(buf, offset, __VA_ARGS__); \
-        return offset;                             \
-    }                                              \
-    uint16_t CalculateSize() const                 \
-    {                                              \
-        return CalculateSizeImpl(__VA_ARGS__);     \
+#define GEN_SERIALIZE(...)                                  \
+    char* serialize(char* buf) const                        \
+    {                                                       \
+        return SerializeImpl(buf, __VA_ARGS__);             \
+    }                                                       \
+    std::string serialize() const                           \
+    {                                                       \
+        std::string __serialize_buf(CalculateSize(), '\0'); \
+        SerializeImpl(__serialize_buf.data(), __VA_ARGS__); \
+        return __serialize_buf;                             \
+    }                                                       \
+    uint16_t deserialize(const char* buf)                   \
+    {                                                       \
+        uint16_t offset = 0;                                \
+        DeserializeImpl(buf, offset, __VA_ARGS__);          \
+        return offset;                                      \
+    }                                                       \
+    uint16_t CalculateSize() const                          \
+    {                                                       \
+        return CalculateSizeImpl(__VA_ARGS__);              \
     }

@@ -160,7 +160,8 @@ private:
             }
         }
         while (__timer_queue.PopTopObj())
-        { };
+        {
+        };
     }
 };
 }  // namespace v1
