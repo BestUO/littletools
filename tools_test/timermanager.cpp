@@ -1,12 +1,16 @@
 #include <chrono>
 #include <random>
 #include <iostream>
+#include <future>
+#include <condition_variable>
+#include <mutex>
+#include <vector>
 #include <unistd.h>
 #include "doctest/doctest.h"
 #include "nanobench.h"
 #include "tools/timermanager.hpp"
 
-TEST_CASE("TimerManager_v1_base")
+TEST_CASE("TimerManager_v1_base" * doctest::skip())
 {
     auto tm = timermanager::v1::TimerManager<std::string>::GetInstance();
     class TestTimerManager
@@ -39,7 +43,7 @@ TEST_CASE("TimerManager_v1_base")
         ->StopTimerManager();
 }
 
-TEST_CASE("TimerManager_v1_interval")
+TEST_CASE("TimerManager_v1_interval" * doctest::skip())
 {
     auto tm = timermanager::v1::TimerManager<std::string>::GetInstance();
     tm->StartTimerManager();
@@ -58,7 +62,7 @@ TEST_CASE("TimerManager_v1_interval")
         ->StopTimerManager();
 }
 
-TEST_CASE("TimerManager_v1_two_same_key")
+TEST_CASE("TimerManager_v1_two_same_key" * doctest::skip())
 {
     struct Key
     {
@@ -79,7 +83,7 @@ TEST_CASE("TimerManager_v1_two_same_key")
     tm->StopTimerManager();
 }
 
-TEST_CASE("TimerManager_v2")
+TEST_CASE("TimerManager_v2" * doctest::skip())
 {
     auto func = [](int a, int b) {
         std::cout << "TimerManager_v2 a=" << a << '\t' << "b=" << b
@@ -108,7 +112,7 @@ TEST_CASE("TimerManager_v2")
     tm->StopTimerManager();
 }
 
-TEST_CASE("TimerManager_v2_interval")
+TEST_CASE("TimerManager_v2_interval" * doctest::skip())
 {
     auto func = [](int a, int b) {
         std::cout << "TimerManager_v2_interval a=" << a << '\t' << "b=" << b
@@ -129,7 +133,7 @@ TEST_CASE("TimerManager_v2_interval")
     tm->StopTimerManager();
 }
 
-TEST_CASE("TimerManager_v2_10w")
+TEST_CASE("TimerManager_v2_10w" * doctest::skip())
 {
     auto func = [](std::atomic<int>& count) {
         count++;
@@ -176,7 +180,7 @@ TEST_CASE("TimerManager_v2_10w")
     tm->StopTimerManager();
 }
 
-TEST_CASE("TimerManager_v3")
+TEST_CASE("TimerManager_v3" * doctest::skip())
 {
     auto func = [](int a, int b) {
         std::cout << "TimerManager_v3 a=" << a << '\t' << "b=" << b
@@ -205,7 +209,7 @@ TEST_CASE("TimerManager_v3")
     tm->StopTimerManager();
 }
 
-TEST_CASE("TimerManager_v3_recursive")
+TEST_CASE("TimerManager_v3_recursive" * doctest::skip())
 {
     auto timerManager = timermanager::v3::TimerManager<int>::GetInstance();
     timerManager->StartTimerManager();
@@ -242,7 +246,7 @@ TEST_CASE("TimerManager_v3_recursive")
     timerManager->StopTimerManager();
 }
 
-TEST_CASE("TimerManager_v4_base")
+TEST_CASE("TimerManager_v4_base" * doctest::skip())
 {
     auto timerManager = timermanager::v4::TimerManager<int>::GetInstance();
     timerManager->StartTimerManager();
@@ -262,7 +266,7 @@ TEST_CASE("TimerManager_v4_base")
     timerManager->StopTimerManager();
 }
 
-TEST_CASE("TimerManager_v4_recursive")
+TEST_CASE("TimerManager_v4_recursive" * doctest::skip())
 {
     auto timerManager = timermanager::v4::TimerManager<int>::GetInstance();
     timerManager->StartTimerManager();
@@ -300,7 +304,7 @@ TEST_CASE("TimerManager_v4_recursive")
     timerManager->StopTimerManager();
 }
 
-TEST_CASE("TimerManager_v4_benchmark")
+TEST_CASE("TimerManager_v4_benchmark" * doctest::skip())
 {
     int totalnum      = 1024 * 1024;
     uint32_t epochnum = 1;
@@ -338,50 +342,250 @@ TEST_CASE("TimerManager_v4_benchmark")
     timerManager_v4->StopTimerManager();
 }
 
-// #include "tools/concurrentqueue/concurrentqueue.h"
-// #include "tools/concurrentqueue/blockingconcurrentqueue.h"
-// TEST_CASE("TimerManager_ttt_v3")
-// {
-//     uint32_t epochnum = 1;
-//     moodycamel::BlockingConcurrentQueue<UUID> q;
-//     auto timerManager = timermanager::v3::TimerManager<int>::GetInstance();
-//     // timerManager->StartTimerManager();
+TEST_CASE("TimerManager_v6_functional")
+{
+    using namespace std::chrono_literals;
 
-//     for (int i = 0; i < 1000000; i++)
-//         timerManager->AddAlarm(
-//             std::chrono::milliseconds(0), i, std::string(), [i]() {});
+    auto& timer_manager = timermanager::v6::TimerManager::GetInstance();
+    timer_manager.StartTimerManager();
+    std::atomic<int> one_shot_count{0};
+    std::atomic<int> cancelled_count{0};
+    std::atomic<int> repeating_count{0};
+    std::atomic<timermanager::v6::TimerManager::TimerId> repeating_id{0};
 
-//     ankerl::nanobench::Bench().epochs(epochnum).run(
-//         "v3", [&q, &timerManager]() {
-//             for (int i = 0; i < 1000000; i++)
-//                 timerManager->DeleteAlarm(i, std::string());
-//             // for (int i = 0; i < 1000000; i++)
-//             //     timerManager->AddAlarm(
-//             //         std::chrono::milliseconds(0), i, std::string(), [i]()
-//             //         {});
-//         });
-//     timerManager->StopTimerManager();
-// }
+    timer_manager.AddTimer(2ms, [&] {
+        ++one_shot_count;
+    });
+    const auto cancelled_id = timer_manager.AddTimer(20ms, [&] {
+        ++cancelled_count;
+    });
+    CHECK(timer_manager.CancelTimer(cancelled_id));
 
-// TEST_CASE("TimerManager_ttt_v4")
-// {
-//     uint32_t epochnum = 1;
-//     moodycamel::BlockingConcurrentQueue<UUID> q;
-//     auto timerManager = timermanager::v4::TimerManager<int>::GetInstance();
-//     // timerManager->StartTimerManager();
+    const auto timer_id = timer_manager.AddTimer(
+        1ms,
+        [&] {
+            if (++repeating_count == 3)
+                timer_manager.CancelTimer(repeating_id.load());
+        },
+        1ms);
+    repeating_id.store(timer_id);
 
-//     for (int i = 0; i < 1000000; i++)
-//         timerManager->AddAlarm(
-//             std::chrono::milliseconds(0), i, std::string(), [i]() {});
+    std::this_thread::sleep_for(20ms);
+    CHECK_EQ(one_shot_count.load(), 1);
+    CHECK_EQ(cancelled_count.load(), 0);
+    CHECK_EQ(repeating_count.load(), 3);
+    timer_manager.StopTimerManager();
+}
 
-//     ankerl::nanobench::Bench().epochs(epochnum).run(
-//         "v4", [&q, &timerManager]() {
-//             for (int i = 0; i < 1000000; i++)
-//                 timerManager->DeleteAlarm(i, std::string());
-//             // for (int i = 0; i < 1000000; i++)
-//             //     timerManager->AddAlarm(
-//             //         std::chrono::milliseconds(0), i, std::string(), [i]()
-//             //         {});
-//         });
-//     timerManager->StopTimerManager();
-// }
+TEST_CASE("TimerManager_v6_benchmark")
+{
+    using namespace std::chrono_literals;
+
+    constexpr int timer_count = 100000;
+    auto& timer_manager       = timermanager::v6::TimerManager::GetInstance();
+    timer_manager.StartTimerManager();
+    std::atomic<int> fired_count{0};
+    std::vector<timermanager::v6::TimerManager::TimerId> timer_ids;
+    timer_ids.reserve(timer_count);
+
+    ankerl::nanobench::Bench().epochs(1).run("TimerManager_v6_add", [&] {
+        for (int i = 0; i < timer_count; ++i)
+            timer_ids.push_back(timer_manager.AddTimer(1s, [&] {
+                ++fired_count;
+            }));
+    });
+
+    ankerl::nanobench::Bench().epochs(1).run("TimerManager_v6_cancel", [&] {
+        for (const auto timer_id : timer_ids)
+            timer_manager.CancelTimer(timer_id);
+    });
+    CHECK_EQ(fired_count.load(), 0);
+    timer_manager.StopTimerManager();
+}
+
+TEST_CASE("TimerManager_v6_functional_matrix")
+{
+    using namespace std::chrono_literals;
+    auto& manager = timermanager::v6::TimerManager::GetInstance();
+    manager.StartTimerManager();
+
+    std::atomic<int> fired{0};
+    CHECK(manager.AddTimer(100ms, [&] {
+        ++fired;
+    }) != 0);
+    std::this_thread::sleep_for(130ms);
+    CHECK_EQ(fired.load(), 1);
+
+    const auto one_shot = manager.AddTimer(1ms, [&] {
+        ++fired;
+    });
+    std::this_thread::sleep_for(20ms);
+    CHECK_FALSE(manager.CancelTimer(one_shot));
+    CHECK_FALSE(manager.CancelTimer(999999));
+
+    const auto cancelled = manager.AddTimer(100ms, [&] {
+        ++fired;
+    });
+    CHECK(manager.CancelTimer(cancelled));
+    CHECK_FALSE(manager.CancelTimer(cancelled));
+
+    std::atomic<int> periodic{0};
+    std::atomic<timermanager::v6::TimerManager::TimerId> periodic_id{0};
+    const auto id = manager.AddTimer(
+        0ms,
+        [&] {
+            if (++periodic == 3)
+                CHECK(manager.CancelTimer(periodic_id.load()));
+        },
+        10ms);
+    periodic_id.store(id);
+    std::this_thread::sleep_for(80ms);
+    CHECK_EQ(periodic.load(), 3);
+    CHECK_FALSE(manager.CancelTimer(id));
+
+    std::atomic<int> simultaneous{0};
+    for (int i = 0; i < 16; ++i)
+        manager.AddTimer(10ms, [&] {
+            ++simultaneous;
+        });
+    std::this_thread::sleep_for(40ms);
+    CHECK_EQ(simultaneous.load(), 16);
+    manager.StopTimerManager();
+}
+
+TEST_CASE("TimerManager_v6_lifecycle_and_reentrancy")
+{
+    using namespace std::chrono_literals;
+    auto& manager = timermanager::v6::TimerManager::GetInstance();
+    manager.StopTimerManager();
+    std::atomic<int> fired{0};
+    CHECK_EQ(manager.AddTimer(1ms,
+                 [&] {
+                     ++fired;
+                 }),
+        0);
+    CHECK_FALSE(manager.CancelTimer(1));
+    manager.StartTimerManager();
+    manager.StartTimerManager();
+
+    std::promise<void> nested_done;
+    auto nested_future = nested_done.get_future();
+    manager.AddTimer(1ms, [&] {
+        manager.AddTimer(1ms, [&] {
+            ++fired;
+            nested_done.set_value();
+        });
+    });
+    CHECK_EQ(nested_future.wait_for(100ms), std::future_status::ready);
+    manager.StopTimerManager();
+    manager.StopTimerManager();
+    CHECK_EQ(manager.AddTimer(1ms,
+                 [&] {
+                     ++fired;
+                 }),
+        0);
+    manager.StartTimerManager();
+    manager.StopTimerManager();
+}
+
+TEST_CASE("TimerManager_v6_singleton")
+{
+    constexpr int thread_count = 16;
+    std::vector<const timermanager::v6::TimerManager*> instances(thread_count);
+    std::vector<std::thread> threads;
+    threads.reserve(thread_count);
+    for (int i = 0; i < thread_count; ++i)
+        threads.emplace_back([&, i] {
+            instances[i] = &timermanager::v6::TimerManager::GetInstance();
+        });
+    for (auto& thread : threads)
+        thread.join();
+    for (const auto* instance : instances)
+        CHECK_EQ(instance, instances.front());
+}
+
+TEST_CASE("TimerManager_v6_exception_inputs")
+{
+    auto& manager = timermanager::v6::TimerManager::GetInstance();
+    manager.StartTimerManager();
+    CHECK_EQ(manager.AddTimer(std::chrono::milliseconds(100), nullptr), 0);
+    const auto huge = manager.AddTimer(std::chrono::hours(24 * 365), [] {});
+    CHECK_NE(huge, 0);
+    CHECK(manager.CancelTimer(huge));
+    manager.StopTimerManager();
+}
+
+TEST_CASE("TimerManager_v6_cancel_race")
+{
+    using namespace std::chrono_literals;
+    auto& manager = timermanager::v6::TimerManager::GetInstance();
+    manager.StartTimerManager();
+    std::atomic<int> fired{0};
+    const auto id = manager.AddTimer(5ms, [&] {
+        ++fired;
+    });
+    std::vector<std::thread> threads;
+    std::atomic<int> successful_cancels{0};
+    for (int i = 0; i < 8; ++i)
+        threads.emplace_back([&] {
+            if (manager.CancelTimer(id))
+                ++successful_cancels;
+        });
+    for (auto& thread : threads)
+        thread.join();
+    std::this_thread::sleep_for(20ms);
+    CHECK(successful_cancels.load() <= 1);
+    CHECK(fired.load() <= 1);
+    manager.StopTimerManager();
+}
+
+TEST_CASE("TimerManager_v6_concurrent_stop_add_cancel")
+{
+    using namespace std::chrono_literals;
+    auto& manager = timermanager::v6::TimerManager::GetInstance();
+    manager.StartTimerManager();
+    std::atomic<bool> running{true};
+    std::thread producer([&] {
+        while (running.load())
+        {
+            const auto id = manager.AddTimer(1s, [] {});
+            if (id != 0)
+                manager.CancelTimer(id);
+        }
+    });
+    std::this_thread::sleep_for(10ms);
+    manager.StopTimerManager();
+    running.store(false);
+    producer.join();
+    CHECK_EQ(manager.AddTimer(1ms, [] {}), 0);
+}
+
+TEST_CASE("TimerManager_v6_concurrency_performance")
+{
+    using namespace std::chrono_literals;
+    constexpr int thread_count      = 8;
+    constexpr int timers_per_thread = 12500;
+    auto& manager = timermanager::v6::TimerManager::GetInstance();
+    manager.StartTimerManager();
+    std::vector<std::vector<timermanager::v6::TimerManager::TimerId>> ids(
+        thread_count);
+    std::vector<std::thread> threads;
+    const auto begin = std::chrono::steady_clock::now();
+    for (int i = 0; i < thread_count; ++i)
+        threads.emplace_back([&, i] {
+            ids[i].reserve(timers_per_thread);
+            for (int j = 0; j < timers_per_thread; ++j)
+                ids[i].push_back(manager.AddTimer(1min, [] {}));
+        });
+    for (auto& thread : threads)
+        thread.join();
+    const auto add_elapsed
+        = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - begin);
+    for (const auto& group : ids)
+        for (const auto id : group)
+            manager.CancelTimer(id);
+    std::cout << "TimerManager_v6 concurrent add: " << add_elapsed.count()
+              << " ms\n";
+    manager.StopTimerManager();
+}

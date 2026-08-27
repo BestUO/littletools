@@ -44,28 +44,31 @@ the root `CMakeLists.txt` remain disabled.
 
 ```sh
 # Network tests and benchmarks
-./build/test/doctooltest --test-case='*network_*'
+./build/tools_test/doctooltest --test-case='*network_*'
 
 # Object-pool tests and benchmarks
-./build/test/doctooltest --test-case='*ObjectPool_*'
+./build/tools_test/doctooltest --test-case='*ObjectPool_*'
 
 # Reliable UDP tests and benchmarks
-./build/test/doctooltest --test-case='*ReliableUDP_*'
+./build/tools_test/doctooltest --test-case='*ReliableUDP_*'
 
 # Serialization tests and benchmarks
-./build/test/doctooltest --test-case='*serialize_*'
+./build/tools_test/doctooltest --test-case='*serialize_*'
 
 # Timer manager tests
-./build/test/doctooltest --test-case='*TimerManager_*'
+./build/tools_test/doctooltest --test-case='*TimerManager_*'
 
 # Raft leader-election tests
-./build/test/doctooltest --test-case='*Raft_*'
+./build/tools_test/doctooltest --test-case='*Raft_*'
 
 # Shared-memory component tests
-./build/test/doctooltest --test-case='*shm_*'
+./build/tools_test/doctooltest --test-case='*shm_*'
 
 # Coroutine tests
-./build/test/doctooltest --test-case='*coroutine_*'
+./build/tools_test/doctooltest --test-case='*coroutine_*'
+
+# timer manager tests
+./build/tools_test/doctooltest --test-case='*TimerManager*'
 ```
 
 ## io_uring Logging Benchmark
@@ -103,6 +106,23 @@ cmake --build build --target call_python
 ```
 
 To build it independently, use the CMake project in `call_python/` instead.
+
+## v6 Timer Manager
+
+`timermanager::v6::TimerManager` uses a `steady_clock` deadline min-heap. Each
+heap entry owns one timer, and the worker waits for the earliest heap deadline
+rather than polling at a fixed interval.
+
+```cpp
+auto& timer_manager = timermanager::v6::TimerManager::GetInstance();
+const auto id = timer_manager.AddTimer(
+    std::chrono::milliseconds(10), [] { /* callback */ },
+    std::chrono::milliseconds(100));
+timer_manager.CancelTimer(id);
+```
+
+Set `interval` to zero for a one-shot timer. A repeating callback may cancel
+itself with its returned `TimerId`; a cancelled timer is not rescheduled.
 
 ## Standalone Applications
 
