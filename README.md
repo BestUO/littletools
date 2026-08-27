@@ -104,6 +104,23 @@ cmake --build build --target call_python
 
 To build it independently, use the CMake project in `call_python/` instead.
 
+## v6 Timer Manager
+
+`timermanager::v6::TimerManager` uses a `steady_clock` deadline min-heap. Each
+heap entry owns one timer, and the worker waits for the earliest heap deadline
+rather than polling at a fixed interval.
+
+```cpp
+timermanager::v6::TimerManager timer_manager;
+const auto id = timer_manager.AddTimer(
+    std::chrono::milliseconds(10), [] { /* callback */ },
+    std::chrono::milliseconds(100));
+timer_manager.CancelTimer(id);
+```
+
+Set `interval` to zero for a one-shot timer. A repeating callback may cancel
+itself with its returned `TimerId`; a cancelled timer is not rescheduled.
+
 ## Standalone Applications
 
 These applications require MySQL support and are not currently enabled by the

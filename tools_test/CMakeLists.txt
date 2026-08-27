@@ -10,7 +10,7 @@ add_executable(${PROJ_NAME_TEST})
 target_sources(${PROJ_NAME_TEST} 
 PRIVATE 
 lrucache.cpp
-# timermanager.cpp
+timermanager.cpp
 rbtreewrap.cpp
 simplepoll.cpp
 objectpool.cpp 

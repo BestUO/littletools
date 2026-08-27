@@ -1,14 +1,21 @@
 #pragma once
 
+#include <array>
+#include <bit>
 #include <chrono>
 #include <thread>
 #include <mutex>
 #include <functional>
+#include <limits>
 #include <condition_variable>
 #include <atomic>
+#include <cstdint>
+#include <memory>
 #include <map>
+#include <queue>
 #include <tuple>
 #include <unordered_map>
+#include <vector>
 #include "queue/threadsafecontainer.hpp"
 #include "tools/simple_list.hpp"
 #include "rbtree/rbtreewrap.hpp"
@@ -924,5 +931,449 @@ private:
     }
 };
 }  // namespace v4
+
+namespace v5
+{
+class TimerManager
+{
+public:
+    using TimerId  = std::uint64_t;
+    using Callback = std::function<void()>;
+
+    static TimerManager* GetInstance()
+    {
+        static TimerManager instance;
+        return &instance;
+    }
+
+    TimerId AddTimer(std::chrono::milliseconds delay,
+        Callback callback,
+        std::chrono::milliseconds interval = std::chrono::milliseconds(0))
+    {
+        if (!callback)
+            return 0;
+
+        const auto timer = std::make_shared<Timer>(
+            next_timer_id_.fetch_add(1), std::move(callback), interval);
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            if (stopped_)
+                return 0;
+            timer->expire_tick = current_tick_ + DelayToTicks(delay);
+            timers_.emplace(timer->id, timer);
+            ScheduleLocked(timer);
+        }
+        cv_.notify_one();
+        return timer->id;
+    }
+
+    bool CancelTimer(TimerId timer_id)
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        const auto it = timers_.find(timer_id);
+        if (it == timers_.end())
+            return false;
+
+        it->second->cancelled.store(true);
+        timers_.erase(it);
+        cv_.notify_one();
+        return true;
+    }
+
+    void StopTimerManager()
+    {
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            if (stopped_)
+                return;
+            stopped_ = true;
+            timers_.clear();
+            for (auto& wheel : wheels_)
+            {
+                wheel.bitmap = 0;
+                for (auto& slot : wheel.slots)
+                    slot.clear();
+            }
+        }
+        cv_.notify_one();
+        if (timer_thread_.joinable())
+            timer_thread_.join();
+    }
+
+    void StartTimerManager()
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (!stopped_)
+            return;
+        current_tick_ = NowTick();
+        stopped_      = false;
+        timer_thread_ = std::thread(&TimerManager::Run, this);
+    }
+
+private:
+    static constexpr std::size_t kLevels        = 4;
+    static constexpr std::size_t kSlotsPerWheel = 64;
+    static constexpr std::size_t kSlotBits      = 6;
+
+    struct Timer
+    {
+        TimerId id;
+        Callback callback;
+        std::chrono::milliseconds interval;
+        std::atomic<bool> cancelled{false};
+        std::uint64_t expire_tick = 0;
+
+        Timer(TimerId timer_id,
+            Callback timer_callback,
+            std::chrono::milliseconds timer_interval)
+            : id(timer_id)
+            , callback(std::move(timer_callback))
+            , interval(timer_interval)
+        { }
+    };
+
+    struct Wheel
+    {
+        std::array<std::vector<std::shared_ptr<Timer>>, kSlotsPerWheel> slots;
+        std::uint64_t bitmap = 0;
+    };
+
+    std::array<Wheel, kLevels> wheels_;
+    std::unordered_map<TimerId, std::shared_ptr<Timer>> timers_;
+    std::atomic<TimerId> next_timer_id_{1};
+    std::thread timer_thread_;
+    std::condition_variable cv_;
+    std::mutex mutex_;
+    std::uint64_t current_tick_ = 0;
+    bool stopped_               = true;
+
+    TimerManager()                               = default;
+    ~TimerManager()                              = default;
+    TimerManager(const TimerManager&)            = delete;
+    TimerManager& operator=(const TimerManager&) = delete;
+
+    static std::uint64_t NowTick()
+    {
+        return static_cast<std::uint64_t>(
+            std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now().time_since_epoch())
+                .count());
+    }
+
+    static std::uint64_t DelayToTicks(std::chrono::milliseconds delay)
+    {
+        return static_cast<std::uint64_t>(
+            std::max<std::int64_t>(1, delay.count()));
+    }
+
+    static std::size_t LevelFor(std::uint64_t distance)
+    {
+        for (std::size_t level = 0; level < kLevels - 1; ++level)
+        {
+            if (distance < (std::uint64_t{1} << ((level + 1) * kSlotBits)))
+                return level;
+        }
+        return kLevels - 1;
+    }
+
+    void ScheduleLocked(const std::shared_ptr<Timer>& timer)
+    {
+        const auto distance = timer->expire_tick > current_tick_
+            ? timer->expire_tick - current_tick_
+            : std::uint64_t{1};
+        const auto level    = LevelFor(distance);
+        const auto slot     = static_cast<std::size_t>(
+            (timer->expire_tick >> (level * kSlotBits)) & (kSlotsPerWheel - 1));
+        wheels_[level].slots[slot].push_back(timer);
+        wheels_[level].bitmap |= std::uint64_t{1} << slot;
+    }
+
+    static std::size_t FirstSetSlot(std::uint64_t bitmap, std::size_t start)
+    {
+        const auto after_start = bitmap >> start;
+        if (after_start != 0)
+            return start + std::countr_zero(after_start);
+        return std::countr_zero(bitmap);
+    }
+
+    std::uint64_t NextWakeTickLocked() const
+    {
+        std::uint64_t next_tick = std::numeric_limits<std::uint64_t>::max();
+        for (std::size_t level = 0; level < kLevels; ++level)
+        {
+            const auto bitmap = wheels_[level].bitmap;
+            if (bitmap == 0)
+                continue;
+
+            const auto shift        = level * kSlotBits;
+            const auto current_slot = static_cast<std::size_t>(
+                (current_tick_ >> shift) & (kSlotsPerWheel - 1));
+            const auto slot
+                = FirstSetSlot(bitmap, (current_slot + 1) % kSlotsPerWheel);
+            auto distance
+                = (slot + kSlotsPerWheel - current_slot) % kSlotsPerWheel;
+            if (distance == 0)
+                distance = kSlotsPerWheel;
+            next_tick = std::min(
+                next_tick, ((current_tick_ >> shift) + distance) << shift);
+        }
+        return next_tick;
+    }
+
+    std::vector<std::shared_ptr<Timer>> TakeSlotLocked(std::size_t level,
+        std::size_t slot)
+    {
+        auto& wheel = wheels_[level];
+        std::vector<std::shared_ptr<Timer>> timers;
+        timers.swap(wheel.slots[slot]);
+        wheel.bitmap &= ~(std::uint64_t{1} << slot);
+        return timers;
+    }
+
+    void CascadeLocked(std::size_t level)
+    {
+        const auto slot = static_cast<std::size_t>(
+            (current_tick_ >> (level * kSlotBits)) & (kSlotsPerWheel - 1));
+        for (const auto& timer : TakeSlotLocked(level, slot))
+        {
+            if (!timer->cancelled.load() && timers_.contains(timer->id))
+                ScheduleLocked(timer);
+        }
+    }
+
+    std::vector<std::shared_ptr<Timer>> AdvanceLocked(std::uint64_t next_tick)
+    {
+        current_tick_ = next_tick;
+        for (std::size_t level = kLevels - 1; level > 0; --level)
+        {
+            const auto shift = level * kSlotBits;
+            if ((current_tick_ & ((std::uint64_t{1} << shift) - 1)) == 0)
+                CascadeLocked(level);
+        }
+        return TakeSlotLocked(
+            0, static_cast<std::size_t>(current_tick_ & (kSlotsPerWheel - 1)));
+    }
+
+    void Run()
+    {
+        while (true)
+        {
+            std::vector<std::shared_ptr<Timer>> due_timers;
+            {
+                std::unique_lock<std::mutex> lock(mutex_);
+                while (!stopped_)
+                {
+                    const auto next_tick = NextWakeTickLocked();
+                    if (next_tick == std::numeric_limits<std::uint64_t>::max())
+                    {
+                        cv_.wait(lock);
+                        continue;
+                    }
+
+                    const auto deadline = std::chrono::steady_clock::time_point(
+                        std::chrono::milliseconds(next_tick));
+                    cv_.wait_until(lock, deadline);
+                    if (stopped_)
+                        break;
+                    if (NowTick() < next_tick)
+                        continue;
+                    due_timers = AdvanceLocked(next_tick);
+                    break;
+                }
+                if (stopped_)
+                    return;
+            }
+
+            for (const auto& timer : due_timers)
+                Dispatch(timer);
+        }
+    }
+
+    void Dispatch(const std::shared_ptr<Timer>& timer)
+    {
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            if (timer->cancelled.load() || !timers_.contains(timer->id))
+                return;
+            if (timer->interval == std::chrono::milliseconds(0))
+                timers_.erase(timer->id);
+        }
+
+        timer->callback();
+
+        if (timer->interval > std::chrono::milliseconds(0)
+            && !timer->cancelled.load())
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            if (!stopped_ && timers_.contains(timer->id))
+            {
+                timer->expire_tick
+                    = current_tick_ + DelayToTicks(timer->interval);
+                ScheduleLocked(timer);
+            }
+        }
+    }
+};
+}  // namespace v5
+
+namespace v6
+{
+class TimerManager
+{
+public:
+    using TimerId  = std::uint64_t;
+    using Callback = std::function<void()>;
+
+    static TimerManager& GetInstance()
+    {
+        static TimerManager instance;
+        return instance;
+    }
+
+    TimerId AddTimer(std::chrono::milliseconds delay,
+        Callback callback,
+        std::chrono::milliseconds interval = std::chrono::milliseconds(0))
+    {
+        if (!callback)
+            return 0;
+        auto timer = std::make_shared<Timer>(
+            next_id_.fetch_add(1), std::move(callback), interval);
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            if (stopped_)
+                return 0;
+            timers_.emplace(timer->id, timer);
+            queue_.push({std::chrono::steady_clock::now() + delay, timer});
+        }
+        cv_.notify_one();
+        return timer->id;
+    }
+
+    bool CancelTimer(TimerId id)
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        const auto it = timers_.find(id);
+        if (it == timers_.end())
+            return false;
+        it->second->cancelled.store(true);
+        timers_.erase(it);
+        cv_.notify_one();
+        return true;
+    }
+
+    void StopTimerManager()
+    {
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            if (stopped_)
+                return;
+            stopped_ = true;
+            timers_.clear();
+            while (!queue_.empty())
+                queue_.pop();
+        }
+        cv_.notify_one();
+        if (thread_.joinable())
+            thread_.join();
+    }
+
+    void StartTimerManager()
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (!stopped_)
+            return;
+        stopped_ = false;
+        thread_  = std::thread(&TimerManager::Run, this);
+    }
+
+private:
+    struct Timer
+    {
+        TimerId id;
+        Callback callback;
+        std::chrono::milliseconds interval;
+        std::atomic<bool> cancelled{false};
+        Timer(TimerId timer_id,
+            Callback timer_callback,
+            std::chrono::milliseconds timer_interval)
+            : id(timer_id)
+            , callback(std::move(timer_callback))
+            , interval(timer_interval)
+        { }
+    };
+    struct Entry
+    {
+        std::chrono::steady_clock::time_point deadline;
+        std::shared_ptr<Timer> timer;
+    };
+    struct Later
+    {
+        bool operator()(const Entry& left, const Entry& right) const
+        {
+            return left.deadline > right.deadline;
+        }
+    };
+
+    std::priority_queue<Entry, std::vector<Entry>, Later> queue_;
+    std::unordered_map<TimerId, std::shared_ptr<Timer>> timers_;
+    std::atomic<TimerId> next_id_{1};
+    std::thread thread_;
+    std::condition_variable cv_;
+    std::mutex mutex_;
+    std::atomic<bool> stopped_ = true;
+
+    TimerManager()                               = default;
+    ~TimerManager()                              = default;
+    TimerManager(const TimerManager&)            = delete;
+    TimerManager& operator=(const TimerManager&) = delete;
+
+    void Run()
+    {
+        while (!stopped_)
+        {
+            std::shared_ptr<Timer> timer = nullptr;
+            {
+                std::unique_lock<std::mutex> lock(mutex_);
+                if (queue_.empty())
+                {
+                    cv_.wait(lock);
+                    continue;
+                }
+                const auto deadline = queue_.top().deadline;
+                if (cv_.wait_until(lock, deadline) != std::cv_status::timeout)
+                {
+                    continue;
+                }
+                timer = queue_.top().timer;
+                queue_.pop();
+                if (!timer->cancelled.load())
+                {
+                    if (timer->interval == std::chrono::milliseconds(0))
+                        timers_.erase(timer->id);
+                }
+                else
+                {
+                    continue;
+                }
+            }
+            if (timer)
+                Dispatch(timer);
+        }
+    }
+
+    void Dispatch(const std::shared_ptr<Timer>& timer)
+    {
+        timer->callback();
+
+        if (timer->interval > std::chrono::milliseconds(0)
+            && !timer->cancelled.load())
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            queue_.push(
+                {std::chrono::steady_clock::now() + timer->interval, timer});
+        }
+    }
+};
+}  // namespace v6
 
 }  // namespace timermanager
