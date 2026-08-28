@@ -7,8 +7,6 @@ memory management, logging, and system-level helpers.
 ## Contents
 
 - DPDK `RTE_Ring` and a C++17 free-lock queue implementation
-- Simple queue and priority queue wrappers
-- RdKafka producer/consumer examples and Cinatra integration
 - CommandCenter synchronous and asynchronous wrappers
 - Ceph-style hash helpers, alignment utilities, and CPU binding
 - Memory pools, thread pools, timers, and an LRU cache
@@ -54,9 +52,6 @@ the root `CMakeLists.txt` remain disabled.
 
 # Serialization tests and benchmarks
 ./build/tools_test/doctooltest --test-case='*serialize_*'
-
-# Timer manager tests
-./build/tools_test/doctooltest --test-case='*TimerManager_*'
 
 # Raft leader-election tests
 ./build/tools_test/doctooltest --test-case='*Raft_*'

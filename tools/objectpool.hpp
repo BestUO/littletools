@@ -592,3 +592,291 @@ thread_local typename ObjectPool<T>::template ThreadLocalPtrWrap<
     typename ObjectPool<T>::LocalPool>
     ObjectPool<T>::__local_pool_ptr_wrap;
 }  // namespace v3
+
+namespace v4
+{
+
+class SpinLock
+{
+public:
+    SpinLock()                           = default;
+    ~SpinLock()                          = default;
+    SpinLock(const SpinLock&)            = delete;
+    SpinLock& operator=(const SpinLock&) = delete;
+
+    void lock()
+    {
+        // Test-and-test-and-set: spin on a plain load first so contending
+        // cores don't hammer the cache line with atomic RMW traffic while
+        // the lock is held; only attempt the real test_and_set once the
+        // lock looks free. Standard, well-known spinlock optimization.
+        while (__lock.test_and_set(std::memory_order_acquire))
+        {
+            while (__lock_flag_hint.load(std::memory_order_relaxed))
+                std::this_thread::yield();
+        }
+        __lock_flag_hint.store(true, std::memory_order_relaxed);
+    }
+    void unlock()
+    {
+        __lock_flag_hint.store(false, std::memory_order_relaxed);
+        __lock.clear(std::memory_order_release);
+    }
+
+private:
+    std::atomic_flag __lock = ATOMIC_FLAG_INIT;
+    std::atomic<bool> __lock_flag_hint{false};
+};
+
+template <typename T>
+class CACHE_ALIGN ObjectPool
+{
+public:
+    static ObjectPool* GetInstance()
+    {
+        static ObjectPool instance;
+        return &instance;
+    }
+
+    ObjectPool(const ObjectPool&)            = delete;
+    ObjectPool& operator=(const ObjectPool&) = delete;
+
+    template <typename... Args>
+    T* GetObject(Args&&... args)
+    {
+        if (unlikely(!__local_pool_ptr))
+        {
+            __local_pool_ptr = std::make_unique<LocalPool>(this);
+        }
+        return __local_pool_ptr->GetObject(std::forward<Args>(args)...);
+    }
+
+    // Safe to call with nullptr (no-op).
+    void PutObject(T* ptr)
+    {
+        if (unlikely(!ptr))
+            return;
+        if (unlikely(!__local_pool_ptr))
+        {
+            __local_pool_ptr = std::make_unique<LocalPool>(this);
+        }
+        __local_pool_ptr->PutObject(ptr);
+    }
+
+private:
+    static_assert(std::is_destructible<T>::value, "T must be destructible");
+
+    ObjectPool() = default;
+    ~ObjectPool()
+    {
+        // Signal to any LocalPool that is still being torn down on another
+        // thread (see RecycleFreeChunk) that it must not touch our lists
+        // anymore, and take both locks so we don't race a concurrent
+        // recycle attempt while we walk and free the lists below.
+        __alive.store(false, std::memory_order_release);
+        std::lock_guard<SpinLock> block_lck(__block_registry_lock);
+        std::lock_guard<SpinLock> chunk_lck(__free_chunk_lock);
+
+        Block* block = __block_registry_head;
+        while (block)
+        {
+            Block* next = block->next;
+            std::free(block);
+            block = next;
+        }
+        __block_registry_head = nullptr;
+
+        FreeChunk* chunk = __free_chunk_head;
+        while (chunk)
+        {
+            FreeChunk* next = chunk->next;
+            std::free(chunk);
+            chunk = next;
+        }
+        __free_chunk_head = nullptr;
+    }
+
+    using Storage = typename std::aligned_storage<sizeof(T), alignof(T)>::type;
+
+    struct FreeChunk
+    {
+        FreeChunk* next    = nullptr;
+        unsigned int nfree = 0;
+        T* ptrs[NITEM];
+    };
+
+    struct CACHE_ALIGN Block
+    {
+        Storage storage[NITEM];
+        unsigned int nfree = NITEM;
+        Block* next        = nullptr;
+    };
+
+    bool IsAlive() const
+    {
+        return __alive.load(std::memory_order_acquire);
+    }
+
+    FreeChunk* AcquireFreeChunk()
+    {
+        std::lock_guard<SpinLock> lck(__free_chunk_lock);
+        FreeChunk* chunk = __free_chunk_head;
+        if (chunk)
+            __free_chunk_head = chunk->next;
+        return chunk;
+    }
+
+    void RecycleFreeChunk(FreeChunk* chunk)
+    {
+        if (unlikely(!IsAlive()))
+        {
+            // Pool has already been torn down (this can only legitimately
+            // happen if a worker thread outlives the ObjectPool<T>
+            // singleton during process shutdown). Nothing to recycle
+            // into anymore - just release the memory.
+            std::free(chunk);
+            return;
+        }
+        std::lock_guard<SpinLock> lck(__free_chunk_lock);
+        chunk->next       = __free_chunk_head;
+        __free_chunk_head = chunk;
+    }
+
+    Block* AcquireBlock()
+    {
+        Block* block = static_cast<Block*>(std::malloc(sizeof(Block)));
+        if (unlikely(!block))
+            throw std::bad_alloc();
+        block->nfree = NITEM;
+        std::lock_guard<SpinLock> lck(__block_registry_lock);
+        block->next           = __block_registry_head;
+        __block_registry_head = block;
+        return block;
+    }
+
+    class CACHE_ALIGN LocalPool
+    {
+    public:
+        explicit LocalPool(ObjectPool* pool)
+            : __pool(pool)
+        { }
+
+        ~LocalPool()
+        {
+            if (__free_chunk)
+            {
+                if (__free_chunk->nfree > 0)
+                    __pool->RecycleFreeChunk(__free_chunk);
+                else
+                    std::free(__free_chunk);
+            }
+            // __block (if any) is already tracked in the pool's global
+            // block registry and will be freed when the ObjectPool<T>
+            // itself is destroyed - it must not be freed here.
+        }
+
+        LocalPool(const LocalPool&)            = delete;
+        LocalPool& operator=(const LocalPool&) = delete;
+
+        template <typename... Args>
+        T* GetObject(Args&&... args)
+        {
+            T* raw = AcquireRaw();
+            try
+            {
+                return ::new (static_cast<void*>(raw))
+                    T(std::forward<Args>(args)...);
+            } catch (...)
+            {
+                // Construction failed: give the slot back instead of
+                // losing it forever (basic exception safety).
+                ReleaseRaw(raw);
+                throw;
+            }
+        }
+
+        void PutObject(T* ptr)
+        {
+            ptr->~T();
+            ReleaseRaw(ptr);
+        }
+
+    private:
+        T* AcquireRaw()
+        {
+            if (likely(__free_chunk) && likely(__free_chunk->nfree > 0))
+                return __free_chunk->ptrs[--__free_chunk->nfree];
+
+            if (__free_chunk)
+            {
+                std::free(__free_chunk);
+                __free_chunk = nullptr;
+            }
+            __free_chunk = __pool->AcquireFreeChunk();
+            if (likely(__free_chunk) && likely(__free_chunk->nfree > 0))
+                return __free_chunk->ptrs[--__free_chunk->nfree];
+
+            if (unlikely(!__block || __block->nfree == 0))
+                __block = __pool->AcquireBlock();
+            Storage* slot = &__block->storage[--__block->nfree];
+            return reinterpret_cast<T*>(slot);
+        }
+
+        void ReleaseRaw(T* ptr)
+        {
+            if (!__free_chunk)
+            {
+                __free_chunk = AllocFreeChunk();
+            }
+            else if (unlikely(__free_chunk->nfree == NITEM))
+            {
+                __pool->RecycleFreeChunk(__free_chunk);
+                __free_chunk = AllocFreeChunk();
+            }
+            __free_chunk->ptrs[__free_chunk->nfree++] = ptr;
+        }
+
+        static FreeChunk* AllocFreeChunk()
+        {
+            auto* chunk
+                = static_cast<FreeChunk*>(std::malloc(sizeof(FreeChunk)));
+            if (unlikely(!chunk))
+                throw std::bad_alloc();
+            chunk->next  = nullptr;
+            chunk->nfree = 0;
+            return chunk;
+        }
+
+        FreeChunk* __free_chunk = nullptr;
+        Block* __block          = nullptr;
+        ObjectPool* __pool;
+    };
+
+    template <typename PTRTYPE>
+    class ThreadLocalPtrWrap
+    {
+    public:
+        ~ThreadLocalPtrWrap()
+        {
+            delete __ptr;
+            __ptr = nullptr;
+        }
+        void setptr(PTRTYPE* ptr)
+        {
+            __ptr = ptr;
+        }
+
+    private:
+        PTRTYPE* __ptr = nullptr;
+    };
+
+    std::atomic<bool> __alive{true};
+    FreeChunk* __free_chunk_head = nullptr;
+    Block* __block_registry_head = nullptr;
+    SpinLock __free_chunk_lock;
+    SpinLock __block_registry_lock;
+
+    static inline thread_local std::unique_ptr<LocalPool> __local_pool_ptr;
+};
+
+}  // namespace v4
