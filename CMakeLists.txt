@@ -18,7 +18,7 @@ set(THIRD_PARTY_PATH ${PROJECT_SOURCE_DIR}/3rdparty)
 # All generated files (configure outputs, objects, liburing.a, headers) land under
 # ${CMAKE_BINARY_DIR}/liburing/install, NOT inside 3rdparty/liburing.
 set(LIBURING_DIR ${THIRD_PARTY_PATH}/liburing)
-set(LIBURING_BUILD_DIR ${CMAKE_BINARY_DIR}/liburing)
+set(LIBURING_BUILD_DIR ${CMAKE_BINARY_DIR}/3rdparty/liburing)
 set(LIBURING_INSTALL_DIR ${LIBURING_BUILD_DIR}/install)
 set(LIBURING_STATIC_LIB ${LIBURING_INSTALL_DIR}/lib/liburing.a)
 set(LIBURING_INCLUDE_DIR ${LIBURING_INSTALL_DIR}/include)
@@ -44,6 +44,20 @@ ADD_SUBDIRECTORY(call_python)
 ADD_SUBDIRECTORY(yalantingstudy)
 ADD_SUBDIRECTORY(asiostudy)
 ADD_SUBDIRECTORY(hook_test)
+
+# ----- build complete gperftools out-of-source -----
+set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
+set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(gperftools_build_benchmark OFF CACHE BOOL "" FORCE)
+set(gperftools_build_minimal OFF CACHE BOOL "" FORCE)
+set(GPERFTOOLS_BUILD_CPU_PROFILER ON CACHE BOOL "" FORCE)
+set(GPERFTOOLS_BUILD_HEAP_PROFILER ON CACHE BOOL "" FORCE)
+set(GPERFTOOLS_BUILD_DEBUGALLOC ON CACHE BOOL "" FORCE)
+add_subdirectory(3rdparty/gperftools ${CMAKE_BINARY_DIR}/3rdparty/gperftools)
+add_custom_target(gperftools_all ALL
+    DEPENDS common low_level_alloc stacktrace libbacktrace symbolize
+            tcmalloc_minimal tcmalloc tcmalloc_debug profiler)
+ADD_SUBDIRECTORY(tcmalloc_sample)
 
 # ADD_SUBDIRECTORY(kafka)
 # ADD_SUBDIRECTORY(queue)

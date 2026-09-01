@@ -28,3 +28,6 @@
 [submodule "3rdparty/concurrentqueue"]
 	path = 3rdparty/concurrentqueue
 	url = https://github.com/cameron314/concurrentqueue.git
+[submodule "3rdparty/gperftools"]
+	path = 3rdparty/gperftools
+	url = https://github.com/gperftools/gperftools.git

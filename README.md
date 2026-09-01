@@ -119,6 +119,47 @@ timer_manager.CancelTimer(id);
 Set `interval` to zero for a one-shot timer. A repeating callback may cancel
 itself with its returned `TimerId`; a cancelled timer is not rescheduled.
 
+## TCMalloc Sample
+
+`tcmalloc_sample` shows how to use tcmalloc and check memory leak.install pprof first
+```sh
+export GOPROXY=https://goproxy.cn,direct
+go install github.com/google/pprof@latest
+
+```
+
+```sh
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --target gperftools_all tcmalloc_sample
+MALLOCSTATS=2 ./build/tcmalloc_sample/tcmalloc_sample
+HEAPPROFILE=/tmp/leak_test HEAP_PROFILE_TIME_INTERVAL=5 ./build/tcmalloc_sample/tcmalloc_sample
+```
+
+if your prrogress use glibc's ptmalloc, run follow to use tcmalloc:
+```sh
+git clone https://github.com/gperftools/gperftools.git
+cd gperftools
+./autogen.sh
+mkdir build && cd build
+../configure --prefix=${PWD}/../install
+make -j4
+make install
+
+LD_PRELOAD=/path/to/libtcmalloc.so HEAPPROFILE=/tmp/leak_test HEAP_PROFILE_TIME_INTERVAL=5 ./your_progress
+```
+
+and then, check memory leak
+```sh
+export PATH=$PATH:$(go env GOPATH)/bin
+pprof --base=/tmp/leak_test.0002.heap \
+  --text \
+  ./your_progress \
+  /tmp/leak_test.0005.heap
+
+pprof --text ./your_progress /tmp/leak_test.0001.heap
+pprof --text ./your_progress /tmp/leak_test.0005.heap
+```
+
 ## Standalone Applications
 
 These applications require MySQL support and are not currently enabled by the
