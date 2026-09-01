@@ -9,22 +9,22 @@
 	url = https://github.com/chriskohlhoff/asio
 [submodule "3rdparty/nlohmann_json"]
 	path = 3rdparty/nlohmann_json
-	url = git@github.com:nlohmann/json.git
+	url = https://github.com/nlohmann/json.git
 [submodule "3rdparty/ormpp"]
 	path = 3rdparty/ormpp
-	url = git@github.com:qicosmos/ormpp.git
+	url = https://github.com/qicosmos/ormpp.git
 [submodule "3rdparty/cinatra"]
 	path = 3rdparty/cinatra
-	url = git@github.com:qicosmos/cinatra.git
+	url = https://github.com/qicosmos/cinatra.git
 [submodule "3rdparty/iguana"]
 	path = 3rdparty/iguana
-	url = git@github.com:qicosmos/iguana.git
+	url = https://github.com/qicosmos/iguana.git
 [submodule "3rdparty/doctest"]
 	path = 3rdparty/doctest
-	url = git@github.com:doctest/doctest.git
+	url = https://github.com/doctest/doctest.git
 [submodule "3rdparty/nanobench"]
 	path = 3rdparty/nanobench
-	url = git@github.com:martinus/nanobench.git
+	url = https://github.com/martinus/nanobench.git
 [submodule "3rdparty/concurrentqueue"]
 	path = 3rdparty/concurrentqueue
-	url = git@github.com:cameron314/concurrentqueue.git
+	url = https://github.com/cameron314/concurrentqueue.git
