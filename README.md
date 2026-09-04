@@ -135,13 +135,14 @@ MALLOCSTATS=2 ./build/tcmalloc_sample/tcmalloc_sample
 HEAPPROFILE=/tmp/leak_test HEAP_PROFILE_TIME_INTERVAL=5 ./build/tcmalloc_sample/tcmalloc_sample
 ```
 
-if your prrogress use glibc's ptmalloc, run follow to use tcmalloc:
+if your progress use glibc's ptmalloc, run follow to use tcmalloc:
 ```sh
+sudo apt install -y autoconf automake libtool
 git clone https://github.com/gperftools/gperftools.git
 cd gperftools
 ./autogen.sh
 mkdir build && cd build
-../configure --prefix=${PWD}/../install
+../configure --prefix=${PWD}/../install CXXFLAGS="-O3" CFLAGS="-O3"
 make -j4
 make install
 
