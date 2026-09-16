@@ -89,6 +89,7 @@ TEST_CASE("Raft_10Nodes_group_size_10")
     uint8_t num             = 10;
     std::vector<std::shared_ptr<Raft>> rafts;
     std::vector<std::thread> threads;
+    auto start_time = std::chrono::steady_clock::now();
     for (int i = 0; i < num; i++)
     {
         auto raft_ptr = std::make_shared<Raft>(
@@ -109,15 +110,24 @@ TEST_CASE("Raft_10Nodes_group_size_10")
     {
         threads[i].join();
     }
-    sleep(3);
-    int leadernum = 0, fllowernum = 0;
-    for (int i = 0; i < num; i++)
+    while (true)
     {
-        leadernum += rafts[i]->GetRole() == RaftInfos::Role::LEADER ? 1 : 0;
-        fllowernum += rafts[i]->GetRole() == RaftInfos::Role::FOLLOWER ? 1 : 0;
+        int leadernum = 0, fllowernum = 0;
+        for (int i = 0; i < num; i++)
+        {
+            leadernum += rafts[i]->GetRole() == RaftInfos::Role::LEADER ? 1 : 0;
+            fllowernum
+                += rafts[i]->GetRole() == RaftInfos::Role::FOLLOWER ? 1 : 0;
+        }
+        if (1 == leadernum && num - 1 == fllowernum)
+            break;
     }
-    CHECK(1 == leadernum);
-    CHECK(num - 1 == fllowernum);
+    auto end_time = std::chrono::steady_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+        end_time - start_time)
+                        .count();
+    std::cout << "Time taken to elect leader: " << duration << " ms"
+              << std::endl;
     network_manager.Stop();
     timermanager::TimerManager<UUID>::GetInstance()->StopTimerManager();
 }

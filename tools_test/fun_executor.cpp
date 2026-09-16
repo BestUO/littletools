@@ -6,6 +6,7 @@
 #include "nanobench.h"
 #include "tools/fun_executor/include/fun_executor.hpp"
 #include "tools/serialize/serializer.hpp"
+#include "tools/simple_serialize.hpp"
 
 void test1()
 { }
@@ -135,7 +136,7 @@ TEST_CASE("fun_executor v3")
         == *executor.InvokeFunction<std::string>("MemberStringFunc", "hello"));
 }
 
-TEST_CASE("fun_executor v3")
+TEST_CASE("fun_executor_simple_serialize v3")
 {
     struct MemberIntFuncParam
     {
@@ -197,4 +198,107 @@ TEST_CASE("fun_executor v3")
             executor.InvokeFunctionWithSerialize(
                 "MemberStringFunc", str_serialize))
                .res);
+}
+
+TEST_CASE("fun_executor_macro_serialize v3")
+{
+    struct ParamBase
+    {
+        std::string function_name;
+        GEN_SERIALIZE_WITH_NAME(ParamBase, function_name)
+    };
+    struct ParamReturnBase
+    {
+        int base;
+        GEN_SERIALIZE_WITH_NAME(ParamReturnBase, base)
+    };
+    struct MemberFuncParam
+    {
+        ParamBase param_base;
+        int param;
+        GEN_SERIALIZE_WITH_NAME(MemberFuncParam, param_base, param)
+    };
+    struct MemberIntFuncReturn
+    {
+        ParamReturnBase param_return_base;
+        int result;
+        GEN_SERIALIZE_WITH_NAME(MemberIntFuncReturn, param_return_base, result)
+    };
+    struct MemberStringFuncReturn
+    {
+        ParamReturnBase param_return_base;
+        std::string result;
+        GEN_SERIALIZE_WITH_NAME(MemberStringFuncReturn,
+            param_return_base,
+            result)
+    };
+
+    class TestClass
+    {
+    public:
+        MemberIntFuncReturn MemberIntFunc1(MemberFuncParam p)
+        {
+            return MemberIntFuncReturn{{12}, 1};
+        }
+        MemberIntFuncReturn MemberIntFunc2(MemberFuncParam p)
+        {
+            return MemberIntFuncReturn{{13}, 2};
+        }
+
+        MemberStringFuncReturn MemberStringFunc(MemberFuncParam p)
+        {
+            return MemberStringFuncReturn{{14}, "hello"};
+        }
+    };
+    funexecutor::v3::FunExecutor executor;
+    TestClass obj;
+    executor.RegisterFunctionWithSerialize(
+        "MemberIntFunc1", [&obj](MemberFuncParam p) {
+            return obj.MemberIntFunc1(p);
+        });
+    executor.RegisterFunctionWithSerialize(
+        "MemberIntFunc2", [&obj](MemberFuncParam p) {
+            return obj.MemberIntFunc2(p);
+        });
+    executor.RegisterFunctionWithSerialize(
+        "MemberStringFunc", [&obj](MemberFuncParam p) {
+            return obj.MemberStringFunc(p);
+        });
+
+    MemberFuncParam param_int_fun1{{.function_name = "MemberIntFunc1"}, 42};
+    std::string param_int_fun1_serialize = param_int_fun1.serialize();
+    auto param_base = ParamBase::FromBuffer(param_int_fun1_serialize.c_str());
+    CHECK("MemberIntFunc1" == param_base.function_name);
+    auto member_int_func1_return_serialize
+        = executor.InvokeFunctionWithSerialize(
+            param_base.function_name, param_int_fun1_serialize);
+    auto member_int_func1_return = MemberIntFuncReturn::FromBuffer(
+        member_int_func1_return_serialize.c_str());
+    CHECK(1 == member_int_func1_return.result);
+    CHECK(12 == member_int_func1_return.param_return_base.base);
+
+    MemberFuncParam param_int_fun2{{.function_name = "MemberIntFunc2"}, 43};
+    std::string param_int_fun2_serialize = param_int_fun2.serialize();
+    auto param_base2 = ParamBase::FromBuffer(param_int_fun2_serialize.c_str());
+    CHECK("MemberIntFunc2" == param_base2.function_name);
+    auto member_int_func2_return_serialize
+        = executor.InvokeFunctionWithSerialize(
+            param_base2.function_name, param_int_fun2_serialize);
+    auto member_int_func2_return = MemberIntFuncReturn::FromBuffer(
+        member_int_func2_return_serialize.c_str());
+    CHECK(2 == member_int_func2_return.result);
+    CHECK(13 == member_int_func2_return.param_return_base.base);
+
+    MemberFuncParam param_string_fun{{.function_name = "MemberStringFunc"}, 44};
+    std::string param_string_fun_serialize = param_string_fun.serialize();
+    auto param_base3
+        = ParamBase::FromBuffer(param_string_fun_serialize.c_str());
+    CHECK("MemberStringFunc" == param_base3.function_name);
+    auto member_string_func_return_serialize
+        = executor.InvokeFunctionWithSerialize(
+            param_base3.function_name, param_string_fun_serialize);
+    auto member_string_func_return = MemberStringFuncReturn::FromBuffer(
+        member_string_func_return_serialize.c_str());
+    CHECK("hello" == member_string_func_return.result);
+    CHECK(14 == member_string_func_return.param_return_base.base);
 }

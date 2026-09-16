@@ -1,6 +1,7 @@
 #pragma once
 #include "function_traits.hpp"
 #include "tools/serialize/serializer.hpp"
+#include "tools/simple_serialize.hpp"
 #include <any>
 #include <functional>
 #include <map>
@@ -368,6 +369,16 @@ private:
     std::any data_;
 };
 
+template <typename T>
+concept HasFromBuffer = requires(const char* buf) {
+    { T::FromBuffer(buf) } -> std::convertible_to<T>;
+};
+
+template <typename T>
+concept HasSerialize = requires(T&& value) {
+    { std::forward<T>(value).serialize() } -> std::convertible_to<std::string>;
+};
+
 class FunExecutor
 {
 public:
@@ -430,38 +441,51 @@ public:
     template <typename Function>
     void RegisterFunctionWithSerialize(const std::string& name, Function&& func)
     {
+        using function_type = std::decay_t<Function>;
+        using traits = function_traits::v1::function_traits<function_type>;
+
+        using args_tuple  = typename traits::tuple_type;
+        using return_type = typename traits::return_type;
+
+        constexpr size_t args_size = std::tuple_size_v<args_tuple>;
+
+        static_assert(args_size == 1,
+            "Function must have exactly one argument for serialization");
+
+        using raw_arg_type = std::tuple_element_t<0, args_tuple>;
+        using arg_type     = std::remove_cvref_t<raw_arg_type>;
+
         functions_with_serialize_[name]
             = [func = std::forward<Function>(func)](
                   std::string_view str) mutable -> std::string {
-            using traits
-                = function_traits::v1::function_traits<std::decay_t<Function>>;
-            using args_tuple           = traits::tuple_type;
-            constexpr size_t args_size = std::tuple_size<args_tuple>::value;
-            using return_type          = traits::return_type;
-
-            if constexpr (args_size == 1)
-            {
-                using arg_first_type = std::tuple_element<0, args_tuple>::type;
-                auto destination
-                    = serialize::SimpleSerializer::Deserialize<arg_first_type>(
-                        std::string(str));
-                if constexpr (std::is_void_v<return_type>)
+            auto param = [&]() {
+                if constexpr (HasFromBuffer<arg_type>)
                 {
-                    func(destination);
-                    return "";
+                    return arg_type::FromBuffer(str.data());
                 }
                 else
                 {
-                    return serialize::SimpleSerializer::Serialize(
-                        func(destination));
+                    return serialize::SimpleSerializer::Deserialize<arg_type>(
+                        std::string(str));
                 }
+            }();
+
+            if constexpr (std::is_void_v<return_type>)
+            {
+                func(param);
+                return {};
             }
             else
             {
-                printf(
-                    "Function must have exactly one argument for "
-                    "serialization\n");
-                return "";
+                auto result = func(param);
+                if constexpr (HasSerialize<decltype(result)>)
+                {
+                    return result.serialize();
+                }
+                else
+                {
+                    return serialize::SimpleSerializer::Serialize(result);
+                }
             }
         };
     }

@@ -362,3 +362,31 @@ uint16_t const CalculateSizeImpl(Rest&... rest)
     {                                                       \
         return CalculateSizeImpl(__VA_ARGS__);              \
     }
+
+#define GEN_SERIALIZE_WITH_NAME(CLASS_NAME, ...)            \
+    static CLASS_NAME FromBuffer(const char* buf)           \
+    {                                                       \
+        CLASS_NAME obj;                                     \
+        obj.deserialize(buf);                               \
+        return obj;                                         \
+    }                                                       \
+    char* serialize(char* buf) const                        \
+    {                                                       \
+        return SerializeImpl(buf, __VA_ARGS__);             \
+    }                                                       \
+    std::string serialize() const                           \
+    {                                                       \
+        std::string __serialize_buf(CalculateSize(), '\0'); \
+        SerializeImpl(__serialize_buf.data(), __VA_ARGS__); \
+        return __serialize_buf;                             \
+    }                                                       \
+    uint16_t deserialize(const char* buf)                   \
+    {                                                       \
+        uint16_t offset = 0;                                \
+        DeserializeImpl(buf, offset, __VA_ARGS__);          \
+        return offset;                                      \
+    }                                                       \
+    uint16_t CalculateSize() const                          \
+    {                                                       \
+        return CalculateSizeImpl(__VA_ARGS__);              \
+    }
