@@ -11,6 +11,7 @@ memory management, logging, and system-level helpers.
 - Ceph-style hash helpers, alignment utilities, and CPU binding
 - Memory pools, thread pools, timers, and an LRU cache
 - C++20 coroutine, Asio, hook, and RPC examples
+- iceoryx2 C++ publish/subscribe and request/response IPC examples
 
 ## Prerequisites
 
@@ -19,6 +20,7 @@ memory management, logging, and system-level helpers.
 - Git, including submodule support
 - `make` for the bundled `liburing` build
 - Python development headers and `pybind11` for the `call_python` example
+- Rust and Cargo for building the bundled iceoryx2 C/C++ bindings
 
 ## Build
 
@@ -33,8 +35,15 @@ cmake --build build -j 1
 
 The top-level build currently includes the tools test suite, io_uring examples
 and benchmark, coroutine examples, the C++-to-Python `call_python` example,
-yalanting examples, Asio examples, and hook tests. Other directories listed in
-the root `CMakeLists.txt` remain disabled.
+yalanting examples, Asio examples, hook tests, and iceoryx2 IPC examples. Other
+directories listed in the root `CMakeLists.txt` remain disabled.
+
+## iceoryx2 IPC Examples
+
+The `iceoryx2_sample` directory provides publish/subscribe and
+request/response examples backed by the bundled `3rdparty/iceoryx2` checkout.
+See [`iceoryx2_sample/README.md`](iceoryx2_sample/README.md) for standalone
+build and run commands.
 
 ## Test Suite
 

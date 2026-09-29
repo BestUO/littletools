@@ -31,3 +31,6 @@
 [submodule "3rdparty/gperftools"]
 	path = 3rdparty/gperftools
 	url = https://github.com/gperftools/gperftools.git
+[submodule "3rdparty/iceoryx2"]
+	path = 3rdparty/iceoryx2
+	url = https://github.com/eclipse-iceoryx/iceoryx2.git

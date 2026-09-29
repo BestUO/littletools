@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.22)
 
 set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set (PROJ_NAME "littletools")
@@ -44,6 +44,7 @@ ADD_SUBDIRECTORY(call_python)
 ADD_SUBDIRECTORY(yalantingstudy)
 ADD_SUBDIRECTORY(asiostudy)
 ADD_SUBDIRECTORY(hook_test)
+ADD_SUBDIRECTORY(iceoryx2_sample)
 
 # ----- build complete gperftools out-of-source -----
 set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
