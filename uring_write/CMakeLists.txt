@@ -12,7 +12,7 @@ add_dependencies(${PROJECT_NAME} uring)
 
 target_compile_options(${PROJECT_NAME} PRIVATE -D_GNU_SOURCE)
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${URING_INCLUDE_DIR})
+target_include_directories(${PROJECT_NAME} PUBLIC ${LIBURING_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBURING_STATIC_LIB} pthread)
 
 add_executable(${PROJECT_NAME}_demo main.cpp)

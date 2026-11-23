@@ -2,11 +2,14 @@
 
 #include <cstdint>
 #include <cstring>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <vector>
 #include <list>
 #include <set>
+#include <tuple>
+#include <utility>
 #include "global.hpp"
 #include "uuid.hpp"
 
@@ -48,12 +51,6 @@ inline void readBuffer(const char* buf, uint16_t& offset, std::string& data)
     offset += lenBigEndian;
 }
 
-inline void writeBuffer(const std::string& data, std::string& buf)
-{
-    auto lenBigEndian = EndianSwap<>::swap((uint16_t)data.size());
-    buf.append((char*)&lenBigEndian, sizeof(uint16_t)).append(data);
-}
-
 inline char* writeBuffer(const std::string& data, char* buf)
 {
     auto lenBigEndian = EndianSwap<>::swap((uint16_t)data.size());
@@ -67,39 +64,20 @@ inline const uint16_t CalculateSize(const std::string& data)
     return data.size() + sizeof(uint16_t);
 }
 
-inline void writeBuffer(std::string_view data, std::string& buf)
-{
-    auto lenBigEndian = EndianSwap<>::swap((uint16_t)data.size());
-    buf.append((char*)&lenBigEndian, sizeof(uint16_t)).append(data);
-}
-
-inline char* writeBuffer(std::string_view data, char* buf)
-{
-    auto lenBigEndian = EndianSwap<>::swap((uint16_t)data.size());
-    memcpy(buf, (char*)&lenBigEndian, sizeof(uint16_t));
-    memcpy(buf + sizeof(uint16_t), data.data(), data.size());
-    return buf + sizeof(uint16_t) + data.size();
-}
-
-inline const uint16_t CalculateSize(std::string_view data)
-{
-    return data.size() + sizeof(uint16_t);
-}
-
-inline void readBuffer(const char* buf, uint16_t& offset, char* data)
+template <uint16_t N>
+inline void readBuffer(const char* buf, uint16_t& offset, char (&data)[N])
 {
     uint16_t* len_ptr = (uint16_t*)(buf + offset);
-    auto lenBigEndian = EndianSwap<>::swap(*len_ptr);
     offset += sizeof(uint16_t);
+    const auto lenBigEndian = EndianSwap<>::swap(*len_ptr);
+    if (lenBigEndian > N)
+    {
+        throw std::runtime_error(
+            "serialized char array exceeds destination size");
+    }
+
     memcpy(data, buf + offset, lenBigEndian);
     offset += lenBigEndian;
-}
-
-template <uint16_t N>
-inline void writeBuffer(const char (&data)[N], std::string& buf)
-{
-    auto lenBigEndian = EndianSwap<>::swap(N);
-    buf.append((char*)&lenBigEndian, sizeof(uint16_t)).append(data, N);
 }
 
 template <uint16_t N>
@@ -141,59 +119,84 @@ public:
         || decltype(check_char<T>(nullptr))::value;
 };
 
-template <typename T, std::enable_if_t<!has_serialize<T>::value, int> = 0>
+template <typename T>
 inline void readBuffer(const char* buf, uint16_t& offset, T& data)
 {
-    T tmpData;
-    memcpy(&tmpData, buf + offset, sizeof(T));
-    offset += sizeof(T);
-    data = EndianSwap<>::swap(tmpData);
+    if constexpr (has_serialize<T>::value)
+    {
+        offset += data.deserialize(buf + offset);
+    }
+    else
+    {
+        T tmpData;
+        memcpy(&tmpData, buf + offset, sizeof(T));
+        offset += sizeof(T);
+        data = EndianSwap<>::swap(tmpData);
+    }
 }
 
-template <typename T, std::enable_if_t<!has_serialize<T>::value, int> = 0>
-inline void writeBuffer(const T& data, std::string& buf)
-{
-    auto tmpData = EndianSwap<>::swap(data);
-    buf.append((char*)&tmpData, sizeof(data));
-}
-
-template <typename T, std::enable_if_t<!has_serialize<T>::value, int> = 0>
+template <typename T>
 inline char* writeBuffer(const T& data, char* buf)
 {
-    auto tmpData = EndianSwap<>::swap(data);
-    memcpy(buf, (char*)&tmpData, sizeof(data));
-    return buf + sizeof(data);
+    if constexpr (has_serialize<T>::value)
+    {
+        return data.serialize(buf);
+    }
+    else
+    {
+        auto tmpData = EndianSwap<>::swap(data);
+        memcpy(buf, (char*)&tmpData, sizeof(data));
+        return buf + sizeof(data);
+    }
 }
 
-template <typename T, std::enable_if_t<!has_serialize<T>::value, int> = 0>
+template <typename T>
 inline const uint16_t CalculateSize(const T& data)
 {
-    return sizeof(data);
+    if constexpr (has_serialize<T>::value)
+    {
+        return data.CalculateSize();
+    }
+    else
+    {
+        return sizeof(data);
+    }
 }
 
-template <typename T, std::enable_if_t<has_serialize<T>::value, int> = 0>
-inline void readBuffer(const char* buf, uint16_t& offset, T& data)
+template <typename... Args>
+inline void readBuffer(const char* buf,
+    uint16_t& offset,
+    std::tuple<Args...>& data)
 {
-    offset += data.deserialize(buf + offset);
+    std::apply(
+        [&buf, &offset](auto&... values) {
+            (readBuffer(buf, offset, values), ...);
+        },
+        data);
 }
 
-template <typename T, std::enable_if_t<has_serialize<T>::value, int> = 0>
-inline void writeBuffer(const T& data, std::string& buf)
+template <typename... Args>
+inline char* writeBuffer(const std::tuple<Args...>& data, char* buf)
 {
-    auto s = data.serialize();
-    buf.append(s);
+    char* cursor = buf;
+    std::apply(
+        [&cursor](const auto&... values) {
+            ((cursor = writeBuffer(values, cursor)), ...);
+        },
+        data);
+    return cursor;
 }
 
-template <typename T, std::enable_if_t<has_serialize<T>::value, int> = 0>
-inline char* writeBuffer(const T& data, char* buf)
+template <typename... Args>
+inline const uint16_t CalculateSize(const std::tuple<Args...>& data)
 {
-    return data.serialize(buf);
-}
-
-template <typename T, std::enable_if_t<has_serialize<T>::value, int> = 0>
-inline const uint16_t CalculateSize(T& data)
-{
-    return data.CalculateSize();
+    uint16_t size = 0;
+    std::apply(
+        [&size](const auto&... values) {
+            ((size += CalculateSize(values)), ...);
+        },
+        data);
+    return size;
 }
 
 template <typename T>
@@ -208,15 +211,6 @@ inline void readBuffer(const char* buf, uint16_t& offset, std::set<T>& data)
         readBuffer(buf, offset, item);
         data.insert(item);
     }
-}
-
-template <typename T>
-inline void writeBuffer(const std::set<T>& data, std::string& buf)
-{
-    auto lenBigEndian = EndianSwap<>::swap(uint16_t(data.size()));
-    buf.append((char*)&lenBigEndian, sizeof(uint16_t));
-    for (const auto& item : data)
-        writeBuffer(item, buf);
 }
 
 template <typename T>
@@ -251,15 +245,6 @@ inline void readBuffer(const char* buf, uint16_t& offset, std::vector<T>& data)
         readBuffer(buf, offset, item);
         data.emplace_back(item);
     }
-}
-
-template <typename T>
-inline void writeBuffer(const std::vector<T>& data, std::string& buf)
-{
-    auto lenBigEndian = EndianSwap<>::swap((uint16_t)data.size());
-    buf.append((char*)&lenBigEndian, sizeof(uint16_t));
-    for (auto& item : data)
-        writeBuffer(item, buf);
 }
 
 template <typename T>
@@ -319,74 +304,34 @@ uint16_t const CalculateSizeImpl(Rest&... rest)
     return (::CalculateSize(rest) + ...);
 }
 
-// #define GEN_SERIALIZE(...)                          \
-//     char* serialize(char* buf) const                \
-//     {                                               \
-//         return SerializeImpl(buf, __VA_ARGS__);     \
-//     }                                               \
-//     uint16_t deserialize(const char* buf)           \
-//     {                                               \
-//         uint16_t offset;                            \
-//         DeserializeImpl(buf, offset, __VA_ARGS__);  \
-//         return offset;                              \
-//     }                                               \
-//     uint16_t CalculateSize() const                  \
-//     {                                               \
-//         return CalculateSizeImpl(__VA_ARGS__);      \
-//     }                                               \
-//     std::string serialize() const                   \
-//     {                                               \
-//         std::string context;                        \
-//         SerializeImpl(context.data(), __VA_ARGS__); \
-//         return context;                             \
-//     }
-
-#define GEN_SERIALIZE(...)                                  \
-    char* serialize(char* buf) const                        \
-    {                                                       \
-        return SerializeImpl(buf, __VA_ARGS__);             \
-    }                                                       \
-    std::string serialize() const                           \
-    {                                                       \
-        std::string __serialize_buf(CalculateSize(), '\0'); \
-        SerializeImpl(__serialize_buf.data(), __VA_ARGS__); \
-        return __serialize_buf;                             \
-    }                                                       \
-    uint16_t deserialize(const char* buf)                   \
-    {                                                       \
-        uint16_t offset = 0;                                \
-        DeserializeImpl(buf, offset, __VA_ARGS__);          \
-        return offset;                                      \
-    }                                                       \
-    uint16_t CalculateSize() const                          \
-    {                                                       \
-        return CalculateSizeImpl(__VA_ARGS__);              \
+#define GEN_SERIALIZE(...)                                                  \
+    char* serialize(char* _serialization_buffer) const                      \
+    {                                                                       \
+        return SerializeImpl(_serialization_buffer, __VA_ARGS__);           \
+    }                                                                       \
+    std::string serialize() const                                           \
+    {                                                                       \
+        std::string _serialization_result(CalculateSize(), '\0');           \
+        SerializeImpl(_serialization_result.data(), __VA_ARGS__);           \
+        return _serialization_result;                                       \
+    }                                                                       \
+    uint16_t deserialize(const char* _deserialization_buffer)               \
+    {                                                                       \
+        uint16_t _deserialization_offset = 0;                               \
+        DeserializeImpl(                                                    \
+            _deserialization_buffer, _deserialization_offset, __VA_ARGS__); \
+        return _deserialization_offset;                                     \
+    }                                                                       \
+    uint16_t CalculateSize() const                                          \
+    {                                                                       \
+        return CalculateSizeImpl(__VA_ARGS__);                              \
     }
 
-#define GEN_SERIALIZE_WITH_NAME(CLASS_NAME, ...)            \
-    static CLASS_NAME FromBuffer(const char* buf)           \
-    {                                                       \
-        CLASS_NAME obj;                                     \
-        obj.deserialize(buf);                               \
-        return obj;                                         \
-    }                                                       \
-    char* serialize(char* buf) const                        \
-    {                                                       \
-        return SerializeImpl(buf, __VA_ARGS__);             \
-    }                                                       \
-    std::string serialize() const                           \
-    {                                                       \
-        std::string __serialize_buf(CalculateSize(), '\0'); \
-        SerializeImpl(__serialize_buf.data(), __VA_ARGS__); \
-        return __serialize_buf;                             \
-    }                                                       \
-    uint16_t deserialize(const char* buf)                   \
-    {                                                       \
-        uint16_t offset = 0;                                \
-        DeserializeImpl(buf, offset, __VA_ARGS__);          \
-        return offset;                                      \
-    }                                                       \
-    uint16_t CalculateSize() const                          \
-    {                                                       \
-        return CalculateSizeImpl(__VA_ARGS__);              \
-    }
+// #define GEN_SERIALIZE_WITH_NAME(CLASS_NAME, ...)  \
+//     static CLASS_NAME FromBuffer(const char* buf) \
+//     {                                             \
+//         CLASS_NAME obj;                           \
+//         obj.deserialize(buf);                     \
+//         return obj;                               \
+//     }                                             \
+//     GEN_SERIALIZE(__VA_ARGS__)

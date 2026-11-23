@@ -42,7 +42,7 @@ TEST_CASE("ReliableUDP_SplitCell_MessageInfo")
     CHECK(a.cell_info.cell_header.cell_segment_count
         == b.cell_info.cell_header.cell_segment_count);
     CHECK(a.cell_info.cell_header.cell_id == b.cell_info.cell_header.cell_id);
-    CHECK(a.cell_info.cell_payload != b.cell_info.cell_payload);
+    CHECK(a.cell_info.cell_payload == b.cell_info.cell_payload);
 }
 
 TEST_CASE("ReliableUDP_SplitCell_CellReceived")

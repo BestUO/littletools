@@ -28,6 +28,8 @@ Initialize third-party dependencies and configure an out-of-source Release
 build:
 
 ```sh
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+rustup default stable
 git submodule update --init --recursive --depth 1
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j 1

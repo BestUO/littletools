@@ -1,5 +1,6 @@
 #include <format>
 #include <iostream>
+#include <tuple>
 #include <utility>
 #include <unistd.h>
 #include "doctest/doctest.h"
@@ -136,101 +137,25 @@ TEST_CASE("fun_executor v3")
         == *executor.InvokeFunction<std::string>("MemberStringFunc", "hello"));
 }
 
-TEST_CASE("fun_executor_simple_serialize v3")
-{
-    struct MemberIntFuncParam
-    {
-        int param;
-    };
-    struct MemberIntFuncReturn
-    {
-        int res;
-    };
-    struct MemberStringFuncParam
-    {
-        std::string param;
-    };
-    struct MemberStringFuncReturn
-    {
-        std::string res;
-    };
-    class TestClass
-    {
-    public:
-        MemberIntFuncReturn MemberIntFunc(MemberIntFuncParam a)
-        {
-            return MemberIntFuncReturn{a.param};
-        }
-
-        MemberStringFuncReturn MemberStringFunc(MemberStringFuncParam a)
-        {
-            return MemberStringFuncReturn{a.param};
-        }
-    };
-
-    MemberIntFuncParam param_int{567};
-    MemberStringFuncParam param_str{"hello world"};
-
-    std::string int_serialize
-        = serialize::SimpleSerializer::Serialize(param_int);
-    std::string str_serialize
-        = serialize::SimpleSerializer::Serialize(param_str);
-
-    funexecutor::v3::FunExecutor executor;
-    TestClass obj;
-
-    executor.RegisterFunctionWithSerialize(
-        "MemberIntFunc", [&obj](MemberIntFuncParam a) {
-            return obj.MemberIntFunc(a);
-        });
-    CHECK(567
-        == serialize::SimpleSerializer::Deserialize<MemberIntFuncReturn>(
-            executor.InvokeFunctionWithSerialize(
-                "MemberIntFunc", int_serialize))
-               .res);
-
-    executor.RegisterFunctionWithSerialize(
-        "MemberStringFunc", [&obj](MemberStringFuncParam a) {
-            return obj.MemberStringFunc(a);
-        });
-    CHECK("hello world"
-        == serialize::SimpleSerializer::Deserialize<MemberStringFuncReturn>(
-            executor.InvokeFunctionWithSerialize(
-                "MemberStringFunc", str_serialize))
-               .res);
-}
-
 TEST_CASE("fun_executor_macro_serialize v3")
 {
     struct ParamBase
     {
         std::string function_name;
-        GEN_SERIALIZE_WITH_NAME(ParamBase, function_name)
-    };
-    struct ParamReturnBase
-    {
         int base;
-        GEN_SERIALIZE_WITH_NAME(ParamReturnBase, base)
+        GEN_SERIALIZE(function_name, base)
     };
     struct MemberFuncParam
     {
         ParamBase param_base;
         int param;
-        GEN_SERIALIZE_WITH_NAME(MemberFuncParam, param_base, param)
+        GEN_SERIALIZE(param_base, param)
     };
     struct MemberIntFuncReturn
     {
-        ParamReturnBase param_return_base;
+        ParamBase param_base;
         int result;
-        GEN_SERIALIZE_WITH_NAME(MemberIntFuncReturn, param_return_base, result)
-    };
-    struct MemberStringFuncReturn
-    {
-        ParamReturnBase param_return_base;
-        std::string result;
-        GEN_SERIALIZE_WITH_NAME(MemberStringFuncReturn,
-            param_return_base,
-            result)
+        GEN_SERIALIZE(param_base, result)
     };
 
     class TestClass
@@ -238,16 +163,11 @@ TEST_CASE("fun_executor_macro_serialize v3")
     public:
         MemberIntFuncReturn MemberIntFunc1(MemberFuncParam p)
         {
-            return MemberIntFuncReturn{{12}, 1};
+            return MemberIntFuncReturn{{p.param_base}, p.param};
         }
-        MemberIntFuncReturn MemberIntFunc2(MemberFuncParam p)
+        int MemberIntFunc2(ParamBase param_base, int param)
         {
-            return MemberIntFuncReturn{{13}, 2};
-        }
-
-        MemberStringFuncReturn MemberStringFunc(MemberFuncParam p)
-        {
-            return MemberStringFuncReturn{{14}, "hello"};
+            return param;
         }
     };
     funexecutor::v3::FunExecutor executor;
@@ -257,48 +177,36 @@ TEST_CASE("fun_executor_macro_serialize v3")
             return obj.MemberIntFunc1(p);
         });
     executor.RegisterFunctionWithSerialize(
-        "MemberIntFunc2", [&obj](MemberFuncParam p) {
-            return obj.MemberIntFunc2(p);
-        });
-    executor.RegisterFunctionWithSerialize(
-        "MemberStringFunc", [&obj](MemberFuncParam p) {
-            return obj.MemberStringFunc(p);
+        "MemberIntFunc2", [&obj](ParamBase param_base, int param) {
+            return obj.MemberIntFunc2(param_base, param);
         });
 
-    MemberFuncParam param_int_fun1{{.function_name = "MemberIntFunc1"}, 42};
-    std::string param_int_fun1_serialize = param_int_fun1.serialize();
-    auto param_base = ParamBase::FromBuffer(param_int_fun1_serialize.c_str());
-    CHECK("MemberIntFunc1" == param_base.function_name);
-    auto member_int_func1_return_serialize
-        = executor.InvokeFunctionWithSerialize(
-            param_base.function_name, param_int_fun1_serialize);
-    auto member_int_func1_return = MemberIntFuncReturn::FromBuffer(
-        member_int_func1_return_serialize.c_str());
-    CHECK(1 == member_int_func1_return.result);
-    CHECK(12 == member_int_func1_return.param_return_base.base);
+    MemberFuncParam fun1_request_user_data{{"aaa", 12}, 42};
+    funexecutor::v3::FunExecutor::ResquestOrResponse<MemberFuncParam>
+        fun1_true_request{"MemberIntFunc1", fun1_request_user_data};
+    std::string fun1_true_request_str = fun1_true_request.serialize();
+    auto func1_return_str
+        = executor.InvokeFunctionWithSerialize(fun1_true_request_str);
+    funexecutor::v3::FunExecutor::ResquestOrResponse<MemberIntFuncReturn>
+        func1_true_return;
+    func1_true_return.deserialize(func1_return_str.c_str());
+    CHECK(fun1_true_request.function_id == func1_true_return.function_id);
+    auto fun1_reponse_user_data = std::get<0>(func1_true_return.user_data);
+    CHECK(fun1_request_user_data.param_base.base
+        == fun1_reponse_user_data.param_base.base);
+    CHECK(fun1_request_user_data.param_base.function_name
+        == fun1_reponse_user_data.param_base.function_name);
+    CHECK(fun1_request_user_data.param == fun1_reponse_user_data.result);
 
-    MemberFuncParam param_int_fun2{{.function_name = "MemberIntFunc2"}, 43};
-    std::string param_int_fun2_serialize = param_int_fun2.serialize();
-    auto param_base2 = ParamBase::FromBuffer(param_int_fun2_serialize.c_str());
-    CHECK("MemberIntFunc2" == param_base2.function_name);
-    auto member_int_func2_return_serialize
-        = executor.InvokeFunctionWithSerialize(
-            param_base2.function_name, param_int_fun2_serialize);
-    auto member_int_func2_return = MemberIntFuncReturn::FromBuffer(
-        member_int_func2_return_serialize.c_str());
-    CHECK(2 == member_int_func2_return.result);
-    CHECK(13 == member_int_func2_return.param_return_base.base);
+    funexecutor::v3::FunExecutor::ResquestOrResponse<ParamBase, int>
+        fun2_true_request{"MemberIntFunc2", {ParamBase{"bbb", 13}, 43}};
 
-    MemberFuncParam param_string_fun{{.function_name = "MemberStringFunc"}, 44};
-    std::string param_string_fun_serialize = param_string_fun.serialize();
-    auto param_base3
-        = ParamBase::FromBuffer(param_string_fun_serialize.c_str());
-    CHECK("MemberStringFunc" == param_base3.function_name);
-    auto member_string_func_return_serialize
-        = executor.InvokeFunctionWithSerialize(
-            param_base3.function_name, param_string_fun_serialize);
-    auto member_string_func_return = MemberStringFuncReturn::FromBuffer(
-        member_string_func_return_serialize.c_str());
-    CHECK("hello" == member_string_func_return.result);
-    CHECK(14 == member_string_func_return.param_return_base.base);
+    std::string fun2_true_request_str = fun2_true_request.serialize();
+    auto func2_true_response_str
+        = executor.InvokeFunctionWithSerialize(fun2_true_request_str);
+    funexecutor::v3::FunExecutor::ResquestOrResponse<int> func2_true_response;
+    func2_true_response.deserialize(func2_true_response_str.c_str());
+    CHECK(fun2_true_request.function_id == func2_true_response.function_id);
+    auto fun2_response_user_data = std::get<0>(func2_true_response.user_data);
+    CHECK(std::get<1>(fun2_true_request.user_data) == fun2_response_user_data);
 }

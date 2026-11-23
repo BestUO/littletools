@@ -1263,18 +1263,17 @@ public:
 
     void StopTimerManager()
     {
-        {
-            std::lock_guard<std::mutex> lock(mutex_);
-            if (stopped_)
-                return;
-            stopped_ = true;
-            timers_.clear();
-            while (!queue_.empty())
-                queue_.pop();
-        }
+        if (stopped_)
+            return;
+        stopped_ = true;
         cv_.notify_one();
         if (thread_.joinable())
             thread_.join();
+
+        std::lock_guard<std::mutex> lock(mutex_);
+        timers_.clear();
+        while (!queue_.empty())
+            queue_.pop();
     }
 
     void StartTimerManager()
@@ -1369,8 +1368,12 @@ private:
             && !timer->cancelled.load())
         {
             std::lock_guard<std::mutex> lock(mutex_);
-            queue_.push(
-                {std::chrono::steady_clock::now() + timer->interval, timer});
+            if (!stopped_ && timers_.contains(timer->id)
+                && !timer->cancelled.load())
+            {
+                queue_.push({std::chrono::steady_clock::now() + timer->interval,
+                    timer});
+            }
         }
     }
 };

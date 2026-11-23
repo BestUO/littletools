@@ -3,7 +3,6 @@
 #include "tools/simple_serialize.hpp"
 #include <cstdint>
 #include <string>
-#include <string_view>
 #include <vector>
 
 enum class ReliableUDPType : uint8_t
@@ -23,73 +22,14 @@ struct CellInfoHeader
     uint8_t cell_current_index;
     uint16_t cell_offset;
     uint16_t cell_segment_count;
-
-    std::string serialize() const
-    {
-        std::string context(CalculateSize(), '\0');
-        serialize(context.data());
-        return context;
-    }
-
-    char* serialize(char* buf) const
-    {
-        buf = writeBuffer(cell_id, buf);
-        buf = writeBuffer(cell_current_index, buf);
-        buf = writeBuffer(cell_offset, buf);
-        buf = writeBuffer(cell_segment_count, buf);
-
-        return buf;
-    }
-
-    uint16_t deserialize(const char* buf)
-    {
-        uint16_t offset = 0;
-        readBuffer(buf, offset, cell_id);
-        readBuffer(buf, offset, cell_current_index);
-        readBuffer(buf, offset, cell_offset);
-        readBuffer(buf, offset, cell_segment_count);
-        return offset;
-    }
-
-    uint16_t CalculateSize() const
-    {
-        return ::CalculateSize(cell_id) + ::CalculateSize(cell_current_index)
-            + ::CalculateSize(cell_offset)
-            + ::CalculateSize(cell_segment_count);
-    }
+    GEN_SERIALIZE(cell_id, cell_current_index, cell_offset, cell_segment_count)
 };
 
 struct CellInfo
 {
     CellInfoHeader cell_header;
-    std::string_view cell_payload;
-
-    std::string serialize() const
-    {
-        std::string context(CalculateSize(), '\0');
-        serialize(context.data());
-        return context;
-    }
-
-    char* serialize(char* buf) const
-    {
-        buf = writeBuffer(cell_header, buf);
-        buf = writeBuffer(cell_payload, buf);
-
-        return buf;
-    }
-
-    uint16_t deserialize(const char* buf)
-    {
-        uint16_t offset = 0;
-        readBuffer(buf, offset, cell_header);
-        return offset;
-    }
-
-    uint16_t CalculateSize() const
-    {
-        return ::CalculateSize(cell_header) + ::CalculateSize(cell_payload);
-    }
+    std::string cell_payload;
+    GEN_SERIALIZE(cell_header, cell_payload)
 };
 
 struct MessageInfo
@@ -99,42 +39,7 @@ struct MessageInfo
     uint64_t message_size;
     uint64_t message_offset;
     CellInfo cell_info;
-
-    std::string serialize() const
-    {
-        std::string context(CalculateSize(), '\0');
-        serialize(context.data());
-        return context;
-    }
-
-    char* serialize(char* buf) const
-    {
-        buf = writeBuffer(type, buf);
-        buf = writeBuffer(message_id, buf);
-        buf = writeBuffer(message_size, buf);
-        buf = writeBuffer(message_offset, buf);
-        buf = writeBuffer(cell_info, buf);
-
-        return buf;
-    }
-
-    uint16_t deserialize(const char* buf)
-    {
-        uint16_t offset = 0;
-        readBuffer(buf, offset, type);
-        readBuffer(buf, offset, message_id);
-        readBuffer(buf, offset, message_size);
-        readBuffer(buf, offset, message_offset);
-        // readBuffer(buf, offset, cell_info);
-        return offset + cell_info.deserialize(buf + offset);
-    }
-
-    uint16_t CalculateSize() const
-    {
-        return ::CalculateSize(type) + ::CalculateSize(message_id)
-            + ::CalculateSize(message_size) + ::CalculateSize(message_offset)
-            + ::CalculateSize(cell_info);
-    }
+    GEN_SERIALIZE(type, message_id, message_size, message_offset, cell_info)
 };
 
 struct CellReceived
@@ -153,37 +58,7 @@ struct CellReceived
         , message_id(message_id)
         , cell_id(cell_id)
     { }
-    // GEN_SERIALIZE(type, message_id, cell_id)
-    std::string serialize() const
-    {
-        std::string context(CalculateSize(), '\0');
-        serialize(context.data());
-        return context;
-    }
-
-    char* serialize(char* buf) const
-    {
-        buf = writeBuffer(type, buf);
-        buf = writeBuffer(message_id, buf);
-        buf = writeBuffer(cell_id, buf);
-
-        return buf;
-    }
-
-    uint16_t deserialize(const char* buf)
-    {
-        uint16_t offset = 0;
-        readBuffer(buf, offset, type);
-        readBuffer(buf, offset, message_id);
-        readBuffer(buf, offset, cell_id);
-        return offset;
-    }
-
-    uint16_t CalculateSize() const
-    {
-        return ::CalculateSize(type) + ::CalculateSize(message_id)
-            + ::CalculateSize(cell_id);
-    }
+    GEN_SERIALIZE(type, message_id, cell_id)
 };
 
 struct MessageFinished
@@ -198,34 +73,7 @@ struct MessageFinished
         : type(type)
         , message_id(message_id)
     { }
-    // GEN_SERIALIZE(type, message_id)
-    std::string serialize() const
-    {
-        std::string context(CalculateSize(), '\0');
-        serialize(context.data());
-        return context;
-    }
-
-    char* serialize(char* buf) const
-    {
-        buf = writeBuffer(type, buf);
-        buf = writeBuffer(message_id, buf);
-
-        return buf;
-    }
-
-    uint16_t deserialize(const char* buf)
-    {
-        uint16_t offset = 0;
-        readBuffer(buf, offset, type);
-        readBuffer(buf, offset, message_id);
-        return offset;
-    }
-
-    uint16_t CalculateSize() const
-    {
-        return ::CalculateSize(type) + ::CalculateSize(message_id);
-    }
+    GEN_SERIALIZE(type, message_id)
 };
 
 struct CellTimeoutCheck
@@ -244,37 +92,7 @@ struct CellTimeoutCheck
         , message_id(message_id)
         , cell_id(cell_id)
     { }
-    // GEN_SERIALIZE(type, message_id, cell_id)
-    std::string serialize() const
-    {
-        std::string context(CalculateSize(), '\0');
-        serialize(context.data());
-        return context;
-    }
-
-    char* serialize(char* buf) const
-    {
-        buf = writeBuffer(type, buf);
-        buf = writeBuffer(message_id, buf);
-        buf = writeBuffer(cell_id, buf);
-
-        return buf;
-    }
-
-    uint16_t deserialize(const char* buf)
-    {
-        uint16_t offset = 0;
-        readBuffer(buf, offset, type);
-        readBuffer(buf, offset, message_id);
-        readBuffer(buf, offset, cell_id);
-        return offset;
-    }
-
-    uint16_t CalculateSize() const
-    {
-        return ::CalculateSize(type) + ::CalculateSize(message_id)
-            + ::CalculateSize(cell_id);
-    }
+    GEN_SERIALIZE(type, message_id, cell_id)
 };
 
 struct CellTimeoutResponse
@@ -296,36 +114,5 @@ struct CellTimeoutResponse
         , cell_id(cell_id)
         , cell_loss_index(std::move(cell_loss_index))
     { }
-    // GEN_SERIALIZE(type, message_id, cell_id, cell_loss_index)
-    std::string serialize() const
-    {
-        std::string context(CalculateSize(), '\0');
-        serialize(context.data());
-        return context;
-    }
-
-    char* serialize(char* buf) const
-    {
-        buf = writeBuffer(type, buf);
-        buf = writeBuffer(message_id, buf);
-        buf = writeBuffer(cell_id, buf);
-        buf = writeBuffer(cell_loss_index, buf);
-        return buf;
-    }
-
-    uint16_t deserialize(const char* buf)
-    {
-        uint16_t offset = 0;
-        readBuffer(buf, offset, type);
-        readBuffer(buf, offset, message_id);
-        readBuffer(buf, offset, cell_id);
-        readBuffer(buf, offset, cell_loss_index);
-        return offset;
-    }
-
-    uint16_t CalculateSize() const
-    {
-        return ::CalculateSize(type) + ::CalculateSize(message_id)
-            + ::CalculateSize(cell_id) + ::CalculateSize(cell_loss_index);
-    }
+    GEN_SERIALIZE(type, message_id, cell_id, cell_loss_index)
 };

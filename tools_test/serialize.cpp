@@ -16,51 +16,14 @@ struct Base
     std::set<int> st;
     char buf[3];
     UUID t;
-    std::string serialize() const
-    {
-        std::string context;
-        writeBuffer(index, context);
-        writeBuffer(s, context);
-        writeBuffer(v, context);
-        writeBuffer(st, context);
-        writeBuffer(buf, context);
-        writeBuffer(t, context);
-        return context;
-    }
-
-    uint16_t deserialize(const char* buf)
-    {
-        uint16_t offset = 0;
-        readBuffer(buf, offset, index);
-        readBuffer(buf, offset, s);
-        readBuffer(buf, offset, v);
-        readBuffer(buf, offset, st);
-        readBuffer(buf, offset, this->buf);
-        readBuffer(buf, offset, t);
-        return offset;
-    }
+    GEN_SERIALIZE(index, s, v, st, buf, t)
 };
 
 struct Test
 {
     Base base;
     std::string s;
-    std::string serialize() const
-    {
-        std::string context;
-        writeBuffer(base, context);
-        writeBuffer(s, context);
-
-        return context;
-    }
-
-    uint16_t deserialize(const char* buf)
-    {
-        uint16_t offset = 0;
-        readBuffer(buf, offset, base);
-        readBuffer(buf, offset, s);
-        return offset;
-    }
+    GEN_SERIALIZE(base, s)
 };
 
 TEST_CASE("serializer_simple_old")
@@ -91,38 +54,6 @@ TEST_CASE("serializer_simple_new")
         char c[3];
         UUID t;
         GEN_SERIALIZE(index, s, v, st, c, t)
-        // or
-        /*
-        char* serialize(char* buf) const
-        {
-            buf = writeBuffer(index, buf);
-            buf = writeBuffer(s, buf);
-            buf = writeBuffer(v, buf);
-            buf = writeBuffer(st, buf);
-            buf = writeBuffer(c, buf);
-            buf = writeBuffer(t, buf);
-            return buf;
-        }
-
-        uint16_t deserialize(const char* buf)
-        {
-            uint16_t offset = 0;
-            readBuffer(buf, offset, index);
-            readBuffer(buf, offset, s);
-            readBuffer(buf, offset, v);
-            readBuffer(buf, offset, st);
-            readBuffer(buf, offset, c);
-            readBuffer(buf, offset, t);
-            return offset;
-        }
-
-        uint16_t CalculateSize()
-        {
-            return ::CalculateSize(index) + ::CalculateSize(s) +
-        ::CalculateSize(v)
-                + ::CalculateSize(st) + ::CalculateSize(c) + ::CalculateSize(t);
-        }
-        */
     };
 
     struct TestNew
@@ -130,29 +61,6 @@ TEST_CASE("serializer_simple_new")
         BaseNew base;
         std::string s;
         GEN_SERIALIZE(base, s)
-        // or
-        /*
-        char* serialize(char* buf) const
-        {
-            buf = writeBuffer(base, buf);
-            buf = writeBuffer(s, buf);
-
-            return buf;
-        }
-
-        uint16_t deserialize(const char* buf)
-        {
-            uint16_t offset = 0;
-            readBuffer(buf, offset, base);
-            readBuffer(buf, offset, s);
-            return offset;
-        }
-
-        uint16_t CalculateSize()
-        {
-            return ::CalculateSize(base) + ::CalculateSize(s);
-        }
-        */
     };
 
     TestNew test{
@@ -169,6 +77,33 @@ TEST_CASE("serializer_simple_new")
     CHECK(strcmp(test2.base.c, "ab") == 0);
     CHECK(test2.base.t == test.base.t);
     CHECK(test2.s == "456");
+}
+
+TEST_CASE("serializer_tuple")
+{
+    auto source              = std::make_tuple(42,
+        std::string("tuple"),
+        std::make_tuple(uint16_t{7}, std::string("nested")));
+    const auto expected_size = CalculateSize(source);
+
+    char string_buffer[expected_size];
+    writeBuffer(source, string_buffer);
+
+    decltype(source) from_string{};
+    uint16_t string_offset = 0;
+    readBuffer(string_buffer, string_offset, from_string);
+    CHECK(string_offset == expected_size);
+    CHECK(from_string == source);
+
+    std::string raw_buffer(expected_size, '\0');
+    char* end = writeBuffer(source, raw_buffer.data());
+    CHECK(end == raw_buffer.data() + expected_size);
+
+    decltype(source) from_raw{};
+    uint16_t raw_offset = 0;
+    readBuffer(raw_buffer.data(), raw_offset, from_raw);
+    CHECK(raw_offset == expected_size);
+    CHECK(from_raw == source);
 }
 
 struct A
