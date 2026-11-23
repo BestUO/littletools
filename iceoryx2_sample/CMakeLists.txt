@@ -15,6 +15,24 @@ if(NOT TARGET iceoryx2-cxx::static-lib-cxx)
         ${THIRD_PARTY_PATH}/iceoryx2
         ${CMAKE_BINARY_DIR}/3rdparty/iceoryx2
     )
+
+    if(NOT RUST_BUILD_ARTIFACT_PATH)
+        if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+            set(IOX2_RUST_BUILD_TYPE debug)
+        else()
+            set(IOX2_RUST_BUILD_TYPE release)
+        endif()
+
+        if(RUST_TARGET_TRIPLET)
+            set(IOX2_RUST_TARGET_DIR ${CMAKE_BINARY_DIR}/rust/${RUST_TARGET_TRIPLET})
+        else()
+            set(IOX2_RUST_TARGET_DIR ${CMAKE_BINARY_DIR}/rust/native)
+        endif()
+
+        target_include_directories(includes-only INTERFACE
+            $<BUILD_INTERFACE:${IOX2_RUST_TARGET_DIR}/${IOX2_RUST_BUILD_TYPE}/build/iceoryx2-ffi-c-cbindgen/include>
+        )
+    endif()
 endif()
 
 function(add_iceoryx2_sample target source)

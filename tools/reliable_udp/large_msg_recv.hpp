@@ -153,12 +153,12 @@ private:
                            .first;
             }
 
-            auto len = EndianSwap<>::swap(*(uint16_t*)(data + offset));
-            auto is_cell_finish = iter->second.DealWithCellMessage(
+            const auto& cell_payload = message_info.cell_info.cell_payload;
+            auto is_cell_finish      = iter->second.DealWithCellMessage(
                 message_info.cell_info.cell_header,
                 message_info.message_offset,
-                data + offset + sizeof(uint16_t),
-                len);
+                cell_payload.data(),
+                static_cast<uint16_t>(cell_payload.size()));
             if (is_cell_finish)
             {
                 __work.Put(std::move(SendMsgInfo{

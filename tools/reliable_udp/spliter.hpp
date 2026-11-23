@@ -77,8 +77,8 @@ private:
         for (uint8_t i = 0; i < cell_segment_count && i < MAX_SEGMENT_COUNT;
              i++)
         {
-            auto payload_view = __payload_view.substr(
-                i * MAX_SEGMENT_PAYLOAD_SIZE, MAX_SEGMENT_PAYLOAD_SIZE);
+            auto payload = std::string(__payload_view.substr(
+                i * MAX_SEGMENT_PAYLOAD_SIZE, MAX_SEGMENT_PAYLOAD_SIZE));
             __messages.emplace_back(MessageInfo{ReliableUDPType::CellSend,
                 message_id,
                 message_size,
@@ -89,7 +89,7 @@ private:
                              (uint16_t)(i * MAX_SEGMENT_PAYLOAD_SIZE),
                              cell_segment_count,
                          },
-                    payload_view}});
+                    payload}});
         }
     }
 };

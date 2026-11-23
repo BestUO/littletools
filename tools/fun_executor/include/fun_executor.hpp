@@ -3,6 +3,7 @@
 #include "tools/serialize/serializer.hpp"
 #include "tools/simple_serialize.hpp"
 #include <any>
+#include <concepts>
 #include <functional>
 #include <map>
 #include <optional>
@@ -333,45 +334,9 @@ private:
 
 namespace v3
 {
-
 template <typename T>
-struct stored_arg
-{
-    using decayed = std::decay_t<T>;
-    using type    = std::conditional_t<std::is_same_v<decayed, const char*>
-               || std::is_same_v<decayed, char*>,
-           std::string,
-           decayed>;
-};
-
-class TupleWrapper
-{
-public:
-    template <typename... Args>
-    TupleWrapper(Args&&... args)
-        : data_(std::make_any<std::tuple<typename stored_arg<Args>::type...>>(
-              std::forward<Args>(args)...))
-    { }
-
-    template <typename ExpectedTuple>
-    const ExpectedTuple& GetTuple() const
-    {
-        try
-        {
-            return std::any_cast<const ExpectedTuple&>(data_);
-        } catch (const std::bad_any_cast&)
-        {
-            throw std::runtime_error("Type mismatch when accessing tuple");
-        }
-    }
-
-private:
-    std::any data_;
-};
-
-template <typename T>
-concept HasFromBuffer = requires(const char* buf) {
-    { T::FromBuffer(buf) } -> std::convertible_to<T>;
+concept HasDeserialize = requires(const char* buf) {
+    { std::declval<T>().deserialize(buf) } -> std::convertible_to<uint16_t>;
 };
 
 template <typename T>
@@ -381,6 +346,60 @@ concept HasSerialize = requires(T&& value) {
 
 class FunExecutor
 {
+public:
+    template <typename T>
+    struct stored_arg
+    {
+        using decayed = std::decay_t<T>;
+        using type    = std::conditional_t<std::is_same_v<decayed, const char*>
+                   || std::is_same_v<decayed, char*>,
+               std::string,
+               decayed>;
+    };
+
+    class TupleWrapper
+    {
+    public:
+        template <typename... Args>
+        TupleWrapper(Args&&... args)
+            : data_(
+                  std::make_any<std::tuple<typename stored_arg<Args>::type...>>(
+                      std::forward<Args>(args)...))
+        { }
+
+        template <typename ExpectedTuple>
+        const ExpectedTuple& GetTuple() const
+        {
+            try
+            {
+                return std::any_cast<const ExpectedTuple&>(data_);
+            } catch (const std::bad_any_cast&)
+            {
+                throw std::runtime_error("Type mismatch when accessing tuple");
+            }
+        }
+
+    private:
+        std::any data_;
+    };
+
+    template <template <typename...> class Template, typename Tuple>
+    struct ApplyTupleToTemplate;
+
+    template <template <typename...> class Template, typename... Args>
+    struct ApplyTupleToTemplate<Template, std::tuple<Args...>>
+    {
+        using type = Template<Args...>;
+    };
+
+    template <typename... ARGS>
+    struct ResquestOrResponse
+    {
+        std::string function_id;
+        std::tuple<ARGS...> user_data;
+        GEN_SERIALIZE(function_id, user_data)
+    };
+
 public:
     template <typename Function>
     void RegisterFunction(const std::string& name, Function&& func)
@@ -443,57 +462,64 @@ public:
     {
         using function_type = std::decay_t<Function>;
         using traits = function_traits::v1::function_traits<function_type>;
+        using true_request_type =
+            typename ApplyTupleToTemplate<ResquestOrResponse,
+                typename traits::tuple_type>::type;
+        using true_response_type =
+            typename ApplyTupleToTemplate<ResquestOrResponse,
+                std::tuple<typename traits::return_type>>::type;
 
-        using args_tuple  = typename traits::tuple_type;
-        using return_type = typename traits::return_type;
+        // constexpr size_t args_size = std::tuple_size_v<args_tuple>;
 
-        constexpr size_t args_size = std::tuple_size_v<args_tuple>;
+        // static_assert(args_size == 1,
+        //     "Function must have exactly one argument for serialization");
 
-        static_assert(args_size == 1,
-            "Function must have exactly one argument for serialization");
-
-        using raw_arg_type = std::tuple_element_t<0, args_tuple>;
-        using arg_type     = std::remove_cvref_t<raw_arg_type>;
+        // using raw_arg_type = std::tuple_element_t<0, args_tuple>;
+        // using arg_type     = std::remove_cvref_t<raw_arg_type>;
 
         functions_with_serialize_[name]
             = [func = std::forward<Function>(func)](
                   std::string_view str) mutable -> std::string {
             auto param = [&]() {
-                if constexpr (HasFromBuffer<arg_type>)
+                if constexpr (HasDeserialize<true_request_type>)
                 {
-                    return arg_type::FromBuffer(str.data());
+                    true_request_type obj;
+                    obj.deserialize(str.data());
+                    return obj;
                 }
                 else
                 {
-                    return serialize::SimpleSerializer::Deserialize<arg_type>(
-                        std::string(str));
+                    return serialize::SimpleSerializer::Deserialize<
+                        true_request_type>(std::string(str));
                 }
             }();
 
-            if constexpr (std::is_void_v<return_type>)
+            if constexpr (std::is_void_v<typename traits::return_type>)
             {
-                func(param);
+                std::apply(func, std::move(param.user_data));
                 return {};
             }
             else
             {
-                auto result = func(param);
-                if constexpr (HasSerialize<decltype(result)>)
+                auto result = std::apply(func, std::move(param.user_data));
+                true_response_type obj{
+                    param.function_id, std::make_tuple(std::move(result))};
+                if constexpr (HasSerialize<true_response_type>)
                 {
-                    return result.serialize();
+                    return obj.serialize();
                 }
                 else
                 {
-                    return serialize::SimpleSerializer::Serialize(result);
+                    return serialize::SimpleSerializer::Serialize(obj);
                 }
             }
         };
     }
 
-    std::string InvokeFunctionWithSerialize(const std::string& name,
-        std::string_view str)
+    std::string InvokeFunctionWithSerialize(std::string_view str)
     {
-        auto it = functions_with_serialize_.find(name);
+        auto function_id = DeserializeFuncID(str);
+        auto it          = functions_with_serialize_.find(function_id);
         if (it != functions_with_serialize_.end())
         {
             return it->second(str);
@@ -510,6 +536,13 @@ private:
         functions_;
     std::map<std::string, std::function<std::string(std::string_view str)>>
         functions_with_serialize_;
+
+    std::string DeserializeFuncID(std::string_view str)
+    {
+        uint16_t* len_ptr = (uint16_t*)(str.data());
+        auto length       = EndianSwap<>::swap(*len_ptr);
+        return std::string(str.data() + sizeof(uint16_t), length);
+    }
 };
 }  // namespace v3
 }  // namespace funexecutor

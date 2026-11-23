@@ -3,6 +3,7 @@
 #include <chrono>
 #include <string>
 #include "../uuid.hpp"
+#include "tools/simple_serialize.hpp"
 
 #define RAFT_VERSION "RAFT-V2.0\0"
 
@@ -59,12 +60,11 @@ struct RaftCommandType
             = std::chrono::duration_cast<std::chrono::nanoseconds>(
                 std::chrono::steady_clock::now().time_since_epoch())
                   .count();
+        GEN_SERIALIZE(messageType, version, term, uuid, timestamp)
 
         CommonInfo() = default;
         CommonInfo(MessageType m);
         CommonInfo(const char* buf, uint16_t size);
-        std::string serialize() const;
-        uint16_t deserialize(const char* buf);
 
         constexpr static uint16_t size()
         {
@@ -75,37 +75,37 @@ struct RaftCommandType
     struct HeartBeat
     {
         CommonInfo commonInfo = {MessageType::HEARTBEAT};
+        GEN_SERIALIZE(commonInfo)
 
         HeartBeat() = default;
         HeartBeat(const char* buf, uint16_t size);
-        std::string serialize() const;
     };
 
     struct Vote
     {
         CommonInfo commonInfo = {MessageType::VOTE};
+        GEN_SERIALIZE(commonInfo)
 
         Vote() = default;
         Vote(const char* buf, uint16_t size);
-        std::string serialize() const;
     };
 
     struct VoteResponse
     {
         CommonInfo commonInfo = {MessageType::VOTERESPONSE};
         bool voteGranted      = false;
+        GEN_SERIALIZE(commonInfo, voteGranted)
 
         VoteResponse() = default;
         VoteResponse(const char* buf, uint16_t size);
-        std::string serialize() const;
     };
 
     struct VoteResult
     {
         CommonInfo commonInfo = {MessageType::VOTERESULT};
+        GEN_SERIALIZE(commonInfo)
 
         VoteResult() = default;
         VoteResult(const char* buf, uint16_t size);
-        std::string serialize() const;
     };
 };
