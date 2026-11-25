@@ -131,14 +131,15 @@ constexpr T maxOfTotalArgs(T arg, Args... args)
     return maxOfTwo(arg, currentMax);
 }
 
-template <bool ISLITTLEENDIAN = std::endian::little == std::endian::native>
+template <bool ISLITTLEENDIAN = std::endian::little == std::endian::native,
+    bool ONLYUSELITTLEENDIAN  = true>
 class EndianSwap
 {
 public:
     template <typename T>
     static T swap(T value)
     {
-        if constexpr (!ISLITTLEENDIAN)
+        if constexpr (ONLYUSELITTLEENDIAN || !ISLITTLEENDIAN)
         {
             return value;
         }
