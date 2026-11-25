@@ -392,11 +392,18 @@ public:
         using type = Template<Args...>;
     };
 
-    template <typename... ARGS>
+    template <typename... Args>
     struct ResquestOrResponse
     {
         std::string function_id;
-        std::tuple<ARGS...> user_data;
+        std::tuple<Args...> user_data;
+
+        static std::string DeserializeFuncID(std::string_view str)
+        {
+            uint16_t* len_ptr = (uint16_t*)(str.data());
+            auto length       = EndianSwap<>::swap(*len_ptr);
+            return std::string(str.data() + sizeof(uint16_t), length);
+        }
         GEN_SERIALIZE(function_id, user_data)
     };
 
@@ -518,7 +525,7 @@ public:
 
     std::string InvokeFunctionWithSerialize(std::string_view str)
     {
-        auto function_id = DeserializeFuncID(str);
+        auto function_id = ResquestOrResponse<>::DeserializeFuncID(str);
         auto it          = functions_with_serialize_.find(function_id);
         if (it != functions_with_serialize_.end())
         {
@@ -536,13 +543,6 @@ private:
         functions_;
     std::map<std::string, std::function<std::string(std::string_view str)>>
         functions_with_serialize_;
-
-    std::string DeserializeFuncID(std::string_view str)
-    {
-        uint16_t* len_ptr = (uint16_t*)(str.data());
-        auto length       = EndianSwap<>::swap(*len_ptr);
-        return std::string(str.data() + sizeof(uint16_t), length);
-    }
 };
 }  // namespace v3
 }  // namespace funexecutor
